@@ -1,9 +1,6 @@
 
 import strutils
 
-const
-  debug = true
-
 type
 
   Opcode = enum
@@ -26,7 +23,7 @@ type
     so: int # Source offset
     ip: int # Instruction pointer
 
-  Patt = object
+  Patt* = object
     inst: seq[Inst]
 
 
@@ -131,27 +128,29 @@ proc `^`*(p: Patt, count: int): Patt =
 # Match VM
 #
 
-proc match(p: Patt, s: string): bool =
+proc match*(p: Patt, s: string, trace = false): bool =
 
   var ip = 0
   var so = 0
   var stack: seq[StackFrame]
   
   proc dumpStack() =
-    when debug:
+    if trace:
       echo "  stack:"
       for i, f in stack.pairs():
         echo "    " & $i & " ip=" & $f.ip & " so=" & $f.so
 
   proc push(ip: int, so: int = -1) = 
-    echo "  push ip:" & $ip & " so:" & $so
+    if trace:
+      echo "  push ip:" & $ip & " so:" & $so
     stack.add StackFrame(ip: ip, so: so)
     dumpStack()
 
   proc pop(): StackFrame =
     doAssert stack.len > 0, "NPeg stack underrun"
     result = stack[stack.high]
-    echo "  pop ip:" & $result.ip & " so:" & $result.so
+    if trace:
+      echo "  pop ip:" & $result.ip & " so:" & $result.so
     stack.del stack.high
     dumpStack()
   
@@ -159,7 +158,7 @@ proc match(p: Patt, s: string): bool =
     let inst = p.inst[ip]
     var fail = false
 
-    when debug:
+    if trace:
       echo "ip:" & $ip & " | i:" & $dumpInst(inst, ip) & " | so:" & $so & " | s:" & s[so..<s.len]
 
     case inst.code:
@@ -214,7 +213,8 @@ proc match(p: Patt, s: string): bool =
           fail = true
 
     if fail:
-      echo "Fail"
+      if trace:
+        echo "Fail"
 
       while stack.len > 0 and stack[stack.high].so == -1:
         stack.del stack.high
@@ -226,77 +226,13 @@ proc match(p: Patt, s: string): bool =
       ip = f.ip
       so = f.so
 
-  when debug:
+  if trace:
     echo "done so:" & $so & " s.len:" & $s.len & " ip:" & $ip & " p.len:" & $p.len
 
   result = so <= s.len and ip == p.len
 
 
 
-
-when true:
-
-  proc test(p: Patt, s: string, v: bool) =
-    echo "------------ '" & s & "' -----"
-    echo $p
-    echo "------------"
-    let ok = p.match(s) == v
-    if not ok:
-      doAssert false
-      quit 1
-    echo ""
-
-  test(P"abc", "abc", true)
-  test(P"abc", "def", false)
-  test(P"abc" + P"def", "abc", true)
-  test(P"abc" + P"def", "def", true)
-  test(P"abc" + P"def", "boo", false)
-  test(P"abc" * P"def", "a", false)
-  test(P"abc" * P"def", "abc", false)
-  test(P"abc" * P"def", "abcde", false)
-  test(P"abc" * P"def", "abcdef", true)
-  test(P"abc" * P"def", "abcdefg", true)
-  test(P"ab" * P(2) * P "ef", "abcdef", true)
-  test(S"abc", "a", true)
-  test(S"abc", "b", true)
-  test(S"abc", "d", false)
-  test(S"abc" + S"ced", "a", true)
-  test(S"abc" + S"def", "d", true)
-  test(S"abc" + S"def", "g", false)
-  test(P"abc" * S"def" * P"ghi", "abcdghi", true)
-  test(P"abc" * S"def" * P"ghi", "abceghi", true)
-  test(P"abc" * S"def" * P"ghi", "abcgghi", false)
-  test(P"abc" * S"def" * P"ghi", "abcghi", false)
-  test(P"abc"^0, "abcefg", true)
-  test(P"abc"^2, "abc", false)
-  test(P"abc"^2, "abcabc", true)
-  test(P"abc"^2, "abcabcabc", true)
-  test(P"abc" ^ -3, "foo", true)
-  test(P"abc" ^ -2, "abc", true)
-  test(P"abc" ^ -2, "abcabc", true)
-  test(P"abc" ^ -2, "abcabcabc", true)
-  test(P"abc" ^ -2, "abcabcabc", true)
-  test((P"abc" ^ -2) * P"foo", "foo", true)
-  test((P"abc" ^ -2) * P"foo", "abcfoo", true)
-  test((P"abc" ^ -2) * P"foo", "abcabcfoo", true)
-  test((P"abc" ^ -2) * P"foo", "abcabcabcfoo", false)
-  test(R("az"), "a", true)
-  test(R("az"), "b", true)
-  test(R("az"), "z", true)
-  test(R("az"), "A", false)
-
-  block:
-    let alpha = R("az") + R("AZ")
-    let digit = R("09")
-    let alphanum = alpha + digit
-    let underscore = P"_"
-    let identifier = (alpha + underscore) * (alphanum + underscore)^0
-
-    test(identifier, "foo", true)
-    test(identifier, "foo1", true)
-    test(identifier, "1foo", false)
-    test(identifier, "_foo", true)
-    test(identifier, "_1foo", true)
 
 
 # vi: ft=nim et ts=2 sw=2
