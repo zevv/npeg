@@ -7,7 +7,7 @@ const
 type
 
   Opcode = enum
-    iChar, iSet, iJump, iChoice, iCall, iReturn, iCommit, iFail, iAny
+    iChar, iSet, iJump, iChoice, iCall, iReturn, iCommit, iPartialCommit, iFail, iAny
 
   Inst = object
     case code: Opcode
@@ -15,7 +15,7 @@ type
         c: char
       of iSet:
         cs: set[char]
-      of iChoice, iJump, iCall, iCommit:
+      of iChoice, iJump, iCall, iCommit, iPartialCommit:
         offset: int
       of iReturn, iFail:
         discard
@@ -26,7 +26,7 @@ type
     so: int # Source offset
     ip: int # Instruction pointer
 
-  Patt = ref object
+  Patt = object
     inst: seq[Inst]
 
 
@@ -45,7 +45,7 @@ proc dumpInst(inst: Inst, ip: int): string =
         if c in inst.cs:
           result.add c
       result.add "]"
-    of iChoice, iJump, iCall, iCommit:
+    of iChoice, iJump, iCall, iCommit, iPartialCommit:
       result.add $(ip + inst.offset)
     of iReturn, iFail:
       discard
@@ -59,6 +59,7 @@ proc `$`*(p: Patt): string =
 
 proc len(p: Patt): int = p.inst.len
 
+proc isSet(p: Patt): bool = p.len == 1 and p.inst[0].code == iSet 
 
 #
 # Constructors
@@ -66,13 +67,11 @@ proc len(p: Patt): int = p.inst.len
 
 proc P*(s: string): Patt =
   ## Matches string `s` literally
-  new result
   for c in s.items:
     result.inst.add Inst(code: iChar, c: c)
 
 proc P*(count: int): Patt =
   ## Matches exactly `count` characters
-  new result
   result.inst.add Inst(code: iAny, count: count)
 
 proc S*(s: string): Patt = 
@@ -80,7 +79,6 @@ proc S*(s: string): Patt =
   var cs: set[char]
   for c in s.items:
     cs.incl c
-  new result
   result.inst.add Inst(code: iSet, cs: cs)
 
 proc R*(s: string): Patt =
@@ -89,7 +87,6 @@ proc R*(s: string): Patt =
   doAssert s.len == 2
   for c in s[0]..s[1]:
     cs.incl c
-  new result
   result.inst.add Inst(code: iSet, cs: cs)
 
 
@@ -99,14 +96,12 @@ proc R*(s: string): Patt =
 
 proc `*`*(p1, p2: Patt): Patt =
   ## Matches pattern `p1` followed by pattern `p2`
-  new result
   result.inst.add p1.inst
   result.inst.add p2.inst
 
 proc `+`*(p1, p2: Patt): Patt =
   ## Matches patthen `p1` or `p2` (ordered choice)
-  new result
-  if p1.len == 1 and p2.len == 1 and p1.inst[0].code == iSet and p2.inst[0].code == iSet:
+  if p1.isSet and p2.isSet:
     # Optimization: if both patterns are charsets, create the union set
     result.inst.add Inst(code: iSet, cs: p1.inst[0].cs + p2.inst[0].cs)
   else:
@@ -116,14 +111,21 @@ proc `+`*(p1, p2: Patt): Patt =
     result.inst.add p2.inst
 
 proc `^`*(p: Patt, count: int): Patt =
-  ## Matches at least `count` repetitions of pattern `p`
-  new result
+  ## For positive `count`, matches at least `count` repetitions of pattern `p`.
+  ## For negative `count`, matches at most `count` repetitions of pattern `p`.
   if count >= 0:
     for i in 1..count:
       result.inst.add p.inst
     result.inst.add Inst(code: iChoice, offset: p.len + 2)
     result.inst.add p.inst
-    result.inst.add Inst(code: iCommit, offset: -(p.len + 1))
+    result.inst.add Inst(code: iPartialCommit, offset: -p.len)
+  else:
+    result.inst.add Inst(code: iChoice, offset: -count * (p.len + 1) + 1)
+    for i in 1..(-count-1):
+      result.inst.add p.inst
+      result.inst.add Inst(code: iPartialCommit, offset: 1)
+    result.inst.add p.inst
+    result.inst.add Inst(code: iCommit, offset: 1)
 
 #
 # Match VM
@@ -158,7 +160,7 @@ proc match(p: Patt, s: string): bool =
     var fail = false
 
     when debug:
-      echo $ip & " | i: " & $dumpInst(inst, ip) & " | s: " & s[so..<s.len]
+      echo "ip:" & $ip & " | i:" & $dumpInst(inst, ip) & " | so:" & $so & " | s:" & s[so..<s.len]
 
     case inst.code:
 
@@ -196,6 +198,11 @@ proc match(p: Patt, s: string): bool =
         discard pop()
         ip += inst.offset
 
+      of iPartialCommit:
+        stack[stack.high].so = so
+        ip += inst.offset
+        dumpStack()
+
       of iFail:
         fail = true
 
@@ -225,13 +232,18 @@ proc match(p: Patt, s: string): bool =
   result = so <= s.len and ip == p.len
 
 
+
+
 when true:
 
   proc test(p: Patt, s: string, v: bool) =
     echo "------------ '" & s & "' -----"
     echo $p
     echo "------------"
-    doAssert p.match(s) == v
+    let ok = p.match(s) == v
+    if not ok:
+      doAssert false
+      quit 1
     echo ""
 
   test(P"abc", "abc", true)
@@ -259,6 +271,15 @@ when true:
   test(P"abc"^2, "abc", false)
   test(P"abc"^2, "abcabc", true)
   test(P"abc"^2, "abcabcabc", true)
+  test(P"abc" ^ -3, "foo", true)
+  test(P"abc" ^ -2, "abc", true)
+  test(P"abc" ^ -2, "abcabc", true)
+  test(P"abc" ^ -2, "abcabcabc", true)
+  test(P"abc" ^ -2, "abcabcabc", true)
+  test((P"abc" ^ -2) * P"foo", "foo", true)
+  test((P"abc" ^ -2) * P"foo", "abcfoo", true)
+  test((P"abc" ^ -2) * P"foo", "abcabcfoo", true)
+  test((P"abc" ^ -2) * P"foo", "abcabcabcfoo", false)
   test(R("az"), "a", true)
   test(R("az"), "b", true)
   test(R("az"), "z", true)
