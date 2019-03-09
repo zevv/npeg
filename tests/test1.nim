@@ -1,7 +1,7 @@
 import unittest
 import npeg
 
-const verbose = false
+const verbose = true
 
 abortOnError = true
 
@@ -17,7 +17,10 @@ suite "npeg":
 
   test "literal string (P)":
     doTest(P"", "abc", true)
+    doTest(P"abc", "ab", false)
+    doTest(P"abc", "bc", false)
     doTest(P"abc", "abc", true)
+    doTest(P"abc", "abcd", true)
     doTest(P"abc", "abcde", true)
     doTest(P"abc", "qqabc", false)
     doTest(P"abc", "", false)
@@ -69,6 +72,8 @@ suite "npeg":
   test "not (-p)":
     doTest(-P"a", "a", false)
     doTest(-P"a", "b", true)
+    doTest(P"abc" * -P(1), "abc", true)
+    doTest(P"abc" * -P(1), "abcd", false)
 
   test "difference (-)":
     doTest(R("09") - R("04"), "0", false)

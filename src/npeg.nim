@@ -5,12 +5,14 @@ type
 
   Opcode = enum
     iChar, iSet, iJump, iChoice, iCall, iReturn, iCommit, iPartialCommit,
-    iFail, iAny
+    iFail, iAny, iStr
 
   Inst = object
     case code: Opcode
       of iChar:
         c: char
+      of iStr:
+        s: string
       of iSet:
         cs: set[char]
       of iChoice, iJump, iCall, iCommit, iPartialCommit:
@@ -36,6 +38,8 @@ proc dumpInst(inst: Inst, ip: int): string =
   case inst.code:
     of iChar:
       result.add "'" & inst.c & "'"
+    of iStr:
+      result.add "\"" & inst.s & "\""
     of iSet:
       result.add "["
       for c in char.low..char.high:
@@ -63,8 +67,7 @@ proc isSet(p: Patt): bool = p.len == 1 and p[0].code == iSet
 
 proc P*(s: string): Patt =
   ## Returns a pattern that matches string `s` literally
-  for c in s.items:
-    result.add Inst(code: iChar, c: c)
+  result.add Inst(code: iStr, s: s)
 
 proc P*(count: int): Patt =
   ## Returns a pattern that matches exactly `count` characters
@@ -213,6 +216,14 @@ proc match*(p: Patt, s: string, trace = false): bool =
         if si < s.len and s[si] == inst.c:
           inc ip
           inc si
+        else:
+          fail = true
+
+      of iStr:
+        let l = inst.s.len
+        if si <= s.len - l and s[si..<si+l] == inst.s:
+          inc ip
+          inc si, l
         else:
           fail = true
 
