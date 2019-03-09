@@ -1,7 +1,8 @@
 
-# nPEG
+# NPeg
 
-nPEG is an early stage pure Nim pattern-matching library.
+NPeg is an early stage pure Nim pattern-matching library, highly inspired by
+Lua's LPeg library.
 
 
 ## Status
@@ -21,18 +22,9 @@ patt^n          # Matches at least n repetitions of patt
 patt^-n         # Matches at most n repetitions of patt
 patt1 * patt2   # Matches patt1 followed by patt2
 patt1 + patt2   # Matches patt1 or patt2 (ordered choice)
-```
-
-
-Not yet implemented:
-
-```nim
 patt1 - patt2   # Matches patt1 if patt2 does not match
 -patt           # Equivalent to ("" - patt)
-#patt           # Matches patt but consumes no input
-lpeg.B(patt)    # Matches patt behind the current position, consuming no input
 ```
-
 
 ## Examples
 
