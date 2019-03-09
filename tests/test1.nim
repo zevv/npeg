@@ -1,7 +1,7 @@
 import unittest
 import npeg
 
-const verbose = true
+const verbose = false
 
 abortOnError = true
 
@@ -24,6 +24,11 @@ suite "npeg":
     doTest(P"abc", "abcde", true)
     doTest(P"abc", "qqabc", false)
     doTest(P"abc", "", false)
+
+  test "case insensitive literal string (Pi)":
+    doTest(Pi"abc", "abc", true)
+    doTest(Pi"abc", "ABC", true)
+    doTest(Pi"abc", "Abc", true)
   
   test "literal count (P)":
     doTest(P(1), "a", true)

@@ -4,14 +4,12 @@ import strutils
 type
 
   Opcode = enum
-    iChar, iSet, iJump, iChoice, iCall, iReturn, iCommit, iPartialCommit,
-    iFail, iAny, iStr
+    iSet, iJump, iChoice, iCall, iReturn, iCommit, iPartialCommit,
+    iFail, iAny, iStr, iStri
 
   Inst = object
     case code: Opcode
-      of iChar:
-        c: char
-      of iStr:
+      of iStr, iStri:
         s: string
       of iSet:
         cs: set[char]
@@ -36,9 +34,7 @@ type
 proc dumpInst(inst: Inst, ip: int): string =
   result.add $inst.code & " "
   case inst.code:
-    of iChar:
-      result.add "'" & inst.c & "'"
-    of iStr:
+    of iStr, iStri:
       result.add "\"" & inst.s & "\""
     of iSet:
       result.add "["
@@ -68,6 +64,10 @@ proc isSet(p: Patt): bool = p.len == 1 and p[0].code == iSet
 proc P*(s: string): Patt =
   ## Returns a pattern that matches string `s` literally
   result.add Inst(code: iStr, s: s)
+
+proc Pi*(s: string): Patt =
+  ## Returns a pattern that matches string `s` literally, ignoring case
+  result.add Inst(code: iStri, s: s)
 
 proc P*(count: int): Patt =
   ## Returns a pattern that matches exactly `count` characters
@@ -212,16 +212,17 @@ proc match*(p: Patt, s: string, trace = false): bool =
 
     case inst.code:
 
-      of iChar:
-        if si < s.len and s[si] == inst.c:
-          inc ip
-          inc si
-        else:
-          fail = true
-
       of iStr:
         let l = inst.s.len
         if si <= s.len - l and s[si..<si+l] == inst.s:
+          inc ip
+          inc si, l
+        else:
+          fail = true
+      
+      of iStri:
+        let l = inst.s.len
+        if si <= s.len - l and cmpIgnoreCase(s[si..<si+l], inst.s) == 0:
           inc ip
           inc si, l
         else:
