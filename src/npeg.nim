@@ -62,27 +62,35 @@ proc isSet(p: Patt): bool = p.len == 1 and p[0].code == iSet
 #
 
 proc P*(s: string): Patt =
-  ## Matches string `s` literally
+  ## Returns a pattern that matches string `s` literally
   for c in s.items:
     result.add Inst(code: iChar, c: c)
 
 proc P*(count: int): Patt =
-  ## Matches exactly `count` characters
+  ## Returns a pattern that matches exactly `count` characters
   result.add Inst(code: iAny, count: count)
 
 proc S*(s: string): Patt = 
-  ## Matches any character in the string `s` (Set)
+  ## Returns a pattern that matches any single character that appears in the
+  ## given string. (The S stands for Set.)
+  ##
+  ## Note that, if s is a character (that is, a string of length 1), then
+  ## P(s) is equivalent to S(s) which is equivalent to R(s..s).
+  ## Note also that both S("") and R() are patterns that always fail.
   var cs: set[char]
   for c in s.items:
     cs.incl c
   result.add Inst(code: iSet, cs: cs)
 
-proc R*(s: string): Patt =
-  ## `"xy"` matches any character between x and y (Range)
+proc R*(ss: varargs[string]): Patt =
+  ## Returns a pattern that matches any single character belonging to one of the
+  ## given ranges. Each range is a string "xy" of length 2, representing all
+  ## characters with code between the codes of x and y (both inclusive).
   var cs: set[char]
-  doAssert s.len == 2
-  for c in s[0]..s[1]:
-    cs.incl c
+  for s in ss.items:
+    doAssert s.len == 2
+    for c in s[0]..s[1]:
+      cs.incl c
   result.add Inst(code: iSet, cs: cs)
 
 
@@ -103,6 +111,9 @@ proc `*`*(p1, p2: Patt): Patt =
   result.add p2
 
 proc `+`*(p1, p2: Patt): Patt =
+  ## Returns a pattern equivalent to an ordered choice of `p1` and `p2`. (This
+  ## is denoted by `p1` / `p2` in the original PEG notation) It matches either
+  ## `p1` or `p2`, with no backtracking once one of them succeeds.
   ## Matches patthen `p1` or `p2` (ordered choice)
   if p1.isSet and p2.isSet:
     # Optimization: if both patterns are charsets, create the union set
@@ -116,6 +127,9 @@ proc `+`*(p1, p2: Patt): Patt =
 proc `^`*(p: Patt, count: int): Patt =
   ## For positive `count`, matches at least `count` repetitions of pattern `p`.
   ## For negative `count`, matches at most `count` repetitions of pattern `p`.
+  ## In all cases, the resulting pattern is greedy with no backtracking (also 
+  ## called a possessive repetition). That is, it matches only the longest possible 
+  ## sequence of matches for patt. 
   if count >= 0:
     for i in 1..count:
       result.add p
@@ -152,6 +166,12 @@ proc `-`*(p1, p2: Patt): Patt =
 #
 
 proc match*(p: Patt, s: string, trace = false): bool =
+
+  ## The matching function. It attempts to match the given pattern against the
+  ## subject string.  Unlike typical pattern-matching functions, match works
+  ## only in anchored mode; that is, it tries to match the pattern with a prefix
+  ## of the given subject string (at position init), not with an arbitrary
+  ## substring of the subject
 
   var ip = 0
   var si = 0

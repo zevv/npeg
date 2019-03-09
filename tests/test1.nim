@@ -42,6 +42,10 @@ suite "npeg":
     doTest(R("bn"), "c", true)
     doTest(R("bn"), "n", true)
     doTest(R("bn"), "o", false)
+    doTest(R("an", "AN"), "g", true)
+    doTest(R("an", "AN"), "G", true)
+    doTest(R("an", "AN"), "o", false)
+    doTest(R("an", "AN"), "O", false)
 
   test "ordered choice / union (+)":
     doTest(P"abc" + P"def", "abc", true)
