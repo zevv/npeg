@@ -3,18 +3,37 @@
 
 NPeg is an early stage pure Nim pattern-matching library.
 
-The NPeg library is an implementation of Parsing Expression Grammars for the
-Lua language.  Unlike other PEG implementations, which aim at parsing, NPeg
-aims at pattern matching. Therefore, it turns PEG inside out: while PEGs define
-grammars using pattern expressions as an auxiliary construction, in NPeg the
-main construction is the pattern, and grammars are only a particular way to
-create patterns.
+NPeg is highly inspired by the paper
+[A Text Pattern-Matching Tool based on Parsing Expression Grammars](www.inf.puc-rio.br/~roberto/docs/peg.pdf).
 
+NPeg turns PEG inside out: while PEGs define grammars using pattern expressions 
+as an auxiliary construction, in NPeg the main construction is the pattern, 
+and grammars are only a particular way to create patterns.
+
+Instead of defining the grammar in a fixed DSL or text format, NPeg patterns are
+represented by first class Nim objects, which can be combined with various operators
+to create a grammar - which is itself again a pattern. This allows the user to use
+the full flexibility of the Nim language for constructing parsers.
+
+The following example matches valid identifiers which are defiend as "a letter 
+or an underscore followed by zero or more alphanumeric characters or underscores":
+
+```nim
+import pegs
+  
+let alpha = R("az") + R("AZ")
+let digit = R("09")
+let alphanum = alpha + digit
+let underscore = P"_"
+let identifier = (alpha + underscore) * (alphanum + underscore)^0
+
+doAssert identifier.match("myId_3")
+```
 
 
 ## Status
 
-Work in progress.
+NPeg is very much a work in progress.
 
 ## Docs
 
@@ -49,20 +68,7 @@ On the whish list:
   macro based DSL
 
 
-## Examples
-
-Matches valid identifiers "a letter or an underscore followed by zero or more
-alphanumeric characters or underscores.":
-
-```nim
-  let alpha = R("az") + R("AZ")
-  let digit = R("09")
-  let alphanum = alpha + digit
-  let underscore = P"_"
-  let identifier = (alpha + underscore) * (alphanum + underscore)^0
-
-  doAssert identifier.match("myId_3")
-```
+## More examples
 
 Matches valid decimal, floating point and scientific notation numbers:
 
@@ -105,8 +111,7 @@ Matches valid decimal, floating point and scientific notation numbers:
   doAssert number.match("-1.0e-6")
 ```
 
-
-[More Examples](https://github.com/zevv/npeg/blob/master/tests/test1.nim) are
+[Even more Examples](https://github.com/zevv/npeg/blob/master/tests/test1.nim) are
 available in the tests directory, run with `nimble test`.
 
 
