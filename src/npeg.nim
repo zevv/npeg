@@ -5,7 +5,7 @@ type
 
   Opcode = enum
     iSet, iJump, iChoice, iCall, iReturn, iCommit, iPartialCommit,
-    iFail, iAny, iStr, iStri
+    iFail, iAny, iStr, iStri, iCapStart, iCapEnd,
 
   Inst = object
     case code: Opcode
@@ -15,10 +15,10 @@ type
         cs: set[char]
       of iChoice, iJump, iCall, iCommit, iPartialCommit:
         offset: int
-      of iReturn, iFail:
-        discard
       of iAny:
         count: int
+      else:
+        discard
 
   StackFrame = object
     si: int # Source index
@@ -41,13 +41,13 @@ proc dumpInst(inst: Inst, ip: int): string =
       for c in char.low..char.high:
         if c in inst.cs:
           result.add c
-      result.add "]"
+      result.add "] " & $inst.cs.card
     of iChoice, iJump, iCall, iCommit, iPartialCommit:
       result.add $(ip + inst.offset)
-    of iReturn, iFail:
-      discard
     of iAny:
       result.add $inst.count
+    else:
+      discard
 
 proc `$`*(p: Patt): string =
   for ip, inst in p:
@@ -102,7 +102,10 @@ proc R*(ss: varargs[string]): Patt =
 #
 
 proc C*(p: Patt): Patt =
-  p
+  result.add Inst(code: iCapStart)
+  result.add p
+  result.add Inst(code: iCapEnd)
+  
 
 #
 # Operators for building grammars
@@ -168,7 +171,7 @@ proc `-`*(p1, p2: Patt): Patt =
 # Match VM
 #
 
-proc match*(p: Patt, s: string, trace = false): bool =
+proc match*(p: Patt, s: string, captures: var seq[string], trace = false) : bool =
 
   ## The matching function. It attempts to match the given pattern against the
   ## subject string.  Unlike typical pattern-matching functions, match works
@@ -176,9 +179,11 @@ proc match*(p: Patt, s: string, trace = false): bool =
   ## of the given subject string (at position init), not with an arbitrary
   ## substring of the subject
 
-  var ip = 0
-  var si = 0
-  var stack: seq[StackFrame]
+  var
+    ip = 0 # VM instruction pointer
+    si = 0 # source string index
+    stack: seq[StackFrame]
+    capstack: seq[int]
   
   proc dumpStack() =
     if trace:
@@ -270,6 +275,16 @@ proc match*(p: Patt, s: string, trace = false): bool =
         else:
           fail = true
 
+      of iCapStart:
+        capstack.add si
+        inc ip
+
+      of iCapEnd:
+        let si1 = capstack[capstack.high]
+        capstack.del capstack.high
+        captures.add s[si1..<si]
+        inc ip
+
     if fail:
       if trace:
         echo "Fail"
@@ -290,9 +305,9 @@ proc match*(p: Patt, s: string, trace = false): bool =
   result = si <= s.len and ip == p.len
 
 
-proc match*(s: string, p: Patt, trace = false): bool =
-  match(p, s, trace)
-
+proc match*(p: Patt, s: string, trace: bool): bool =
+  var captures: seq[string]
+  match(p, s, captures, trace)
 
 
 
