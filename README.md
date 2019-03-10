@@ -1,8 +1,15 @@
 
 # NPeg
 
-NPeg is an early stage pure Nim pattern-matching library, highly inspired by
-Lua's LPeg library.
+NPeg is an early stage pure Nim pattern-matching library.
+
+The NPeg library is an implementation of Parsing Expression Grammars for the
+Lua language.  Unlike other PEG implementations, which aim at parsing, NPeg
+aims at pattern matching. Therefore, it turns PEG inside out: while PEGs define
+grammars using pattern expressions as an auxiliary construction, in NPeg the
+main construction is the pattern, and grammars are only a particular way to
+create patterns.
+
 
 
 ## Status
@@ -15,6 +22,7 @@ Implemented:
 
 ```nim
 P(string)       # Matches string literally
+I(string)       # Matches string literally, case insensitive
 P(n)            # Matches exactly n characters
 S(string)       # Matches any character in string (Set)
 R("xy")         # Matches any character between x and y (Range)
@@ -24,7 +32,22 @@ patt1 * patt2   # Matches patt1 followed by patt2
 patt1 + patt2   # Matches patt1 or patt2 (ordered choice)
 patt1 - patt2   # Matches patt1 if patt2 does not match
 -patt           # Equivalent to ("" - patt)
+C(patt)         # Create a capture
 ```
+
+On the whish list:
+
+* Implement non-terminals to be able to construct recursive grammars
+
+* Much more elaborate captures - ideally, NPeg should be able to capture
+  into Nim objects and allow to build ASTs on the fly
+
+* Compile time transcoding of the PEG VM code into Nim for absolute 
+  top speed parsing
+
+* Provide an alternative method for constructing PEGS through a Nim 
+  macro based DSL
+
 
 ## Examples
 
