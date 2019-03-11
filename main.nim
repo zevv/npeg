@@ -10,11 +10,18 @@ type
     opChar, opChoice, opCommit, opComment, opCall, opReturn, opAny
 
   Inst = object
-    op: Opcode
-    ch: char
-    offset: int
-    comment: string
-    name: string
+    case op: Opcode
+      of opChoice, opCommit:
+        offset: int
+      of opChar:
+        ch: char
+      of opComment:
+        comment: string
+      of opCall:
+        name: string
+        address: int
+      else:
+        discard
 
   Frame = object
     ip: int
@@ -34,7 +41,7 @@ proc `$`*(p: Patt): string =
       of opChoice, opCommit:
         result &= " " & $(n+i.offset)
       of opCall:
-        result &= " " & i.name
+        result &= " " & i.name & ":" & $i.address
       of opComment:
         result &= "# " & i.comment
       else:
@@ -43,7 +50,7 @@ proc `$`*(p: Patt): string =
 
   
 #
-# Recursively compile a peg pattern to a list of state machine instructions
+# Recursively compile a peg pattern to a sequence of parser instructions
 #
 
 proc buildPatt(patts: Patts, name: string, patt: NimNode): Patt =
@@ -72,7 +79,7 @@ proc buildPatt(patts: Patts, name: string, patt: NimNode): Patt =
           let p = aux n[1]
           add Inst(op: opChoice, offset: p.len+2)
           add p
-          add Inst(op: opCommit, offset: p.len-2)
+          add Inst(op: opCommit, offset: -p.len-1)
         else:
           error "Unhandled prefix operator"
       of nnkStrLit:
@@ -111,10 +118,9 @@ proc buildPatt(patts: Patts, name: string, patt: NimNode): Patt =
       else:
         error "PEG syntax error"
  
-  result.add Inst(op: opComment, comment: "--- start " & name)
+  result.add Inst(op: opComment, comment: "start " & name)
   result.add aux(patt)
-  result.add Inst(op: opReturn)
-  result.add Inst(op: opComment, comment: "--- end " & name)
+  result.add Inst(op: opComment, comment: "end " & name)
 
 
 proc isTerminal(p: Patt): bool =
@@ -153,58 +159,84 @@ proc link(patts: Patts, name: string): Patt =
   if name notin patts:
     error "Patts start rule '" & name & "' not found"
 
+  var symTab = newTable[string, int]()
+
   result.add patts[name]
+  symTab[name] = result.len
+  result.add Inst(op: opReturn)
 
   for n, p in patts:
-    if n != name and not p.isTerminal:
+    if n != name:
+      symTab[n] = result.len
       result.add p
+      result.add Inst(op: opReturn)
+
+  # Fixup call addresses
+
+  for i in result.mitems:
+    if i.op == opCall:
+      i.address = symtab[i.name]
+
+  echo symtab
+
+template skel(cases: untyped) =
 
 
-template skel(ip: NimNode, cases: untyped) =
+  template trace(msg: string) =
+    when true:
+      echo "ip:" & $ip & " msg:" & msg & " si:" & $si & " s:" & s[si..<s.len]
 
-  var
-    stack: seq[Frame]
-
-  proc trace() =
-    echo "ip:" & $ip & " si:" & $si & " s:" & s[si..<s.len]
-
-  proc doComment() =
+  proc opCommentFn(msg: string) =
+    trace " \e[1m" & msg & "\e[0m"
     inc ip
 
-  proc doChar(c: char) =
+  proc opCharFn(c: char) =
+    trace " char '" & c & "'"
     if si < s.len and s[si] == c:
       inc ip
       inc si
     else:
       ip = -1
 
-  proc doAny() =
+  proc opAnyFn() =
+    trace " any"
     if si < s.len:
       inc ip
       inc si
     else:
       ip = -1
 
-  proc doChoice(n: int) =
+  proc opChoiceFn(n: int) =
+    trace " choice " & $n
     stack.add Frame(ip: n, si: si)
     inc ip
 
-  proc doCommit(n: int) =
+  proc opCommitFn(n: int) =
+    trace " commit " & $n
     stack.del stack.high
     ip = n
 
-  proc doFail() =
+  proc opFailFn() =
+    trace " fail"
     ip = -1
 
-  proc doReturn() =
-    echo "return"
+  proc opCallFn(label: string, address: int) =
+    trace " call " & label & ":" & $address
+    stack.add Frame(ip: ip+1, si: si)
+    ip = address
 
-  proc doElse() =
+  template opReturnFn() =
+    trace " return"
+    ip = stack[stack.high].ip
+    stack.del stack.high
+
+  proc opElseFn() =
+    trace " fail"
     while stack.len > 0 and stack[stack.high].si == -1:
       stack.del stack.high
 
     if stack.len == 0:
-      echo "Error"
+      trace " error"
       quit 1
 
     ip = stack[stack.high].ip
@@ -212,38 +244,38 @@ template skel(ip: NimNode, cases: untyped) =
     stack.del stack.high
 
   while true:
-    trace()
     cases
 
 
-proc mkParser(name: string, program: Patt): NimNode =
+#
+# Convert the list of parser instructions into a Nim finite state machine
+#
 
-  var ip = newIdentNode("ip")
-  var cases = nnkCaseStmt.newTree(ip)
+proc gencode(name: string, program: Patt): NimNode =
+
+  # Create case handler for each instruction
+
+  var cases = nnkCaseStmt.newTree(ident("ip"))
+  cases.add nnkElse.newTree(parseStmt("opElseFn()"))
   
   for n, i in program.pairs:
-
-    var cmd = replace($i.op, "op", "do") & "("
-
+    var cmd = $i.op & "Fn("
     case i.op:
-      of opChar:
-        cmd &= "'" & $i.ch & "'"
-      of opChoice, opCommit:
-        cmd &= $(n+i.offset)
-      of opCall:
-        cmd &= "\"" & i.name & "\""
-      else:
-        discard
+      of opChar:             cmd &= "'" & $i.ch & "'"
+      of opChoice, opCommit: cmd &= $(n+i.offset)
+      of opCall:             cmd &= "\"" & i.name & "\"" & ", " & $i.address
+      of opComment:          cmd &= "\"" & i.comment & "\""
+      else: discard
     cmd &= ")"
-
     cases.add nnkOfBranch.newTree(newLit(n), parseStmt(cmd))
 
-  cases.add nnkElse.newTree(parseStmt("doElse()"))
-
   var body = nnkStmtList.newTree()
-  body.add parseStmt("var ip = 0")
+  body.add parseStmt("var ip {.goto.} = 0")
   body.add parseStmt("var si = 0")
-  body.add getAst skel(ip, cases)
+  body.add parseStmt("var stack: seq[Frame]")
+  body.add getAst skel(cases)
+
+  # Return parser lambda function containing 'body'
 
   result = nnkLambda.newTree(newEmptyNode(), newEmptyNode(), newEmptyNode(),
     nnkFormalParams.newTree( newEmptyNode(), nnkIdentDefs.newTree(
@@ -255,6 +287,8 @@ proc mkParser(name: string, program: Patt): NimNode =
     body
   )
 
+  #echo cases.repr
+
 
 #
 # Convert a pattern to a Nim proc implementing the parser state machine
@@ -264,106 +298,25 @@ macro peg(name: string, ns: untyped): untyped =
   let grammar = compile(ns)
   let program = link(grammar, name.strVal)
   echo program
-  result = mkParser(name.strVal, program)
+  gencode(name.strVal, program)
 
 when true:
   let s = peg "aap":
-    aap <- "ab"
-
-  s("abab")
-
-
-
-#macro hop(): untyped =
-#  result = mkParser()
-#  echo result.repr
-#
-#let fn = hop()
-##fn("abab")
+    aap <- ab * _ * ab
+    ab <- "ab"
+  s("abcab")
 
 
 when false:
-  discard peg "Exp":
-    Number <- ("0" | "1" | "2"){1,1}
-    TermOp <- "+" | "-"
-    FactorOp <- "*" | "/"
-    Open <- "("
-    Close <- ")"
-    Exp <- Term * (TermOp * Term){0,1}
-    Term <- Factor * (FactorOp * Factor){0,1}
-    Factor <- Number + Open * Exp * Close
+  let s = peg "exp":
+    digit <- ("0" | "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9")
+    number <- +digit
+    termOp <- "+" | "-"
+    factorOp <- "*" | "/"
+    open <- "("
+    close <- ")"
+    exp <- term * +(termOp * term)
+    term <- factor * +(factorOp * factor)
+    factor <- number | open * exp * close
+  s("13")
 
-
-when false:
-  let s = P"ab" * -P(1)
-  echo s
-
-  proc parse(s: string) =
-
-    var
-      ip: int
-      si: int
-      stack: seq[Frame]
-
-    const
-      Nowhere = -1
-      Fail = -2
-
-    proc doChoice(n: int) =
-      stack.add Frame(ip: n, si: si)
-      inc ip
-
-    proc doCommit(n: int) =
-      stack.del stack.high
-      ip = n
-      
-    proc doChar(c: char) =
-      if si < s.len and s[si] == c:
-        inc ip
-        inc si
-      else:
-        ip = Fail
-    
-    proc doAny() =
-      if si < s.len:
-        inc ip
-        inc si
-      else:
-        ip = Fail
-
-    proc doFail() =
-      ip = Fail
-    
-    while true:
-        
-      echo "ip:" & $ip & " si:" & $si & " s:" & s[si..<s.len]
-
-      case ip:
-
-        of 0: doChoice(4)
-        of 1: doChar('a')
-        of 2: doChar('b')
-        of 3: doCommit(0)
-        of 4: doChoice(8)
-        of 5: doAny()
-        of 6: doCommit(7)
-        of 7: doFail()
-        of 8:
-          echo "Done"
-          quit 0
-        of Fail:
-
-          while stack.len > 0 and stack[stack.high].si == Nowhere:
-            stack.del stack.high
-
-          if stack.len == 0:
-            echo "Error"
-            quit 1
-
-          ip = stack[stack.high].ip
-          si = stack[stack.high].si
-          stack.del stack.high
-        else:
-          doAssert false, "Boom"
-
-  parse("ababab")
