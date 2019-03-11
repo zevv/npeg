@@ -7,7 +7,7 @@ import tables
 
 type
   Opcode = enum
-    opChar, opChoice, opCommit, opComment, opCall, opReturn, opAny
+    opChar, opChoice, opCommit, opComment, opCall, opReturn, opAny, opSet, opStr
 
   Inst = object
     case op: Opcode
@@ -15,11 +15,15 @@ type
         offset: int
       of opChar:
         ch: char
+      of opStr:
+        str: string
       of opComment:
         comment: string
       of opCall:
         name: string
         address: int
+      of opSet:
+        cs: set[char]
       else:
         discard
 
@@ -37,13 +41,17 @@ proc `$`*(p: Patt): string =
     result &= $n & ": " & $i.op
     case i.op:
       of opChar:
-        result &= " '" & $i.ch & "'"
+        result &= " '"; addEscapedChar(result, i.ch); result &= "'"
+      of opStr:
+        result &= escape(i.str)
+      of opSet:
+        result &= " '" & $i.cs & "'"
       of opChoice, opCommit:
         result &= " " & $(n+i.offset)
       of opCall:
         result &= " " & i.name & ":" & $i.address
       of opComment:
-        result &= "# " & i.comment
+        result &= " \e[1m" & i.comment & "\e[0m"
       else:
         discard
     result &= "\n"
@@ -85,6 +93,8 @@ proc buildPatt(patts: Patts, name: string, patt: NimNode): Patt =
       of nnkStrLit:
         for ch in n.strVal:
           add Inst(op: opChar, ch: ch)
+      of nnkCharLit:
+          add Inst(op: opChar, ch: n.intVal.char)
       of nnkInfix:
         if n[0].eqIdent("*"):
           add aux(n[1])
@@ -96,6 +106,10 @@ proc buildPatt(patts: Patts, name: string, patt: NimNode): Patt =
           add p1
           add Inst(op: opCommit, offset: p2.len+1)
           add p2
+        elif n[0].eqIdent(".."):
+          var cs: set[char]
+          for c in n[1].intVal..n[2].intVal: cs.incl c.char
+          add Inst(op: opSet, cs: cs)
         else:
           error "Unhandled infix operator " & n.repr
       of nnkCurlyExpr:
@@ -116,11 +130,11 @@ proc buildPatt(patts: Patts, name: string, patt: NimNode): Patt =
         else:
           add Inst(op: opCall, name: n.strVal)
       else:
-        error "PEG syntax error"
+        error "PEG syntax error: " & n.repr
  
-  result.add Inst(op: opComment, comment: "start " & name)
+  #result.add Inst(op: opComment, comment: "start " & name)
   result.add aux(patt)
-  result.add Inst(op: opComment, comment: "end " & name)
+  #result.add Inst(op: opComment, comment: "end " & name)
 
 
 proc isTerminal(p: Patt): bool =
@@ -177,28 +191,33 @@ proc link(patts: Patts, name: string): Patt =
     if i.op == opCall:
       i.address = symtab[i.name]
 
-  echo symtab
-
 template skel(cases: untyped) =
-
 
   template trace(msg: string) =
     when true:
-      echo "ip:" & $ip & " msg:" & msg & " si:" & $si & " s:" & s[si..<s.len]
+      echo "ip:" & $ip & " " & msg & " si:" & $si & " s:" & escape(s[si..<s.len])
 
-  proc opCommentFn(msg: string) =
+  template opCommentFn(msg: string) =
     trace " \e[1m" & msg & "\e[0m"
     inc ip
 
-  proc opCharFn(c: char) =
+  template opCharFn(c: char) =
     trace " char '" & c & "'"
     if si < s.len and s[si] == c:
       inc ip
       inc si
     else:
       ip = -1
+  
+  template opSetFn(cs: set[char]) =
+    trace " set " & $cs
+    if si < s.len and s[si] in cs:
+      inc ip
+      inc si
+    else:
+      ip = -1
 
-  proc opAnyFn() =
+  template opAnyFn() =
     trace " any"
     if si < s.len:
       inc ip
@@ -206,44 +225,44 @@ template skel(cases: untyped) =
     else:
       ip = -1
 
-  proc opChoiceFn(n: int) =
+  template opChoiceFn(n: int) =
     trace " choice " & $n
     stack.add Frame(ip: n, si: si)
     inc ip
 
-  proc opCommitFn(n: int) =
+  template opCommitFn(n: int) =
     trace " commit " & $n
     stack.del stack.high
     ip = n
 
-  proc opFailFn() =
-    trace " fail"
-    ip = -1
-
-  proc opCallFn(label: string, address: int) =
+  template opCallFn(label: string, address: int) =
     trace " call " & label & ":" & $address
-    stack.add Frame(ip: ip+1, si: si)
+    stack.add Frame(ip: ip+1, si: -1)
     ip = address
 
   template opReturnFn() =
     trace " return"
+    if stack.len == 0:
+      trace "done ----------------"
+      return
     ip = stack[stack.high].ip
     stack.del stack.high
 
-  proc opElseFn() =
+  template opFailFn() =
     trace " fail"
     while stack.len > 0 and stack[stack.high].si == -1:
       stack.del stack.high
 
     if stack.len == 0:
-      trace " error"
-      quit 1
+      trace "\e[31;1merror\e[0m --------------"
+      return
 
     ip = stack[stack.high].ip
     si = stack[stack.high].si
     stack.del stack.high
 
   while true:
+    trace "tick"
     cases
 
 
@@ -256,12 +275,13 @@ proc gencode(name: string, program: Patt): NimNode =
   # Create case handler for each instruction
 
   var cases = nnkCaseStmt.newTree(ident("ip"))
-  cases.add nnkElse.newTree(parseStmt("opElseFn()"))
+  cases.add nnkElse.newTree(parseStmt("opFailFn()"))
   
   for n, i in program.pairs:
     var cmd = $i.op & "Fn("
     case i.op:
-      of opChar:             cmd &= "'" & $i.ch & "'"
+      of opChar:             cmd &= "'"; addEscapedChar(cmd, i.ch); cmd &= "'"
+      of opSet:              cmd &= $i.cs 
       of opChoice, opCommit: cmd &= $(n+i.offset)
       of opCall:             cmd &= "\"" & i.name & "\"" & ", " & $i.address
       of opComment:          cmd &= "\"" & i.comment & "\""
@@ -270,7 +290,7 @@ proc gencode(name: string, program: Patt): NimNode =
     cases.add nnkOfBranch.newTree(newLit(n), parseStmt(cmd))
 
   var body = nnkStmtList.newTree()
-  body.add parseStmt("var ip {.goto.} = 0")
+  body.add parseStmt("var ip = 0")
   body.add parseStmt("var si = 0")
   body.add parseStmt("var stack: seq[Frame]")
   body.add getAst skel(cases)
@@ -287,7 +307,7 @@ proc gencode(name: string, program: Patt): NimNode =
     body
   )
 
-  #echo cases.repr
+  #echo result.repr
 
 
 #
@@ -300,17 +320,36 @@ macro peg(name: string, ns: untyped): untyped =
   echo program
   gencode(name.strVal, program)
 
-when true:
+when false:
   let s = peg "aap":
-    aap <- ab * _ * ab
     ab <- "ab"
+    aap <- ab * _ * ab
   s("abcab")
 
 
+when true:
+  let s = peg "http":
+    space <- " "
+    crlf <- "\n" | "\r\\nn"
+    meth <- "GET" | "POST" | "PUT"
+    proto <- "HTTP"
+    version <- "1.0" | "1.1"
+    alpha <- ('a'..'z') | ('A'..'Z')
+    url <- +alpha
+    req <- meth * space * url * space * proto * "/" * version * crlf
+    header <- +(alpha | '-') * ": "
+    http <- req * *header
+
+  s """POST flop HTTP/1.1
+Content-Type: text/plain
+Content-Length: 23
+"""
+
+
 when false:
-  let s = peg "exp":
-    digit <- ("0" | "1" | "2" | "3" | "4" | "5" | "6" | "7" | "8" | "9")
-    number <- +digit
+  let s = peg "number":
+    digit <- '0'..'9'
+    number <- digit * digit * *digit
     termOp <- "+" | "-"
     factorOp <- "*" | "/"
     open <- "("
