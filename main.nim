@@ -7,15 +7,14 @@ import tables
 
 type
   Opcode = enum
-    opChar, opChoice, opCommit, opComment, opCall, opReturn, opAny, opSet, opStr
+    opChoice, opCommit, opComment, opCall, opReturn, opAny, opSet, opStr,
+    opIStr
 
   Inst = object
     case op: Opcode
       of opChoice, opCommit:
         offset: int
-      of opChar:
-        ch: char
-      of opStr:
+      of opStr, opIStr:
         str: string
       of opComment:
         comment: string
@@ -40,10 +39,10 @@ proc `$`*(p: Patt): string =
   for n, i in p.pairs:
     result &= $n & ": " & $i.op
     case i.op:
-      of opChar:
-        result &= " '"; addEscapedChar(result, i.ch); result &= "'"
       of opStr:
         result &= escape(i.str)
+      of opIStr:
+        result &= "i" & escape(i.str)
       of opSet:
         result &= " '" & $i.cs & "'"
       of opChoice, opCommit:
@@ -89,12 +88,11 @@ proc buildPatt(patts: Patts, name: string, patt: NimNode): Patt =
           add p
           add Inst(op: opCommit, offset: -p.len-1)
         else:
-          error "Unhandled prefix operator"
+          error "PEG: Unhandled prefix operator"
       of nnkStrLit:
-        for ch in n.strVal:
-          add Inst(op: opChar, ch: ch)
+        add Inst(op: opStr, str: n.strVal)
       of nnkCharLit:
-          add Inst(op: opChar, ch: n.intVal.char)
+        add Inst(op: opStr, str: $n.intVal.char)
       of nnkInfix:
         if n[0].eqIdent("*"):
           add aux(n[1])
@@ -111,7 +109,7 @@ proc buildPatt(patts: Patts, name: string, patt: NimNode): Patt =
           for c in n[1].intVal..n[2].intVal: cs.incl c.char
           add Inst(op: opSet, cs: cs)
         else:
-          error "Unhandled infix operator " & n.repr
+          error "PEG: Unhandled infix operator " & n.repr
       of nnkCurlyExpr:
         let p = aux(n[0])
         let min = n[1].intVal
@@ -129,10 +127,15 @@ proc buildPatt(patts: Patts, name: string, patt: NimNode): Patt =
           add patts[name]
         else:
           add Inst(op: opCall, name: n.strVal)
+      of nnkCallStrLit:
+        if n[0].eqIdent("i"):
+          add Inst(op: opIStr, str: n[1].strVal)
+        else:
+          error "PEG: unhandled string prefix"
       else:
-        error "PEG syntax error: " & n.repr
+        error "PEG: syntax error: " & n.repr & "\n" & n.astGenRepr
  
-  #result.add Inst(op: opComment, comment: "start " & name)
+  result.add Inst(op: opComment, comment: "start " & name)
   result.add aux(patt)
   #result.add Inst(op: opComment, comment: "end " & name)
 
@@ -195,20 +198,30 @@ template skel(cases: untyped) =
 
   template trace(msg: string) =
     when true:
-      echo "ip:" & $ip & " " & msg & " si:" & $si & " s:" & escape(s[si..<s.len])
+      echo "ip:" & $ip & " " & msg & " si:" & $si & " s:" & escape(s[si..si+10])
 
   template opCommentFn(msg: string) =
     trace " \e[1m" & msg & "\e[0m"
     inc ip
-
-  template opCharFn(c: char) =
-    trace " char '" & c & "'"
-    if si < s.len and s[si] == c:
+  
+  template opIStrFn(s2: string) =
+    trace " str " & s2.escape
+    let l = s2.len
+    if si <= s.len - l and cmpIgnoreCase(s[si..<si+l], s2) == 0:
       inc ip
-      inc si
+      inc si, l
     else:
       ip = -1
   
+  template opStrFn(s2: string) =
+    trace " str " & s2.escape
+    let l = s2.len
+    if si <= s.len - l and s[si..<si+l] == s2:
+      inc ip
+      inc si, l
+    else:
+      ip = -1
+
   template opSetFn(cs: set[char]) =
     trace " set " & $cs
     if si < s.len and s[si] in cs:
@@ -262,7 +275,6 @@ template skel(cases: untyped) =
     stack.del stack.high
 
   while true:
-    trace "tick"
     cases
 
 
@@ -280,7 +292,7 @@ proc gencode(name: string, program: Patt): NimNode =
   for n, i in program.pairs:
     var cmd = $i.op & "Fn("
     case i.op:
-      of opChar:             cmd &= "'"; addEscapedChar(cmd, i.ch); cmd &= "'"
+      of opStr, opIStr:      cmd &= escape(i.str)
       of opSet:              cmd &= $i.cs 
       of opChoice, opCommit: cmd &= $(n+i.offset)
       of opCall:             cmd &= "\"" & i.name & "\"" & ", " & $i.address
@@ -330,19 +342,24 @@ when false:
 when true:
   let s = peg "http":
     space <- " "
-    crlf <- "\n" | "\r\\nn"
+    crlf <- '\n' | "\r\\nn"
     meth <- "GET" | "POST" | "PUT"
     proto <- "HTTP"
     version <- "1.0" | "1.1"
     alpha <- ('a'..'z') | ('A'..'Z')
+    digit <- ('0'..'9')
     url <- +alpha
     req <- meth * space * url * space * proto * "/" * version * crlf
-    header <- +(alpha | '-') * ": "
+
+    header_content_length <- i"Content-Length: " * +digit
+    header_other <- +(alpha | '-') * ": "
+  
+    header <- header_content_length | header_other
     http <- req * *header
 
   s """POST flop HTTP/1.1
+content-length: 23
 Content-Type: text/plain
-Content-Length: 23
 """
 
 
