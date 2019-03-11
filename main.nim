@@ -8,7 +8,7 @@ import tables
 type
   Opcode = enum
     opChoice, opCommit, opComment, opCall, opReturn, opAny, opSet, opStr,
-    opIStr
+    opIStr, opFail
 
   Inst = object
     case op: Opcode
@@ -23,7 +23,7 @@ type
         address: int
       of opSet:
         cs: set[char]
-      else:
+      of opFail, opReturn, opAny:
         discard
 
   Frame = object
@@ -51,9 +51,23 @@ proc `$`*(p: Patt): string =
         result &= " " & i.name & ":" & $i.address
       of opComment:
         result &= " \e[1m" & i.comment & "\e[0m"
-      else:
+      of opFail, opReturn, opAny:
         discard
     result &= "\n"
+
+
+#
+# Some tests on patterns
+#
+
+proc isTerminal(p: Patt): bool =
+  for i in p:
+    if i.op == opCall:
+      return false
+  return true
+
+proc isSet(p: Patt): bool =
+  p.len == 1 and p[0].op == opSet 
 
   
 #
@@ -87,6 +101,12 @@ proc buildPatt(patts: Patts, name: string, patt: NimNode): Patt =
           add Inst(op: opChoice, offset: p.len+2)
           add p
           add Inst(op: opCommit, offset: -p.len-1)
+        elif n[0].eqIdent("-"):
+          let p = aux n[1]
+          add Inst(op: opChoice, offset: p.len + 3)
+          add p
+          add Inst(op: opCommit, offset: 1)
+          add Inst(op: opFail)
         else:
           error "PEG: Unhandled prefix operator"
       of nnkStrLit:
@@ -100,14 +120,13 @@ proc buildPatt(patts: Patts, name: string, patt: NimNode): Patt =
         elif n[0].eqIdent("|"):
           let p1 = aux n[1]
           let p2 = aux n[2]
-          add Inst(op: opChoice, offset: p1.len+2)
-          add p1
-          add Inst(op: opCommit, offset: p2.len+1)
-          add p2
-        elif n[0].eqIdent(".."):
-          var cs: set[char]
-          for c in n[1].intVal..n[2].intVal: cs.incl c.char
-          add Inst(op: opSet, cs: cs)
+          if p1.isset and p2.isset:
+            add Inst(op: opSet, cs: p1[0].cs + p2[0].cs)
+          else:
+            add Inst(op: opChoice, offset: p1.len+2)
+            add p1
+            add Inst(op: opCommit, offset: p2.len+1)
+            add p2
         else:
           error "PEG: Unhandled infix operator " & n.repr
       of nnkCurlyExpr:
@@ -121,12 +140,24 @@ proc buildPatt(patts: Patts, name: string, patt: NimNode): Patt =
             addMaybe p
       of nnkIdent:
         let name = n.strVal
-        if name == "_":
-          add Inst(op: opAny)
-        elif name in patts:
+        if name in patts:
           add patts[name]
         else:
           add Inst(op: opCall, name: n.strVal)
+      of nnkCurly:
+        var cs: set[char]
+        for nc in n:
+          if nc.kind == nnkCharLit:
+            cs.incl nc.intVal.char
+          elif nc.kind == nnkInfix and nc[0].kind == nnkIdent and nc[0].eqIdent(".."):
+            for c in nc[1].intVal..nc[2].intVal:
+              cs.incl c.char
+          else:
+            error "PEG: syntax error: " & n.repr & "\n" & n.astGenRepr
+          if cs.card == 0:
+            add Inst(op: opAny)
+          else:
+            add Inst(op: opSet, cs: cs)
       of nnkCallStrLit:
         if n[0].eqIdent("i"):
           add Inst(op: opIStr, str: n[1].strVal)
@@ -135,16 +166,9 @@ proc buildPatt(patts: Patts, name: string, patt: NimNode): Patt =
       else:
         error "PEG: syntax error: " & n.repr & "\n" & n.astGenRepr
  
-  result.add Inst(op: opComment, comment: "start " & name)
+  #result.add Inst(op: opComment, comment: "start " & name)
   result.add aux(patt)
   #result.add Inst(op: opComment, comment: "end " & name)
-
-
-proc isTerminal(p: Patt): bool =
-  for i in p:
-    if i.op == opCall:
-      return false
-  return true
 
 
 #
@@ -194,11 +218,17 @@ proc link(patts: Patts, name: string): Patt =
     if i.op == opCall:
       i.address = symtab[i.name]
 
+
+#
+# Template for generating the parsing match proc
+#
+
 template skel(cases: untyped) =
 
   template trace(msg: string) =
     when true:
-      echo "ip:" & $ip & " " & msg & " si:" & $si & " s:" & escape(s[si..si+10])
+      let si2 = min(si+10, s.len-1)
+      echo "ip:" & $ip & " " & msg & " si:" & $si & " s:" & escape(s[si..si2])
 
   template opCommentFn(msg: string) =
     trace " \e[1m" & msg & "\e[0m"
@@ -332,48 +362,55 @@ macro peg(name: string, ns: untyped): untyped =
   echo program
   gencode(name.strVal, program)
 
+
 when false:
-  let s = peg "aap":
-    ab <- "ab"
-    aap <- ab * _ * ab
-  s("abcab")
+  block:
+    let s = peg "aap":
+      ab <- {'a'..'c', 'A'..'C'}
+      aap <- ab * {} * ab * -{} 
+    s("abcab")
 
 
-when true:
-  let s = peg "http":
-    space <- " "
-    crlf <- '\n' | "\r\\nn"
-    meth <- "GET" | "POST" | "PUT"
-    proto <- "HTTP"
-    version <- "1.0" | "1.1"
-    alpha <- ('a'..'z') | ('A'..'Z')
-    digit <- ('0'..'9')
-    url <- +alpha
-    req <- meth * space * url * space * proto * "/" * version * crlf
+when false:
+  block:
+    let s = peg "http":
+      space <- ' '
+      crlf <- '\n' | "\r\n"
+      meth <- "GET" | "POST" | "PUT"
+      proto <- "HTTP"
+      version <- "1.0" | "1.1"
+      alpha <- {'a'..'z','A'..'Z'}
+      digit <- {'0'..'9'}
+      url <- +alpha
 
-    header_content_length <- i"Content-Length: " * +digit
-    header_other <- +(alpha | '-') * ": "
-  
-    header <- header_content_length | header_other
-    http <- req * *header
+      req <- meth * space * url * space * proto * "/" * version * crlf
 
-  s """
+      header_content_length <- i"Content-Length: " * +digit
+      header_other <- +(alpha | '-') * ": "
+    
+      header <- header_content_length | header_other
+      http <- req * *header
+
+    s """
 POST flop HTTP/1.1
 content-length: 23
 Content-Type: text/plain
 """
 
 
-when false:
-  let s = peg "number":
-    digit <- '0'..'9'
-    number <- digit * digit * *digit
-    termOp <- "+" | "-"
-    factorOp <- "*" | "/"
-    open <- "("
-    close <- ")"
-    exp <- term * +(termOp * term)
-    term <- factor * +(factorOp * factor)
-    factor <- number | open * exp * close
-  s("13")
+when true:
+  block:
+    let s = peg "line":
+      ws <- *' '
+      digit <- {'0'..'9'}
+      number <- +digit * ws
+      termOp <- {'+', '-'} * ws
+      factorOp <- {'*', '/'} * ws
+      open <- '(' * ws
+      close <- ')' * ws
+      exp <- term * *(termOp * term)
+      term <- factor * *(factorOp * factor)
+      factor <- number | open * exp * close
+      line <- ws * exp
+    s("13+5*(1+3)/7")
 
