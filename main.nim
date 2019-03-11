@@ -357,7 +357,8 @@ when true:
     header <- header_content_length | header_other
     http <- req * *header
 
-  s """POST flop HTTP/1.1
+  s """
+POST flop HTTP/1.1
 content-length: 23
 Content-Type: text/plain
 """
