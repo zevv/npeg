@@ -35,6 +35,22 @@ type
   Patts = Table[string, Patt]
 
 
+proc dumpset(cs: set[char]): string =
+  result.add "{"
+  var c = 0
+  while c <= 255:
+    let first = c
+    while c.char in cs and c <= 255:
+      inc c
+    if (c - 1 == first):
+      result.add "'" & $first.char & "',"
+    elif c - 1 > first:
+      result.add "'" & $first.char & "'..'" & $(c-1).char & "',"
+    inc c
+  if result[result.len-1] == ',': result.setLen(result.len-1)
+  result.add "}"
+
+
 proc `$`*(p: Patt): string =
   for n, i in p.pairs:
     result &= $n & ": " & $i.op
@@ -44,7 +60,7 @@ proc `$`*(p: Patt): string =
       of opIStr:
         result &= "i" & escape(i.str)
       of opSet:
-        result &= " '" & $i.cs & "'"
+        result &= " '" & dumpset(i.cs) & "'"
       of opChoice, opCommit:
         result &= " " & $(n+i.offset)
       of opCall:
@@ -59,12 +75,6 @@ proc `$`*(p: Patt): string =
 #
 # Some tests on patterns
 #
-
-proc isTerminal(p: Patt): bool =
-  for i in p:
-    if i.op == opCall:
-      return false
-  return true
 
 proc isSet(p: Patt): bool =
   p.len == 1 and p[0].op == opSet 
@@ -110,37 +120,41 @@ proc buildPatt(patts: Patts, name: string, patt: NimNode): Patt =
     case n.kind:
       of nnKPar:
         add aux(n[0])
+      of nnkStrLit:
+        add Inst(op: opStr, str: n.strVal)
+      of nnkCharLit:
+        add Inst(op: opStr, str: $n.intVal.char)
       of nnkPrefix:
+        let p = aux n[1]
         if n[0].eqIdent("?"):
-          addMaybe aux(n[1])
+          addMaybe p
         elif n[0].eqIdent("+"):
-          let p = aux n[1]
           add p
           addMaybe p
         elif n[0].eqIdent("*"):
-          let p = aux n[1]
           add Inst(op: opChoice, offset: p.len+2)
           add p
           add Inst(op: opCommit, offset: -p.len-1)
         elif n[0].eqIdent("-"):
-          let p = aux n[1]
           add Inst(op: opChoice, offset: p.len + 3)
           add p
           add Inst(op: opCommit, offset: 1)
           add Inst(op: opFail)
         else:
           error "PEG: Unhandled prefix operator"
-      of nnkStrLit:
-        add Inst(op: opStr, str: n.strVal)
-      of nnkCharLit:
-        add Inst(op: opStr, str: $n.intVal.char)
       of nnkInfix:
+        let p1 = aux n[1]
+        let p2 = aux n[2]
         if n[0].eqIdent("*"):
-          add aux(n[1])
-          add aux(n[2])
+          add p1
+          add p2
+        elif n[0].eqIdent("-"):
+          add Inst(op: opChoice, offset: p2.len + 3)
+          add p2
+          add Inst(op: opCommit, offset: 1)
+          add Inst(op: opFail)
+          add p1
         elif n[0].eqIdent("|"):
-          let p1 = aux n[1]
-          let p2 = aux n[2]
           if p1.isset and p2.isset:
             add Inst(op: opSet, cs: p1[0].cs + p2[0].cs)
           else:
@@ -175,10 +189,10 @@ proc buildPatt(patts: Patts, name: string, patt: NimNode): Patt =
               cs.incl c.char
           else:
             error "PEG: syntax error: " & n.repr & "\n" & n.astGenRepr
-          if cs.card == 0:
-            add Inst(op: opAny)
-          else:
-            add Inst(op: opSet, cs: cs)
+        if cs.card == 0:
+          add Inst(op: opAny)
+        else:
+          add Inst(op: opSet, cs: cs)
       of nnkCallStrLit:
         if n[0].eqIdent("i"):
           add Inst(op: opIStr, str: n[1].strVal)
@@ -216,29 +230,37 @@ proc compile(ns: NimNode): Patts =
 # addresses
 #
 
-proc link(patts: Patts, name: string): Patt =
+proc link(patts: Patts, initial_name: string): Patt =
 
-  if name notin patts:
-    error "Patts start rule '" & name & "' not found"
+  if initial_name notin patts:
+    error "inital pattern '" & initial_name & "' not found"
 
+  var grammar: Patt
   var symTab = newTable[string, int]()
 
-  result.add patts[name]
-  symTab[name] = result.len
-  result.add Inst(op: opReturn)
+  # Recursively emit a pattern, and all patterns it calls which are
+  # not yet emitted
 
-  for n, p in patts:
-    if n != name:
-      symTab[n] = result.len
-      result.add p
-      result.add Inst(op: opReturn)
+  proc emit(name: string) =
+    echo "Emit rule " & name
+    let patt = patts[name]
+    symTab[name] = grammar.len
+    grammar.add patt
+    grammar.add Inst(op: opReturn)
 
-  # Fixup call addresses
+    for i in patt:
+      if i.op == opCall and i.name notin symTab:
+        emit i.name
+  
+  emit initial_name
 
-  for i in result.mitems:
+  # Fixup grammar call addresses
+
+  for i in grammar.mitems:
     if i.op == opCall:
       i.address = symtab[i.name]
 
+  return grammar
 
 #
 # Template for generating the parsing match proc
@@ -249,14 +271,17 @@ template skel(cases: untyped) =
   template trace(msg: string) =
     when true:
       let si2 = min(si+10, s.len-1)
-      echo "ip:" & $ip & " " & msg & " si:" & $si & " s:" & escape(s[si..si2])
+      echo align($ip, 3) &
+           " | " & align($si, 3) & 
+           " " & alignLeft(escape(s[si..si2]), 24) & "| " &
+           alignLeft(msg, 20)
 
   template opCommentFn(msg: string) =
-    trace " \e[1m" & msg & "\e[0m"
+    trace "\e[1m" & msg & "\e[0m"
     inc ip
   
   template opIStrFn(s2: string) =
-    trace " str " & s2.escape
+    trace "str " & s2.escape
     let l = s2.len
     if si <= s.len - l and cmpIgnoreCase(s[si..<si+l], s2) == 0:
       inc ip
@@ -265,7 +290,7 @@ template skel(cases: untyped) =
       ip = -1
   
   template opStrFn(s2: string) =
-    trace " str " & s2.escape
+    trace s2.escape
     let l = s2.len
     if si <= s.len - l and s[si..<si+l] == s2:
       inc ip
@@ -274,7 +299,7 @@ template skel(cases: untyped) =
       ip = -1
 
   template opSetFn(cs: set[char]) =
-    trace " set " & $cs
+    trace dumpset(cs)
     if si < s.len and s[si] in cs:
       inc ip
       inc si
@@ -282,7 +307,7 @@ template skel(cases: untyped) =
       ip = -1
 
   template opAnyFn() =
-    trace " any"
+    trace "any"
     if si < s.len:
       inc ip
       inc si
@@ -290,32 +315,32 @@ template skel(cases: untyped) =
       ip = -1
 
   template opChoiceFn(n: int) =
-    trace " choice " & $n
     stack.add Frame(ip: n, si: si)
+    trace "choice " & $n
     inc ip
 
   template opCommitFn(n: int) =
-    trace " commit " & $n
     stack.del stack.high
+    trace "commit " & $n
     ip = n
 
   template opCallFn(label: string, address: int) =
-    trace " call " & label & ":" & $address
     stack.add Frame(ip: ip+1, si: -1)
+    trace "call " & label & ":" & $address
     ip = address
 
   template opReturnFn() =
-    trace " return"
     if stack.len == 0:
-      trace "done ----------------"
+      trace "done"
       return
     ip = stack[stack.high].ip
     stack.del stack.high
+    trace "return"
 
   template opFailFn() =
-    trace " fail"
     while stack.len > 0 and stack[stack.high].si == -1:
       stack.del stack.high
+    
 
     if stack.len == 0:
       trace "\e[31;1merror\e[0m --------------"
@@ -324,6 +349,7 @@ template skel(cases: untyped) =
     ip = stack[stack.high].ip
     si = stack[stack.high].si
     stack.del stack.high
+    trace "fail"
 
   while true:
     cases
@@ -387,51 +413,52 @@ macro peg(name: string, ns: untyped): untyped =
 when false:
   block:
     let s = peg "aap":
-      ab <- {'a'..'c', 'A'..'C'}
-      aap <- ab * {} * ab * -{} 
-    s("abcab")
-
-
-when false:
-  block:
-    let s = peg "http":
-      space <- ' '
-      crlf <- '\n' | "\r\n"
-      meth <- "GET" | "POST" | "PUT"
-      proto <- "HTTP"
-      version <- "1.0" | "1.1"
-      alpha <- {'a'..'z','A'..'Z'}
-      digit <- {'0'..'9'}
-      url <- +alpha
-
-      req <- meth * space * url * space * proto * "/" * version * crlf
-
-      header_content_length <- i"Content-Length: " * +digit
-      header_other <- +(alpha | '-') * ": "
-    
-      header <- header_content_length | header_other
-      http <- req * *header
-
-    s """
-POST flop HTTP/1.1
-content-length: 23
-Content-Type: text/plain
-"""
+      a <- "a"
+      aap <- a * *('(' * aap * ')')
+    s("a(a)((a))")
 
 
 when true:
   block:
+    let s = peg "http":
+      space                 <- ' '
+      crlf                  <- '\n' | "\r\n"
+      meth                  <- "GET" | "POST" | "PUT"
+      proto                 <- "HTTP"
+      version               <- "1.0" | "1.1"
+      alpha                 <- {'a'..'z','A'..'Z'}
+      digit                 <- {'0'..'9'}
+      url                   <- +alpha
+      eof                   <- -{}
+
+      req                   <- meth * space * url * space * proto * "/" * version
+
+      header_content_length <- i"Content-Length: " * +digit
+      header_other          <- +(alpha | '-') * ": " * +({}-crlf)
+    
+      header                <- header_content_length | header_other
+      http                  <- req * crlf * *(header * crlf) * eof
+
+    s """
+POST flop HTTP/1.1
+Content-Type: text/plain
+content-length: 23
+"""
+
+when false:
+  block:
     let s = peg "line":
-      ws <- *' '
-      digit <- {'0'..'9'}
-      number <- +digit * ws
-      termOp <- {'+', '-'} * ws
+      ws       <- *' '
+      digit    <- {'0'..'9'} * ws
+      number   <- +digit * ws
+      termOp   <- {'+', '-'} * ws
       factorOp <- {'*', '/'} * ws
-      open <- '(' * ws
-      close <- ')' * ws
-      exp <- term * *(termOp * term)
-      term <- factor * *(factorOp * factor)
-      factor <- number | open * exp * close
-      line <- ws * exp
-    s("13+5*(1+3)/7")
+      open     <- '(' * ws
+      close    <- ')' * ws
+      eol      <- -{}
+      exp      <- term * *(termOp * term)
+      term     <- factor * *(factorOp * factor)
+      factor   <- number | (open * exp * close)
+      line     <- ws * exp * eol
+    s("13 + 5 * (2+1)")
 
