@@ -5,16 +5,16 @@ import tables
 
 export escape
 
-const DEBUG = false
+const npegTrace = defined(npegTrace)
 
 type
   Opcode = enum
-    opChoice, opCommit, opCall, opReturn, opAny, opSet, opStr,
+    opChoice, opCommit, opPartCommit, opCall, opReturn, opAny, opSet, opStr,
     opIStr, opFail
 
   Inst = object
     case op: Opcode
-      of opChoice, opCommit:
+      of opChoice, opCommit, opPartCommit:
         offset: int
       of opStr, opIStr:
         str: string
@@ -68,7 +68,7 @@ proc `$`*(p: Patt): string =
         result &= "i" & escape(i.str)
       of opSet:
         result &= " '" & dumpset(i.cs) & "'"
-      of opChoice, opCommit:
+      of opChoice, opCommit, opPartCommit:
         result &= " " & $(n+i.offset)
       of opCall:
         result &= " " & i.name & ":" & $i.address
@@ -82,9 +82,9 @@ proc `$`*(p: Patt): string =
 #
 
 proc isSet(p: Patt): bool =
-  p.len == 1 and p[0].op == opSet 
+  p.len == 1 and p[0].op == opSet
 
-  
+
 #
 # Recursively compile a peg pattern to a sequence of parser instructions
 #
@@ -99,7 +99,7 @@ proc buildPatt(patts: Patts, name: string, patt: NimNode): Patt =
     template addLoop(p: Patt) =
       add Inst(op: opChoice, offset: p.len+2)
       add p
-      add Inst(op: opCommit, offset: -p.len-1)
+      add Inst(op: opPartCommit, offset: -p.len)
 
     template addMaybe(p: Patt) =
       add Inst(op: opChoice, offset: p.len + 2)
@@ -236,7 +236,7 @@ proc link(patts: Patts, initial_name: string): Patt =
     for i in patt:
       if i.op == opCall and i.name notin symTab:
         emit i.name
-  
+
   emit initial_name
 
   # Fixup grammar call addresses
@@ -248,107 +248,137 @@ proc link(patts: Patts, initial_name: string): Patt =
   return grammar
 
 #
-# Template for generating the parsing match proc
+# Template for generating the parsing match proc.  A dummy 'ip' node is passed
+# into this template to prevent its name from getting mangled so that the code
+# in the `peg` macro can access it
 #
 
-template skel(cases: untyped) =
-  var si = 0
-  var sp = 0
-  var stack = newSeq[Frame](128)
+template skel(cases: untyped, ip: NimNode) =
 
-  template trace(msg: string) =
-    when DEBUG:
-      let si2 = min(si+10, s.len-1)
-      var l = align($ip, 3) &
-           " | " & align($si, 3) & 
-           " " & alignLeft(s[si..si2], 24) & 
-           "| " & alignLeft(msg, 30) &
-           "| " & alignLeft(repeat("*", sp), 20) 
-      if sp > 0:
-        l.add $stack[sp]
-      echo l
+  let match = proc(s: string): bool =
 
+    var ip = 0
+    var si = 0
 
-  template opIStrFn(s2: string) =
-    let l = s2.len
-    if si <= s.len - l and cmpIgnoreCase(s[si..<si+l], s2) == 0:
-      inc ip
-      inc si, l
-    else:
-      ip = -1
-    trace "str " & s2.escape
-  
-  template opStrFn(s2: string) =
-    let l = s2.len
-    if si <= s.len - l and s[si..<si+l] == s2:
-      inc ip
-      inc si, l
-    else:
-      ip = -1
-    trace s2.escape
+    # Stack management
 
-  template opSetFn(cs: set[char]) =
-    if si < s.len and s[si] in cs:
-      inc ip
-      inc si
-    else:
-      ip = -1
-    trace dumpset(cs)
+    var sp = 0
+    var stack = newSeq[Frame](64)
 
-  template opAnyFn() =
-    if si < s.len:
-      inc ip
-      inc si
-    else:
-      ip = -1
-    trace "any"
-
-  template push(ip2: int, si2: int = -1) =
-    stack[sp].ip = ip2
-    stack[sp].si = si2
-    inc sp
-    inc ip
-
-  template opChoiceFn(n: int) =
-    push(n, si)
-    trace "choice -> " & $n
-
-  template opCommitFn(n: int) =
-    dec sp
-    trace "commit -> " & $n
-    ip = n
-
-  template opCallFn(label: string, address: int) =
-    stack[sp].ip = ip+1
-    stack[sp].si = -1
-    inc sp
-    ip = address
-    trace "call -> " & label & ":" & $address
-
-  template opReturnFn() =
-    if sp == 0:
-      trace "done"
-      return true
-    dec sp
-    ip = stack[sp].ip
-    trace "return"
-
-  template opFailFn() =
-    while sp > 0 and stack[sp-1].si == -1:
+    template spush(ip2: int, si2: int = -1) =
+      if sp >= stack.len:
+        stack.setlen stack.len*2
+      stack[sp].ip = ip2
+      stack[sp].si = si2
+      inc sp
+    template spop() =
+      assert sp > 0
       dec sp
-    
+    template spop(ip2: var int) =
+      assert sp > 0
+      dec sp
+      ip2 = stack[sp].ip
+    template spop(ip2, si2: var int) =
+      assert sp > 0
+      dec sp
+      ip2 = stack[sp].ip
+      si2 = stack[sp].si
 
-    if sp == 0:
-      trace "\e[31;1merror\e[0m --------------"
-      return
+    # Debug trace. Slow and expensive
 
-    dec sp
-    ip = stack[sp].ip
-    si = stack[sp].si
-    trace "fail -> " & $ip
+    template trace(msg: string) =
+      when npegTrace:
+        let si2 = min(si+10, s.len-1)
+        var l = align($ip, 3) &
+             " | " & align($si, 3) &
+             " " & alignLeft(s[si..si2], 24) &
+             "| " & alignLeft(msg, 30) &
+             "| " & alignLeft(repeat("*", sp), 20)
+        if sp > 0:
+          l.add $stack[sp-1]
+        echo l
 
-  while true:
-    cases
+    # State machine instruction handlers
+
+    template opIStrFn(s2: string) =
+      let l = s2.len
+      if si <= s.len - l and cmpIgnoreCase(s[si..<si+l], s2) == 0:
+        inc ip
+        inc si, l
+      else:
+        ip = -1
+      trace "str " & s2.escape
+
+    template opStrFn(s2: string) =
+      let l = s2.len
+      if si <= s.len - l and s[si..<si+l] == s2:
+        inc ip
+        inc si, l
+      else:
+        ip = -1
+      trace s2.escape
+
+    template opSetFn(cs: set[char]) =
+      if si < s.len and s[si] in cs:
+        inc ip
+        inc si
+      else:
+        ip = -1
+      trace dumpset(cs)
+
+    template opAnyFn() =
+      if si < s.len:
+        inc ip
+        inc si
+      else:
+        ip = -1
+      trace "any"
+
+    template opChoiceFn(n: int) =
+      spush(n, si)
+      inc ip
+      trace "choice -> " & $n
+
+    template opCommitFn(n: int) =
+      spop()
+      trace "commit -> " & $n
+      ip = n
+
+    template opPartCommitFn(n: int) =
+      assert sp > 0
+      #stack[sp].ip = ip
+      stack[sp-1].si = si
+      ip = n
+      trace "pcommit -> " & $n
+
+    template opCallFn(label: string, address: int) =
+      spush(ip+1)
+      ip = address
+      trace "call -> " & label & ":" & $address
+
+    template opReturnFn() =
+      if sp == 0:
+        trace "done"
+        return true
+      spop(ip)
+      trace "return"
+
+    template opFailFn() =
+      while sp > 0 and stack[sp-1].si == -1:
+        spop()
+
+      if sp == 0:
+        trace "\e[31;1merror\e[0m --------------"
+        return false
+
+      spop(ip, si)
+      trace "fail -> " & $ip
+
+    while true:
+      cases
+
+  match
+
 
 #
 # Convert the list of parser instructions into a Nim finite state machine
@@ -356,48 +386,28 @@ template skel(cases: untyped) =
 
 proc gencode(name: string, program: Patt): NimNode =
 
-  # Create case handler for each instruction
-
-  var cases = nnkCaseStmt.newTree(ident("ip"))
+  let ipNode = ident("ip")
+  var cases = nnkCaseStmt.newTree(ipNode)
   cases.add nnkElse.newTree(parseStmt("opFailFn()"))
-  
+
   for n, i in program.pairs:
     let call = nnkCall.newTree(ident($i.op & "Fn"))
     case i.op:
-      of opStr, opIStr:      call.add newStrLitNode(i.str)
+      of opStr, opIStr:
+        call.add newStrLitNode(i.str)
       of opSet:
         let setNode = nnkCurly.newTree()
         for c in i.cs: setNode.add newLit(c)
         call.add setNode
-      of opChoice, opCommit: call.add newIntLitNode(n + i.offset)
-      of opCall:             
+      of opChoice, opCommit, opPartCommit:
+        call.add newIntLitNode(n + i.offset)
+      of opCall:
         call.add newStrLitNode(i.name)
         call.add newIntLitNode(i.address)
       else: discard
     cases.add nnkOfBranch.newTree(newLit(n), call)
 
-  var body = nnkStmtList.newTree()
-  body.add parseStmt("var ip = 0")
-  #body.add parseStmt("var si = 0")
-  #body.add parseStmt("var stack: seq[Frame]")
-  body.add getAst skel(cases)
-
-  # Return parser lambda function containing 'body'
-
-  result = nnkLambda.newTree(
-    newEmptyNode(), newEmptyNode(), newEmptyNode(),
-    nnkFormalParams.newTree(
-      newIdentNode("bool"),
-      nnkIdentDefs.newTree(
-        newIdentNode("s"), newIdentNode("string"),
-        newEmptyNode()
-      )
-    ),
-    newEmptyNode(), newEmptyNode(),
-    body
-  )
-
-  #echo result.repr
+  result = getAst skel(cases, ipNode)
 
 
 #
@@ -407,9 +417,9 @@ proc gencode(name: string, program: Patt): NimNode =
 macro peg*(name: string, ns: untyped): untyped =
   let grammar = compile(ns)
   let patt = link(grammar, name.strVal)
-  #echo patt
   let program = gencode(name.strVal, patt)
-  echo program.repr
+  when npegTrace:
+    echo patt
   program
 
 
