@@ -303,11 +303,14 @@ template skel(cases: untyped) =
       ip = -1
     trace "any"
 
-  template opChoiceFn(n: int) =
-    stack[sp].ip = n
-    stack[sp].si = si
+  template push(ip2: int, si2: int = -1) =
+    stack[sp].ip = ip2
+    stack[sp].si = si2
     inc sp
     inc ip
+
+  template opChoiceFn(n: int) =
+    push(n, si)
     trace "choice -> " & $n
 
   template opCommitFn(n: int) =
