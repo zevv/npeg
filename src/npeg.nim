@@ -5,7 +5,7 @@ import tables
 
 export escape
 
-var npegTrace* = false
+const DEBUG = false
 
 type
   Opcode = enum
@@ -253,90 +253,95 @@ proc link(patts: Patts, initial_name: string): Patt =
 
 template skel(cases: untyped) =
   var si = 0
-  var stack: seq[Frame]
+  var sp = 0
+  var stack = newSeq[Frame](128)
 
   template trace(msg: string) =
-    if npegTrace:
+    when DEBUG:
       let si2 = min(si+10, s.len-1)
       var l = align($ip, 3) &
            " | " & align($si, 3) & 
            " " & alignLeft(s[si..si2], 24) & 
            "| " & alignLeft(msg, 30) &
-           "| " & alignLeft(repeat("*", stack.len), 20) 
-      if stack.len > 0:
-        l.add $stack[stack.high]
+           "| " & alignLeft(repeat("*", sp), 20) 
+      if sp > 0:
+        l.add $stack[sp]
       echo l
 
 
   template opIStrFn(s2: string) =
-    trace "str " & s2.escape
     let l = s2.len
     if si <= s.len - l and cmpIgnoreCase(s[si..<si+l], s2) == 0:
       inc ip
       inc si, l
     else:
       ip = -1
+    trace "str " & s2.escape
   
   template opStrFn(s2: string) =
-    trace s2.escape
     let l = s2.len
     if si <= s.len - l and s[si..<si+l] == s2:
       inc ip
       inc si, l
     else:
       ip = -1
+    trace s2.escape
 
   template opSetFn(cs: set[char]) =
-    trace dumpset(cs)
     if si < s.len and s[si] in cs:
       inc ip
       inc si
     else:
       ip = -1
+    trace dumpset(cs)
 
   template opAnyFn() =
-    trace "any"
     if si < s.len:
       inc ip
       inc si
     else:
       ip = -1
+    trace "any"
 
   template opChoiceFn(n: int) =
-    stack.add Frame(ip: n, si: si)
-    trace "choice -> " & $n
+    stack[sp].ip = n
+    stack[sp].si = si
+    inc sp
     inc ip
+    trace "choice -> " & $n
 
   template opCommitFn(n: int) =
-    stack.del stack.high
+    dec sp
     trace "commit -> " & $n
     ip = n
 
   template opCallFn(label: string, address: int) =
-    stack.add Frame(ip: ip+1, si: -1)
-    trace "call -> " & label & ":" & $address
+    stack[sp].ip = ip+1
+    stack[sp].si = -1
+    inc sp
     ip = address
+    trace "call -> " & label & ":" & $address
 
   template opReturnFn() =
-    if stack.len == 0:
+    if sp == 0:
       trace "done"
       return true
-    ip = stack[stack.high].ip
-    stack.del stack.high
+    dec sp
+    ip = stack[sp].ip
     trace "return"
 
   template opFailFn() =
-    while stack.len > 0 and stack[stack.high].si == -1:
-      stack.del stack.high
+    while sp > 0 and stack[sp-1].si == -1:
+      dec sp
     
 
-    if stack.len == 0:
+    if sp == 0:
       trace "\e[31;1merror\e[0m --------------"
       return
 
-    ip = stack[stack.high].ip
-    si = stack[stack.high].si
-    stack.del stack.high
+    dec sp
+    ip = stack[sp].ip
+    si = stack[sp].si
     trace "fail -> " & $ip
 
   while true:
@@ -398,8 +403,10 @@ proc gencode(name: string, program: Patt): NimNode =
 
 macro peg*(name: string, ns: untyped): untyped =
   let grammar = compile(ns)
-  let program = link(grammar, name.strVal)
-  echo program
-  gencode(name.strVal, program)
+  let patt = link(grammar, name.strVal)
+  #echo patt
+  let program = gencode(name.strVal, patt)
+  echo program.repr
+  program
 
 
