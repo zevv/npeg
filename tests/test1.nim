@@ -8,10 +8,12 @@ abortOnError = true
 
 suite "npeg":
 
+
   test "literal string":
     let s = peg "test":
       test <- "abc"
     doAssert s "abc"
+
 
   test "simple grammar":
     let s = peg "aap":
@@ -19,7 +21,9 @@ suite "npeg":
       aap <- a * *('(' * aap * ')')
     doAssert s("a(a)((a))")
 
+
   test "HTTP parser":
+
 
     let data ="""
 POST flop HTTP/1.1
@@ -47,7 +51,9 @@ content-length: 23
 
     doAssert s(data)
 
+
   test "expression parser":
+
     let s = peg "line":
       ws       <- *' '
       digit    <- {'0'..'9'} * ws
@@ -67,4 +73,52 @@ content-length: 23
     doAssert s "1+1*1"
     doAssert s "(1+1)*1"
     doAssert s "13 + 5 * (2+1)"
+
+
+  test "JSON parser":
+
+    let json = """
+      {
+          "glossary": {
+              "title": "example glossary",
+              "GlossDiv": {
+                  "title": "S",
+                  "GlossList": {
+                      "GlossEntry": {
+                          "ID": "SGML",
+                              "SortAs": "SGML",
+                              "GlossTerm": "Standard Generalized Markup Language",
+                              "Acronym": "SGML",
+                              "Abbrev": "ISO 8879:1986",
+                              "GlossDef": {
+                              "para": "A meta-markup language, used to create markup languages such as DocBook.",
+                              "GlossSeeAlso": ["GML", "XML"]
+                          },
+                          "GlossSee": "markup"
+                      }
+                  }
+              }
+          }
+      }
+      """
+
+    let s = peg "DOC":
+      S              <- *{' ','\t','\r','\n'}
+      String         <- ?S * '"' * *({'\x20'..'\xff'} - '"' - '\\' | Escape ) * '"' * ?S
+      Escape         <- '\\' * ({ '[', '"', '|', '\\', 'b', 'f', 'n', 'r', 't' } | UnicodeEscape)
+      UnicodeEscape  <- 'u' * {'0'..'9','A'..'F','a'..'f'}{4}
+      True           <- "true"
+      False          <- "false"
+      Null           <- "null"
+      Number         <- ?Minus * IntPart * ?FractPart * ?ExpPart
+      Minus          <- '-'
+      IntPart        <- '0' | {'1'..'9'} * *{'0'..'9'}
+      FractPart      <- "." * +{'0'..'9'}
+      ExpPart        <- ( 'e' | 'E' ) * ?( '+' | '-' ) * +{'0'..'9'}
+      DOC            <- JSON * -{}
+      JSON           <- ?S * ( Number | Object | Array | String | True | False | Null ) * ?S
+      Object         <- '{' * ( String * ":" * JSON * *( "," * String * ":" * JSON ) | ?S ) * "}"
+      Array          <- "[" * ( JSON * *( "," * JSON ) | ?S ) * "]"
+
+    doAssert s(json)
 

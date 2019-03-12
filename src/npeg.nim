@@ -5,11 +5,11 @@ import tables
 
 export escape
 
-var npegTrace* = true
+var npegTrace* = false
 
 type
   Opcode = enum
-    opChoice, opCommit, opComment, opCall, opReturn, opAny, opSet, opStr,
+    opChoice, opCommit, opCall, opReturn, opAny, opSet, opStr,
     opIStr, opFail
 
   Inst = object
@@ -18,8 +18,6 @@ type
         offset: int
       of opStr, opIStr:
         str: string
-      of opComment:
-        comment: string
       of opCall:
         name: string
         address: int
@@ -38,16 +36,23 @@ type
 
 
 proc dumpset(cs: set[char]): string =
+  proc esc(c: char): string =
+    case c:
+      of '\n': result = "\\n"
+      of '\r': result = "\\r"
+      of '\t': result = "\\t"
+      else: result = $c
+    result = "'" & result & "'"
   result.add "{"
   var c = 0
   while c <= 255:
     let first = c
-    while c.char in cs and c <= 255:
+    while c <= 255 and c.char in cs:
       inc c
     if (c - 1 == first):
-      result.add "'" & $first.char & "',"
+      result.add esc(first.char) & ","
     elif c - 1 > first:
-      result.add "'" & $first.char & "'..'" & $(c-1).char & "',"
+      result.add esc(first.char) & ".." & esc((c-1).char) & ","
     inc c
   if result[result.len-1] == ',': result.setLen(result.len-1)
   result.add "}"
@@ -67,8 +72,6 @@ proc `$`*(p: Patt): string =
         result &= " " & $(n+i.offset)
       of opCall:
         result &= " " & i.name & ":" & $i.address
-      of opComment:
-        result &= " \e[1m" & i.comment & "\e[0m"
       of opFail, opReturn, opAny:
         discard
     result &= "\n"
@@ -93,10 +96,15 @@ proc buildPatt(patts: Patts, name: string, patt: NimNode): Patt =
     template add(p: Inst|Patt) =
       result.add p
 
-    template addMaybe(p: Patt) =
+    template addLoop(p: Patt) =
       add Inst(op: opChoice, offset: p.len+2)
       add p
       add Inst(op: opCommit, offset: -p.len-1)
+
+    template addMaybe(p: Patt) =
+      add Inst(op: opChoice, offset: p.len + 2)
+      add p
+      add Inst(op: opCommit, offset: 1)
 
     case n.kind:
       of nnKPar:
@@ -111,11 +119,9 @@ proc buildPatt(patts: Patts, name: string, patt: NimNode): Patt =
           addMaybe p
         elif n[0].eqIdent("+"):
           add p
-          addMaybe p
+          addLoop p
         elif n[0].eqIdent("*"):
-          add Inst(op: opChoice, offset: p.len+2)
-          add p
-          add Inst(op: opCommit, offset: -p.len-1)
+          addLoop p
         elif n[0].eqIdent("-"):
           add Inst(op: opChoice, offset: p.len + 3)
           add p
@@ -182,9 +188,7 @@ proc buildPatt(patts: Patts, name: string, patt: NimNode): Patt =
       else:
         error "PEG: syntax error: " & n.repr & "\n" & n.astGenRepr
  
-  #result.add Inst(op: opComment, comment: "start " & name)
-  result.add aux(patt)
-  #result.add Inst(op: opComment, comment: "end " & name)
+  result = aux(patt)
 
 
 #
@@ -248,19 +252,22 @@ proc link(patts: Patts, initial_name: string): Patt =
 #
 
 template skel(cases: untyped) =
+  var si = 0
+  var stack: seq[Frame]
 
   template trace(msg: string) =
-    when true:
+    if npegTrace:
       let si2 = min(si+10, s.len-1)
-      echo align($ip, 3) &
+      var l = align($ip, 3) &
            " | " & align($si, 3) & 
-           " " & alignLeft(escape(s[si..si2]), 24) & "| " &
-           alignLeft(msg, 20)
+           " " & alignLeft(s[si..si2], 24) & 
+           "| " & alignLeft(msg, 30) &
+           "| " & alignLeft(repeat("*", stack.len), 20) 
+      if stack.len > 0:
+        l.add $stack[stack.high]
+      echo l
 
-  template opCommentFn(msg: string) =
-    trace "\e[1m" & msg & "\e[0m"
-    inc ip
-  
+
   template opIStrFn(s2: string) =
     trace "str " & s2.escape
     let l = s2.len
@@ -297,17 +304,17 @@ template skel(cases: untyped) =
 
   template opChoiceFn(n: int) =
     stack.add Frame(ip: n, si: si)
-    trace "choice " & $n
+    trace "choice -> " & $n
     inc ip
 
   template opCommitFn(n: int) =
     stack.del stack.high
-    trace "commit " & $n
+    trace "commit -> " & $n
     ip = n
 
   template opCallFn(label: string, address: int) =
     stack.add Frame(ip: ip+1, si: -1)
-    trace "call " & label & ":" & $address
+    trace "call -> " & label & ":" & $address
     ip = address
 
   template opReturnFn() =
@@ -330,11 +337,10 @@ template skel(cases: untyped) =
     ip = stack[stack.high].ip
     si = stack[stack.high].si
     stack.del stack.high
-    trace "fail"
+    trace "fail -> " & $ip
 
   while true:
     cases
-
 
 #
 # Convert the list of parser instructions into a Nim finite state machine
@@ -348,21 +354,24 @@ proc gencode(name: string, program: Patt): NimNode =
   cases.add nnkElse.newTree(parseStmt("opFailFn()"))
   
   for n, i in program.pairs:
-    var cmd = $i.op & "Fn("
+    let call = nnkCall.newTree(ident($i.op & "Fn"))
     case i.op:
-      of opStr, opIStr:      cmd &= escape(i.str)
-      of opSet:              cmd &= $i.cs 
-      of opChoice, opCommit: cmd &= $(n+i.offset)
-      of opCall:             cmd &= "\"" & i.name & "\"" & ", " & $i.address
-      of opComment:          cmd &= "\"" & i.comment & "\""
+      of opStr, opIStr:      call.add newStrLitNode(i.str)
+      of opSet:
+        let setNode = nnkCurly.newTree()
+        for c in i.cs: setNode.add newLit(c)
+        call.add setNode
+      of opChoice, opCommit: call.add newIntLitNode(n + i.offset)
+      of opCall:             
+        call.add newStrLitNode(i.name)
+        call.add newIntLitNode(i.address)
       else: discard
-    cmd &= ")"
-    cases.add nnkOfBranch.newTree(newLit(n), parseStmt(cmd))
+    cases.add nnkOfBranch.newTree(newLit(n), call)
 
   var body = nnkStmtList.newTree()
   body.add parseStmt("var ip = 0")
-  body.add parseStmt("var si = 0")
-  body.add parseStmt("var stack: seq[Frame]")
+  #body.add parseStmt("var si = 0")
+  #body.add parseStmt("var stack: seq[Frame]")
   body.add getAst skel(cases)
 
   # Return parser lambda function containing 'body'
