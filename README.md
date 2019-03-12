@@ -3,115 +3,86 @@
 
 NPeg is an early stage pure Nim pattern-matching library.
 
-NPeg is highly inspired by the paper
-[A Text Pattern-Matching Tool based on Parsing Expression Grammars](www.inf.puc-rio.br/~roberto/docs/peg.pdf).
 
-NPeg turns PEG inside out: while PEGs define grammars using pattern expressions 
-as an auxiliary construction, in NPeg the main construction is the pattern, 
-and grammars are only a particular way to create patterns.
+## Grammar
 
-Instead of defining the grammar in a fixed DSL or text format, NPeg patterns are
-represented by first class Nim objects, which can be combined with various operators
-to create a grammar - which is itself again a pattern. This allows the user to use
-the full flexibility of the Nim language for constructing parsers.
 
-The following example matches valid identifiers which are defiend as "a letter 
-or an underscore followed by zero or more alphanumeric characters or underscores":
-
-```nim
-import pegs
+```
+ Atoms:
+    '.'           literal character
+    "..."         literal string
+   i"..."         case insensitive string
+    _             matches any character
+    {}            empty set, always matches
+    {'x'..'y'}    range from 'x' to 'y', inclusive
+    {'x','y'}     set
   
-let alpha = R("az") + R("AZ")
-let digit = R("09")
-let alphanum = alpha + digit
-let underscore = P"_"
-let identifier = (alpha + underscore) * (alphanum + underscore)^0
-
-doAssert identifier.match("myId_3")
+ Grammar rules:
+   (P)            grouping
+   -P             matches everything but P
+    P1 * P2       concatenation
+    P1 | P2       ordered choice
+    P1 - P2       matches P1 if P1 does not match
+   ?P             conditional, 0 or 1 times
+   *P             0 or more times P
+   +P             1 or more times P
+    P{n}          exactly n times P
+    P{m..n}       m to n times p
 ```
 
 
-## Status
+## Examples
 
-NPeg is very much a work in progress.
-
-## Docs
-
-Implemented:
+Parsing HTTP requests:
+    
+let data = """
+POST flop HTTP/1.1
+content-length: 23
+Content-Type: text/plain
+"""
 
 ```nim
-P(string)       # Matches string literally
-I(string)       # Matches string literally, case insensitive
-P(n)            # Matches exactly n characters
-S(string)       # Matches any character in string (Set)
-R("xy")         # Matches any character between x and y (Range)
-patt^n          # Matches at least n repetitions of patt
-patt^-n         # Matches at most n repetitions of patt
-patt1 * patt2   # Matches patt1 followed by patt2
-patt1 + patt2   # Matches patt1 or patt2 (ordered choice)
-patt1 - patt2   # Matches patt1 if patt2 does not match
--patt           # Equivalent to ("" - patt)
-C(patt)         # Create a capture
+let match = peg "http":
+  space                 <- ' '
+  crlf                  <- '\n' | "\r\n"
+  version               <- "1.0" | "1.1"
+  alpha                 <- {'a'..'z','A'..'Z'}
+  digit                 <- {'0'..'9'}
+  
+  meth                  <- "GET" | "POST" | "PUT"
+  proto                 <- "HTTP"
+
+  url                   <- +alpha
+
+  req                   <- meth * space * url * space * proto * "/" * version * crlf
+
+  header_content_length <- i"Content-Length: " * +digit
+  header_other          <- +(alpha | '-') * ": "
+  header                <- header_content_length | header_other
+
+  http                  <- req * *header
+
+match data
+
 ```
 
-On the whish list:
+Parsing simple expressions with proper operator precedence:
 
-* Implement non-terminals to be able to construct recursive grammars
-
-* Much more elaborate captures - ideally, NPeg should be able to capture
-  into Nim objects and allow to build ASTs on the fly
-
-* Compile time transcoding of the PEG VM code into Nim for absolute 
-  top speed parsing
-
-* Provide an alternative method for constructing PEGS through a Nim 
-  macro based DSL
-
-
-## More examples
-
-Matches valid decimal, floating point and scientific notation numbers:
 
 ```nim
-  let digit = R("09")
+let match = peg "line":
+  ws       <- *' '
+  digit    <- {'0'..'9'}
+  number   <- +digit * ws
+  termOp   <- {'+', '-'} * ws
+  factorOp <- {'*', '/'} * ws
+  open     <- '(' * ws
+  close    <- ')' * ws
+  exp      <- term * *(termOp * term)
+  term     <- factor * *(factorOp * factor)
+  factor   <- number | open * exp * close
+  line     <- ws * exp
 
-  # Matches: 10, -10, 0
-  let integer =
-    (S("+-") ^ -1) *
-    (digit   ^  1)
-
-  # Matches: .6, .899, .9999873
-  let fractional =
-    (P(".")   ) *
-    (digit ^ 1)
-
-  # Matches: 55.97, -90.8, .9 
-  let decimal = 
-    (integer *                     # Integer
-    (fractional ^ -1)) +           # Fractional
-    ((S("+-") ^ -1) * fractional)  # Completely fractional number
-
-  # Matches: 60.9e07, 9e-4, 681E09 
-  let scientific = 
-    decimal * # Decimal number
-    S("Ee") *        # E or e
-    integer   # Exponent
-
-  # Matches all of the above
-  # Decimal allows for everything else, and scientific matches scientific
-  let number = scientific + decimal
-
-  doAssert number.match("1")
-  doAssert number.match("1.0")
-  doAssert number.match("3.141592")
-  doAssert number.match("-5")
-  doAssert number.match("-5.5")
-  doAssert number.match("1e3")
-  doAssert number.match("1.0e3")
-  doAssert number.match("-1.0e-6")
+match "13 + 5 * (1+3) / 7"
 ```
-
-[Even more Examples](https://github.com/zevv/npeg/blob/master/tests/test1.nim) are
-available in the tests directory, run with `nimble test`.
-
 

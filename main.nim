@@ -73,6 +73,27 @@ proc isSet(p: Patt): bool =
 #
 # Recursively compile a peg pattern to a sequence of parser instructions
 #
+# Atoms:
+#    '.'           literal character
+#    "..."         literal string
+#   i"..."         case insensitive string
+#    _             matches any character
+#    {}            empty set, always matches
+#    {'x'..'y'}    range from 'x' to 'y', inclusive
+#    {'x','y'}     set
+#  
+# Grammar rules:
+#   (P)            grouping
+#   -P             matches everything but P
+#    P1 * P2       concatenation
+#    P1 | P2       ordered choice
+#    P1 - P2       matches P1 if P1 does not match
+#   ?P             conditional, 0 or 1 times
+#   *P             0 or more times P
+#   +P             1 or more times P
+#    P{n}          exactly n times P
+#    P{m..n}       m to n times p
+#
 
 proc buildPatt(patts: Patts, name: string, patt: NimNode): Patt =
 
