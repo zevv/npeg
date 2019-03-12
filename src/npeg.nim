@@ -1,315 +1,396 @@
 
+import macros
 import strutils
+import tables
+
+export escape
+
+var npegTrace* = true
 
 type
-
   Opcode = enum
-    iSet, iJump, iChoice, iCall, iReturn, iCommit, iPartialCommit,
-    iFail, iAny, iStr, iStri, iCapStart, iCapEnd,
+    opChoice, opCommit, opComment, opCall, opReturn, opAny, opSet, opStr,
+    opIStr, opFail
 
   Inst = object
-    case code: Opcode
-      of iStr, iStri:
-        s: string
-      of iSet:
-        cs: set[char]
-      of iChoice, iJump, iCall, iCommit, iPartialCommit:
+    case op: Opcode
+      of opChoice, opCommit:
         offset: int
-      of iAny:
-        count: int
-      else:
+      of opStr, opIStr:
+        str: string
+      of opComment:
+        comment: string
+      of opCall:
+        name: string
+        address: int
+      of opSet:
+        cs: set[char]
+      of opFail, opReturn, opAny:
         discard
 
-  StackFrame = object
-    si: int # Source index
-    ip: int # Instruction pointer
+  Frame* = object
+    ip: int
+    si: int
 
-  Patt* = seq[Inst]
+  Patt = seq[Inst]
+
+  Patts = Table[string, Patt]
 
 
-#
-# Helper functions
-#
+proc dumpset(cs: set[char]): string =
+  result.add "{"
+  var c = 0
+  while c <= 255:
+    let first = c
+    while c.char in cs and c <= 255:
+      inc c
+    if (c - 1 == first):
+      result.add "'" & $first.char & "',"
+    elif c - 1 > first:
+      result.add "'" & $first.char & "'..'" & $(c-1).char & "',"
+    inc c
+  if result[result.len-1] == ',': result.setLen(result.len-1)
+  result.add "}"
 
-proc dumpInst(inst: Inst, ip: int): string =
-  result.add $inst.code & " "
-  case inst.code:
-    of iStr, iStri:
-      result.add "\"" & inst.s & "\""
-    of iSet:
-      result.add "["
-      for c in char.low..char.high:
-        if c in inst.cs:
-          result.add c
-      result.add "] " & $inst.cs.card
-    of iChoice, iJump, iCall, iCommit, iPartialCommit:
-      result.add $(ip + inst.offset)
-    of iAny:
-      result.add $inst.count
-    else:
-      discard
 
 proc `$`*(p: Patt): string =
-  for ip, inst in p:
-    if ip != 0: result.add "\n"
-    result.add $ip & ": " & $dumpInst(inst, ip)
-
-proc isSet(p: Patt): bool = p.len == 1 and p[0].code == iSet 
-
-
-#
-# Constructors
-#
-
-proc P*(s: string): Patt =
-  ## Returns a pattern that matches string `s` literally
-  result.add Inst(code: iStr, s: s)
-
-proc Pi*(s: string): Patt =
-  ## Returns a pattern that matches string `s` literally, ignoring case
-  result.add Inst(code: iStri, s: s)
-
-proc P*(count: int): Patt =
-  ## Returns a pattern that matches exactly `count` characters
-  result.add Inst(code: iAny, count: count)
-
-proc S*(s: string): Patt = 
-  ## Returns a pattern that matches any single character that appears in the
-  ## given string. (The S stands for Set.)
-  ##
-  ## Note that, if s is a character (that is, a string of length 1), then
-  ## P(s) is equivalent to S(s) which is equivalent to R(s..s).
-  ## Note also that both S("") and R() are patterns that always fail.
-  var cs: set[char]
-  for c in s.items:
-    cs.incl c
-  result.add Inst(code: iSet, cs: cs)
-
-proc R*(ss: varargs[string]): Patt =
-  ## Returns a pattern that matches any single character belonging to one of the
-  ## given ranges. Each range is a string "xy" of length 2, representing all
-  ## characters with code between the codes of x and y (both inclusive).
-  var cs: set[char]
-  for s in ss.items:
-    doAssert s.len == 2
-    for c in s[0]..s[1]:
-      cs.incl c
-  result.add Inst(code: iSet, cs: cs)
+  for n, i in p.pairs:
+    result &= $n & ": " & $i.op
+    case i.op:
+      of opStr:
+        result &= escape(i.str)
+      of opIStr:
+        result &= "i" & escape(i.str)
+      of opSet:
+        result &= " '" & dumpset(i.cs) & "'"
+      of opChoice, opCommit:
+        result &= " " & $(n+i.offset)
+      of opCall:
+        result &= " " & i.name & ":" & $i.address
+      of opComment:
+        result &= " \e[1m" & i.comment & "\e[0m"
+      of opFail, opReturn, opAny:
+        discard
+    result &= "\n"
 
 
 #
-# Captures
+# Some tests on patterns
 #
 
-proc C*(p: Patt): Patt =
-  result.add Inst(code: iCapStart)
-  result.add p
-  result.add Inst(code: iCapEnd)
+proc isSet(p: Patt): bool =
+  p.len == 1 and p[0].op == opSet 
+
   
-
 #
-# Operators for building grammars
+# Recursively compile a peg pattern to a sequence of parser instructions
 #
 
-proc `*`*(p1, p2: Patt): Patt =
-  ## Matches pattern `p1` followed by pattern `p2`
-  result.add p1
-  result.add p2
+proc buildPatt(patts: Patts, name: string, patt: NimNode): Patt =
 
-proc `+`*(p1, p2: Patt): Patt =
-  ## Returns a pattern equivalent to an ordered choice of `p1` and `p2`. (This
-  ## is denoted by `p1` / `p2` in the original PEG notation) It matches either
-  ## `p1` or `p2`, with no backtracking once one of them succeeds.
-  ## Matches patthen `p1` or `p2` (ordered choice)
-  if p1.isSet and p2.isSet:
-    # Optimization: if both patterns are charsets, create the union set
-    result.add Inst(code: iSet, cs: p1[0].cs + p2[0].cs)
-  else:
-    result.add Inst(code: iChoice, offset: p1.len + 2)
-    result.add p1
-    result.add Inst(code: iCommit, offset: p2.len + 1)
-    result.add p2
+  proc aux(n: NimNode): Patt =
 
-proc `^`*(p: Patt, count: int): Patt =
-  ## For positive `count`, matches at least `count` repetitions of pattern `p`.
-  ## For negative `count`, matches at most `count` repetitions of pattern `p`.
-  ## In all cases, the resulting pattern is greedy with no backtracking (also 
-  ## called a possessive repetition). That is, it matches only the longest possible 
-  ## sequence of matches for patt. 
-  if count >= 0:
-    for i in 1..count:
+    template add(p: Inst|Patt) =
       result.add p
-    result.add Inst(code: iChoice, offset: p.len + 2)
-    result.add p
-    result.add Inst(code: iPartialCommit, offset: -p.len)
-  else:
-    result.add Inst(code: iChoice, offset: -count * (p.len + 1) + 1)
-    for i in 1..(-count-1):
-      result.add p
-      result.add Inst(code: iPartialCommit, offset: 1)
-    result.add p
-    result.add Inst(code: iCommit, offset: 1)
 
-proc `-`*(p: Patt): Patt =
-  ## Returns a pattern that matches only if the input string does not match 
-  ## pattern `p`. It does not consume any input, independently of success 
-  ## or failure.
-  result.add Inst(code: iChoice, offset: p.len + 3)
-  result.add p
-  result.add Inst(code: iCommit, offset: 1)
-  result.add Inst(code: iFail)
+    template addMaybe(p: Patt) =
+      add Inst(op: opChoice, offset: p.len+2)
+      add p
+      add Inst(op: opCommit, offset: -p.len-1)
 
-proc `-`*(p1, p2: Patt): Patt =
-  ## Matches pattern `p1` if pattern `p2` does not match
-  if p1.isSet and p2.isSet:
-    # Optimization: if both patterns are charsets, create the difference set
-    result.add Inst(code: iSet, cs: p1[0].cs - p2[0].cs)
-  else:
-    result = -p2 * p1
+    case n.kind:
+      of nnKPar:
+        add aux(n[0])
+      of nnkStrLit:
+        add Inst(op: opStr, str: n.strVal)
+      of nnkCharLit:
+        add Inst(op: opStr, str: $n.intVal.char)
+      of nnkPrefix:
+        let p = aux n[1]
+        if n[0].eqIdent("?"):
+          addMaybe p
+        elif n[0].eqIdent("+"):
+          add p
+          addMaybe p
+        elif n[0].eqIdent("*"):
+          add Inst(op: opChoice, offset: p.len+2)
+          add p
+          add Inst(op: opCommit, offset: -p.len-1)
+        elif n[0].eqIdent("-"):
+          add Inst(op: opChoice, offset: p.len + 3)
+          add p
+          add Inst(op: opCommit, offset: 1)
+          add Inst(op: opFail)
+        else:
+          error "PEG: Unhandled prefix operator"
+      of nnkInfix:
+        let p1 = aux n[1]
+        let p2 = aux n[2]
+        if n[0].eqIdent("*"):
+          add p1
+          add p2
+        elif n[0].eqIdent("-"):
+          add Inst(op: opChoice, offset: p2.len + 3)
+          add p2
+          add Inst(op: opCommit, offset: 1)
+          add Inst(op: opFail)
+          add p1
+        elif n[0].eqIdent("|"):
+          if p1.isset and p2.isset:
+            add Inst(op: opSet, cs: p1[0].cs + p2[0].cs)
+          else:
+            add Inst(op: opChoice, offset: p1.len+2)
+            add p1
+            add Inst(op: opCommit, offset: p2.len+1)
+            add p2
+        else:
+          error "PEG: Unhandled infix operator " & n.repr
+      of nnkCurlyExpr:
+        let p = aux(n[0])
+        let min = n[1].intVal
+        for i in 1..min:
+          add p
+        if n.len == 3:
+          let max = n[2].intval
+          for i in min..max:
+            addMaybe p
+      of nnkIdent:
+        let name = n.strVal
+        if name in patts:
+          add patts[name]
+        else:
+          add Inst(op: opCall, name: n.strVal)
+      of nnkCurly:
+        var cs: set[char]
+        for nc in n:
+          if nc.kind == nnkCharLit:
+            cs.incl nc.intVal.char
+          elif nc.kind == nnkInfix and nc[0].kind == nnkIdent and nc[0].eqIdent(".."):
+            for c in nc[1].intVal..nc[2].intVal:
+              cs.incl c.char
+          else:
+            error "PEG: syntax error: " & n.repr & "\n" & n.astGenRepr
+        if cs.card == 0:
+          add Inst(op: opAny)
+        else:
+          add Inst(op: opSet, cs: cs)
+      of nnkCallStrLit:
+        if n[0].eqIdent("i"):
+          add Inst(op: opIStr, str: n[1].strVal)
+        else:
+          error "PEG: unhandled string prefix"
+      else:
+        error "PEG: syntax error: " & n.repr & "\n" & n.astGenRepr
+ 
+  #result.add Inst(op: opComment, comment: "start " & name)
+  result.add aux(patt)
+  #result.add Inst(op: opComment, comment: "end " & name)
+
 
 #
-# Match VM
+# Compile the PEG to a table of patterns
 #
 
-proc match*(p: Patt, s: string, captures: var seq[string], trace = false) : bool =
+proc compile(ns: NimNode): Patts =
+  result = initTable[string, Patt]()
 
-  ## The matching function. It attempts to match the given pattern against the
-  ## subject string.  Unlike typical pattern-matching functions, match works
-  ## only in anchored mode; that is, it tries to match the pattern with a prefix
-  ## of the given subject string (at position init), not with an arbitrary
-  ## substring of the subject
+  ns.expectKind nnkStmtList
+  for n in ns:
+    n.expectKind nnkInfix
+    n[0].expectKind nnkIdent
+    n[1].expectKind nnkIdent
+    if not n[0].eqIdent("<-"):
+      error("Expected <-")
+    let pname = n[1].strVal
+    result[pname] = buildPatt(result, pname, n[2])
 
-  var
-    ip = 0 # VM instruction pointer
-    si = 0 # source string index
-    stack: seq[StackFrame]
-    capstack: seq[int]
+
+#
+# Link all patterns into a grammar, which is itself again a valid pattern.
+# Start with the initial rule, add all other non terminals and fixup opCall
+# addresses
+#
+
+proc link(patts: Patts, initial_name: string): Patt =
+
+  if initial_name notin patts:
+    error "inital pattern '" & initial_name & "' not found"
+
+  var grammar: Patt
+  var symTab = newTable[string, int]()
+
+  # Recursively emit a pattern, and all patterns it calls which are
+  # not yet emitted
+
+  proc emit(name: string) =
+    echo "Emit rule " & name
+    let patt = patts[name]
+    symTab[name] = grammar.len
+    grammar.add patt
+    grammar.add Inst(op: opReturn)
+
+    for i in patt:
+      if i.op == opCall and i.name notin symTab:
+        emit i.name
   
-  proc dumpStack() =
-    if trace:
-      echo "  stack:"
-      for i, f in stack.pairs():
-        echo "    " & $i & " ip=" & $f.ip & " si=" & $f.si
+  emit initial_name
 
-  proc push(ip: int, si: int = -1) = 
-    if trace:
-      echo "  push ip:" & $ip & " si:" & $si
-    stack.add StackFrame(ip: ip, si: si)
-    dumpStack()
+  # Fixup grammar call addresses
 
-  proc pop(): StackFrame =
-    doAssert stack.len > 0, "NPeg stack underrun"
-    result = stack[stack.high]
-    if trace:
-      echo "  pop ip:" & $result.ip & " si:" & $result.si
+  for i in grammar.mitems:
+    if i.op == opCall:
+      i.address = symtab[i.name]
+
+  return grammar
+
+#
+# Template for generating the parsing match proc
+#
+
+template skel(cases: untyped) =
+
+  template trace(msg: string) =
+    when true:
+      let si2 = min(si+10, s.len-1)
+      echo align($ip, 3) &
+           " | " & align($si, 3) & 
+           " " & alignLeft(escape(s[si..si2]), 24) & "| " &
+           alignLeft(msg, 20)
+
+  template opCommentFn(msg: string) =
+    trace "\e[1m" & msg & "\e[0m"
+    inc ip
+  
+  template opIStrFn(s2: string) =
+    trace "str " & s2.escape
+    let l = s2.len
+    if si <= s.len - l and cmpIgnoreCase(s[si..<si+l], s2) == 0:
+      inc ip
+      inc si, l
+    else:
+      ip = -1
+  
+  template opStrFn(s2: string) =
+    trace s2.escape
+    let l = s2.len
+    if si <= s.len - l and s[si..<si+l] == s2:
+      inc ip
+      inc si, l
+    else:
+      ip = -1
+
+  template opSetFn(cs: set[char]) =
+    trace dumpset(cs)
+    if si < s.len and s[si] in cs:
+      inc ip
+      inc si
+    else:
+      ip = -1
+
+  template opAnyFn() =
+    trace "any"
+    if si < s.len:
+      inc ip
+      inc si
+    else:
+      ip = -1
+
+  template opChoiceFn(n: int) =
+    stack.add Frame(ip: n, si: si)
+    trace "choice " & $n
+    inc ip
+
+  template opCommitFn(n: int) =
     stack.del stack.high
-    dumpStack()
+    trace "commit " & $n
+    ip = n
 
-  if trace:
-    echo $p
+  template opCallFn(label: string, address: int) =
+    stack.add Frame(ip: ip+1, si: -1)
+    trace "call " & label & ":" & $address
+    ip = address
+
+  template opReturnFn() =
+    if stack.len == 0:
+      trace "done"
+      return true
+    ip = stack[stack.high].ip
+    stack.del stack.high
+    trace "return"
+
+  template opFailFn() =
+    while stack.len > 0 and stack[stack.high].si == -1:
+      stack.del stack.high
+    
+
+    if stack.len == 0:
+      trace "\e[31;1merror\e[0m --------------"
+      return
+
+    ip = stack[stack.high].ip
+    si = stack[stack.high].si
+    stack.del stack.high
+    trace "fail"
+
+  while true:
+    cases
+
+
+#
+# Convert the list of parser instructions into a Nim finite state machine
+#
+
+proc gencode(name: string, program: Patt): NimNode =
+
+  # Create case handler for each instruction
+
+  var cases = nnkCaseStmt.newTree(ident("ip"))
+  cases.add nnkElse.newTree(parseStmt("opFailFn()"))
   
-  while ip < p.len:
-    let inst = p[ip]
-    var fail = false
+  for n, i in program.pairs:
+    var cmd = $i.op & "Fn("
+    case i.op:
+      of opStr, opIStr:      cmd &= escape(i.str)
+      of opSet:              cmd &= $i.cs 
+      of opChoice, opCommit: cmd &= $(n+i.offset)
+      of opCall:             cmd &= "\"" & i.name & "\"" & ", " & $i.address
+      of opComment:          cmd &= "\"" & i.comment & "\""
+      else: discard
+    cmd &= ")"
+    cases.add nnkOfBranch.newTree(newLit(n), parseStmt(cmd))
 
-    if trace:
-      echo "ip:" & $ip & " i:" & $dumpInst(inst, ip) & " si:" & $si & " s:" & s[si..<s.len]
+  var body = nnkStmtList.newTree()
+  body.add parseStmt("var ip = 0")
+  body.add parseStmt("var si = 0")
+  body.add parseStmt("var stack: seq[Frame]")
+  body.add getAst skel(cases)
 
-    case inst.code:
+  # Return parser lambda function containing 'body'
 
-      of iStr:
-        let l = inst.s.len
-        if si <= s.len - l and s[si..<si+l] == inst.s:
-          inc ip
-          inc si, l
-        else:
-          fail = true
-      
-      of iStri:
-        let l = inst.s.len
-        if si <= s.len - l and cmpIgnoreCase(s[si..<si+l], inst.s) == 0:
-          inc ip
-          inc si, l
-        else:
-          fail = true
+  result = nnkLambda.newTree(
+    newEmptyNode(), newEmptyNode(), newEmptyNode(),
+    nnkFormalParams.newTree(
+      newIdentNode("bool"),
+      nnkIdentDefs.newTree(
+        newIdentNode("s"), newIdentNode("string"),
+        newEmptyNode()
+      )
+    ),
+    newEmptyNode(), newEmptyNode(),
+    body
+  )
 
-      of iSet:
-        if si < s.len and s[si] in inst.cs:
-          inc ip
-          inc si
-        else:
-          fail = true
-
-      of iJump:
-        ip += inst.offset
-
-      of iChoice:
-        push(ip + inst.offset, si)
-        inc ip
-      
-      of iCall:
-        push(ip)
-        ip += inst.offset
-
-      of iReturn:
-        doAssert stack.len > 0, "NPeg stack underrun"
-        let frame = pop()
-        ip = frame.ip
-
-      of iCommit:
-        discard pop()
-        ip += inst.offset
-
-      of iPartialCommit:
-        stack[stack.high].si = si
-        ip += inst.offset
-        dumpStack()
-
-      of iFail:
-        fail = true
-
-      of iAny:
-        if si + inst.count <= s.len:
-          inc ip
-          inc si, inst.count
-        else:
-          fail = true
-
-      of iCapStart:
-        capstack.add si
-        inc ip
-
-      of iCapEnd:
-        let si1 = capstack[capstack.high]
-        capstack.del capstack.high
-        captures.add s[si1..<si]
-        inc ip
-
-    if fail:
-      if trace:
-        echo "Fail"
-
-      while stack.len > 0 and stack[stack.high].si == -1:
-        stack.del stack.high
-
-      if stack.len == 0:
-        break
-
-      let f = pop()
-      ip = f.ip
-      si = f.si
-
-  if trace:
-    echo "done si:" & $si & " s.len:" & $s.len & " ip:" & $ip & " p.len:" & $p.len
-
-  result = si <= s.len and ip == p.len
+  #echo result.repr
 
 
-proc match*(p: Patt, s: string, trace: bool): bool =
-  var captures: seq[string]
-  match(p, s, captures, trace)
+#
+# Convert a pattern to a Nim proc implementing the parser state machine
+#
 
+macro peg*(name: string, ns: untyped): untyped =
+  let grammar = compile(ns)
+  let program = link(grammar, name.strVal)
+  echo program
+  gencode(name.strVal, program)
 
-
-# vi: ft=nim et ts=2 sw=2
 
