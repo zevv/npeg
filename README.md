@@ -34,13 +34,15 @@ NPeg is an early stage pure Nim pattern-matching library.
 
 Parsing HTTP requests:
 
+```nim
+
 let data = """
 POST flop HTTP/1.1
-content-length: 23
+Content-length: 23
+User-Agent: curl/7.64.0
 Content-Type: text/plain
 """
 
-```nim
 let match = peg "http":
   space                 <- ' '
   crlf                  <- '\n' | "\r\n"
