@@ -9,8 +9,8 @@ NPeg is an early stage pure Nim pattern-matching library.
 
 ```
  Atoms:
-    '.'           matches literal character
-    "xyz"         matches literal string
+    'x'           matches literal character 'x'
+    "xyz"         matches literal string "xyz"
    i"xyz"         matches literal string, case insensitive
     {}            matches any character
     {'x'..'y'}    matches any character in the range from 'x'..'y'

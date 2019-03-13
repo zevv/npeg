@@ -300,18 +300,19 @@ template skel(cases: untyped, ip: NimNode) =
           l.add $stack[sp-1]
         echo l
 
+    # Helper procs
+
+    proc subStrCmp(s: string, si: int, s2: string): bool =
+      if si > s.len - s2.len:
+        return false
+      for i in 0..<s2.len:
+        if s[si+i] != s2[i]:
+          return false
+      return true
+
     # State machine instruction handlers
-
+    
     template opIStrFn(s2: string) =
-      let l = s2.len
-      if si <= s.len - l and cmpIgnoreCase(s[si..<si+l], s2) == 0:
-        inc ip
-        inc si, l
-      else:
-        ip = -1
-      trace "str " & s2.escape
-
-    template opStrFn(s2: string) =
       let l = s2.len
       if si <= s.len - l and s[si..<si+l] == s2:
         inc ip
@@ -319,6 +320,14 @@ template skel(cases: untyped, ip: NimNode) =
       else:
         ip = -1
       trace s2.escape
+
+    template opStrFn(s2: string) =
+      if subStrCmp(s, si, s2):
+        inc ip
+        inc si, s2.len
+      else:
+        ip = -1
+      trace "str " & s2.escape
 
     template opSetFn(cs: set[char]) =
       if si < s.len and s[si] in cs:
