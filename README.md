@@ -15,9 +15,9 @@ NPeg patterns can be composed from the following parts.
  'x'           # matches literal character 'x'
  "xyz"         # matches literal string "xyz"
 i"xyz"         # matches literal string, case insensitive
- {}            # matches any character
- {'x'..'y'}    # matches any character in the range from 'x'..'y'
- {'x','y','z'} # matches any character from the set
+ []            # matches any character
+ ['x'..'y']    # matches any character in the range from 'x'..'y'
+ ['x','y','z'] # matches any character from the set
 ```
 
 ### Grammars:

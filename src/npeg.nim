@@ -128,7 +128,7 @@ proc buildPatt(patts: Patts, name: string, patt: NimNode): Patt =
           add Inst(op: opCommit, offset: 1)
           add Inst(op: opFail)
         else:
-          error "PEG: Unhandled prefix operator"
+          error "PEG: Unhandled prefix operator", n
       of nnkInfix:
         let p1 = aux n[1]
         let p2 = aux n[2]
@@ -153,7 +153,7 @@ proc buildPatt(patts: Patts, name: string, patt: NimNode): Patt =
             add Inst(op: opCommit, offset: p2.len+1)
             add p2
         else:
-          error "PEG: Unhandled infix operator " & n.repr
+          error "PEG: Unhandled infix operator " & n.repr, n
       of nnkCurlyExpr:
         let p = aux(n[0])
         let min = n[1].intVal
@@ -169,7 +169,7 @@ proc buildPatt(patts: Patts, name: string, patt: NimNode): Patt =
           add patts[name]
         else:
           add Inst(op: opCall, name: n.strVal)
-      of nnkCurly:
+      of nnkBracket:
         var cs: set[char]
         for nc in n:
           if nc.kind == nnkCharLit:
@@ -178,7 +178,7 @@ proc buildPatt(patts: Patts, name: string, patt: NimNode): Patt =
             for c in nc[1].intVal..nc[2].intVal:
               cs.incl c.char
           else:
-            error "PEG: syntax error: " & n.repr & "\n" & n.astGenRepr
+            error "PEG: syntax error: " & n.repr & "\n" & n.astGenRepr, n
         if cs.card == 0:
           add Inst(op: opAny)
         else:
@@ -187,9 +187,9 @@ proc buildPatt(patts: Patts, name: string, patt: NimNode): Patt =
         if n[0].eqIdent("i"):
           add Inst(op: opIStr, str: n[1].strVal)
         else:
-          error "PEG: unhandled string prefix"
+          error "PEG: unhandled string prefix", n
       else:
-        error "PEG: syntax error: " & n.repr & "\n" & n.astGenRepr
+        error "PEG: syntax error: " & n.repr & "\n" & n.astGenRepr, n
  
   result = aux(patt)
 
