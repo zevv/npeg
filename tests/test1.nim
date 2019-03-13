@@ -17,12 +17,15 @@ suite "npeg":
     doAssert patt({'a','b'})("b")
     doAssert not patt({'a','b'})("c")
 
-  test "simple grammar":
-    let s = peg "aap":
-      a <- "a"
-      aap <- a * *('(' * aap * ')')
-    doAssert s("a(a)((a))")
+  test "simple examples":
 
+    let p1 = patt *{'a'..'z'}
+    doAssert p1("lowercaseword")
+
+    let p2 = peg "ident":
+      lower <- {'a'..'z'}
+      ident <- *lower
+    doAssert p2("lowercaseword")
 
   test "HTTP parser":
 

@@ -1,11 +1,34 @@
 
 # NPeg
 
-NPeg is an early stage pure Nim pattern-matching library.
+NPeg is an early stage pure Nim pattern-matching library. It provides macros to compile
+patterns and grammars to Nim procedures which will parse a string.
+
+
+## Simple patterns
+
+A simple pattern can be compiled with the `patt` macro:
+
+```
+let p = patt *{'a'..'z'}
+assert p("lowercaseword")
+```
+
+The `peg` macro provides a method to define (recursive) grammars. The first
+argument is the name of initial rule, followed by a list of named patterns:
+
+```
+let p = peg "ident":
+  lower <- {'a'..'z'}
+  ident <- *lower
+doAssert p("lowercaseword")
+``
+assert p("lowercaseword")
 
 
 ## Grammar
 
+Npeg patterns can be composed from the following parts:
 
 ```
  Atoms:
@@ -28,6 +51,7 @@ NPeg is an early stage pure Nim pattern-matching library.
     P{n}          matches P n times
     P{m..n}       matches P m to n times
 ```
+
 
 
 ## Examples
