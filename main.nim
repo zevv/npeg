@@ -12,9 +12,9 @@ when false:
 
 when true:
 
-  let s = peg "DOC":
+  let s = peg "JSON":
     S              <- *{' ','\t','\r','\n'}
-    String         <- ?S * '"' * *({'\x20'..'\xff'} - '"' - '\\' | Escape ) * '"' * ?S
+    String         <- ?S * '"' * *({'\x20'..'\xff'} - {'"'} - {'\\'} | Escape ) * '"' * ?S
     Escape         <- '\\' * ({ '[', '"', '|', '\\', 'b', 'f', 'n', 'r', 't' } | UnicodeEscape)
     UnicodeEscape  <- 'u' * {'0'..'9','A'..'F','a'..'f'}{4}
     True           <- "true"

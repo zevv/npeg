@@ -136,11 +136,14 @@ proc buildPatt(patts: Patts, name: string, patt: NimNode): Patt =
           add p1
           add p2
         elif n[0].eqIdent("-"):
-          add Inst(op: opChoice, offset: p2.len + 3)
-          add p2
-          add Inst(op: opCommit, offset: 1)
-          add Inst(op: opFail)
-          add p1
+          if p1.isset and p2.isset:
+            add Inst(op: opSet, cs: p1[0].cs - p2[0].cs)
+          else:
+            add Inst(op: opChoice, offset: p2.len + 3)
+            add p2
+            add Inst(op: opCommit, offset: 1)
+            add Inst(op: opFail)
+            add p1
         elif n[0].eqIdent("|"):
           if p1.isset and p2.isset:
             add Inst(op: opSet, cs: p1[0].cs + p2[0].cs)
@@ -227,7 +230,6 @@ proc link(patts: Patts, initial_name: string): Patt =
   # not yet emitted
 
   proc emit(name: string) =
-    echo "Emit rule " & name
     let patt = patts[name]
     symTab[name] = grammar.len
     grammar.add patt
