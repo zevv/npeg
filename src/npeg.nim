@@ -62,15 +62,27 @@ proc dumpset(cs: set[char]): string =
   if result[result.len-1] == ',': result.setLen(result.len-1)
   result.add "}"
 
+proc dumpstring*(s: string, o:int=0, l:int=1024): string =
+  var i = o
+  while i < s.len:
+    if s[i] >= ' ' and s[i] <= 127.char:
+      if result.len >= l-1:
+        return
+      result.add s[i]
+    else:
+      if result.len >= l-3:
+        return
+      result.add "\\x" & toHex(s[i].int, 2)
+    inc i
 
 proc `$`*(p: Patt): string =
   for n, i in p.pairs:
     result &= $n & ": " & $i.op
     case i.op:
       of opStr:
-        result &= escape(i.str)
+        result &= dumpstring(i.str)
       of opIStr:
-        result &= "i" & escape(i.str)
+        result &= "i" & dumpstring(i.str)
       of opSet:
         result &= " '" & dumpset(i.cs) & "'"
       of opChoice, opCommit, opPartCommit:
@@ -316,16 +328,14 @@ template skel(cases: untyped, ip: NimNode) =
     template cpop(): int =
       assert cp > 0
       dec cp
-      echo "*** ", capstack, " ", cp
       capstack[cp]
 
     # Debug trace. Slow and expensive
 
     proc doTrace(msg: string) =
-      let si2 = min(si+10, s.len-1)
       var l = align($ip, 3) &
            " | " & align($si, 3) &
-           " " & alignLeft(s[si..si2], 24) &
+           " |" & alignLeft(dumpstring(s, si, 24), 24) &
            "| " & alignLeft(msg, 30) &
            "| " & alignLeft(repeat("*", sp), 20)
       if sp > 0:
@@ -355,7 +365,7 @@ template skel(cases: untyped, ip: NimNode) =
         inc si, l
       else:
         ip = -1
-      trace s2.escape
+      trace s2.dumpstring
 
     template opStrFn(s2: string) =
       if subStrCmp(s, si, s2):
@@ -363,7 +373,7 @@ template skel(cases: untyped, ip: NimNode) =
         inc si, s2.len
       else:
         ip = -1
-      trace "str " & s2.escape
+      trace "str " & s2.dumpstring
 
     template opSetFn(cs: set[char]) =
       if si < s.len and s[si] in cs:
@@ -410,9 +420,7 @@ template skel(cases: untyped, ip: NimNode) =
 
     template opCapEndFn() =
       trace "capend"
-      echo capstack
       let si1 = cpop()
-      echo "pop ", si1
       captures.add Capture(si1: si1, si2: si)
       inc ip
 
@@ -439,7 +447,6 @@ template skel(cases: untyped, ip: NimNode) =
     while true:
       cases
 
-    echo captures
     for cap in captures:
       if cap.si2 != 0:
         echo s[cap.si1..<cap.si2]
