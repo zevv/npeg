@@ -10,6 +10,9 @@ Content-Type: text/plain
 content-length: 23
 """
 
+proc doe(s: string) =
+  echo "FLOP ", s
+
 let s = peg "http":
   space                 <- ' '
   crlf                  <- '\n' | "\r\n"
@@ -21,12 +24,12 @@ let s = peg "http":
   url                   <- C(+alpha)
   eof                   <- -[]
 
-  req                   <- meth * space * url * space * proto * "/" * version
+  req                   <- Cp(doe, meth * space * url * space * proto * "/" * version)
 
   header_content_length <- i"Content-Length: " * +digit
   header_other          <- +(alpha | '-') * ": " * +([]-crlf)
 
-  header                <- header_content_length | header_other
+  header                <- C(header_content_length | header_other)
   http                  <- req * crlf * *(header * crlf) * eof
 
 doAssert s(data)

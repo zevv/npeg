@@ -1,5 +1,6 @@
 
 import macros
+import typetraits
 import strutils
 import tables
 
@@ -13,6 +14,9 @@ type
     opChoice, opCommit, opPartCommit, opCall, opReturn, opAny, opSet, opStr,
     opIStr, opFail, opCapStart, opCapEnd
 
+  CapKind = enum
+    ckStr, ckProc
+
   Inst = object
     case op: Opcode
       of opChoice, opCommit, opPartCommit:
@@ -24,11 +28,15 @@ type
         address: int
       of opSet:
         cs: set[char]
-      of opFail, opReturn, opAny, opCapStart, opCapEnd:
+      of opCapEnd:
+        capKind: CapKind
+        capCallback: NimNode
+      of opFail, opReturn, opAny, opCapStart:
         discard
 
-  Capture = object
-    si1, si2: int
+  Capture = string
+
+  CapCallback = proc(s: string)
 
   Frame* = object
     ip: int
@@ -134,7 +142,11 @@ proc buildPatt(patts: Patts, name: string, patt: NimNode): Patt =
         if n[0].eqIdent "C":
           add Inst(op: opCapStart)
           add aux n[1]
-          add Inst(op: opCapEnd)
+          add Inst(op: opCapEnd, capKind: ckStr)
+        elif n[0].eqIdent "Cp":
+          add Inst(op: opCapStart)
+          add aux n[2]
+          add Inst(op: opCapEnd, capKind: ckProc, capCallback: n[1])
         else:
           error "PEG: Unhandled capture type", n
       of nnkPrefix:
@@ -418,10 +430,15 @@ template skel(cases: untyped, ip: NimNode) =
       cpush(si)
       inc ip
 
-    template opCapEndFn() =
-      trace "capend"
-      let si1 = cpop()
-      captures.add Capture(si1: si1, si2: si)
+    template opCapEndFn(n: int, cb: untyped) =
+      let ck = CapKind(n)
+      trace "capend " & $ck
+      let capStr = s[cpop()..<si]
+      case ck:
+        of ckStr:
+          captures.add capStr
+        of ckProc:
+          echo "Cp not yet finished"
       inc ip
 
     template opReturnFn() =
@@ -447,9 +464,8 @@ template skel(cases: untyped, ip: NimNode) =
     while true:
       cases
 
-    for cap in captures:
-      if cap.si2 != 0:
-        echo s[cap.si1..<cap.si2]
+    for c in captures:
+      echo c
 
   {.pop.}
 
@@ -480,7 +496,13 @@ proc gencode(name: string, program: Patt): NimNode =
       of opCall:
         call.add newStrLitNode(i.name)
         call.add newIntLitNode(i.address)
-      of opReturn, opAny, opFail, opCapStart, opCapEnd:
+      of opCapEnd:
+        call.add newIntLitNode(i.capKind.int)
+        if i.capCallback.kind == nnkIdent:
+          call.add i.capCallback
+        else:
+          call.add newStrLitNode("")
+      of opReturn, opAny, opFail, opCapStart:
         discard
     cases.add nnkOfBranch.newTree(newLit(n), call)
 

@@ -50,7 +50,7 @@ content-length: 23
 
       header_content_length <- i"Content-Length: " * +digit
       header_other          <- +(alpha | '-') * ": " * +([]-crlf)
-
+    
       header                <- header_content_length | header_other
       http                  <- req * crlf * *(header * crlf) * eof
 
