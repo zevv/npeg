@@ -8,9 +8,10 @@ export escape
 const npegTrace = defined(npegTrace)
 
 type
+
   Opcode = enum
     opChoice, opCommit, opPartCommit, opCall, opReturn, opAny, opSet, opStr,
-    opIStr, opFail
+    opIStr, opFail, opCapStart, opCapEnd
 
   Inst = object
     case op: Opcode
@@ -23,12 +24,16 @@ type
         address: int
       of opSet:
         cs: set[char]
-      of opFail, opReturn, opAny:
+      of opFail, opReturn, opAny, opCapStart, opCapEnd:
         discard
+
+  Capture = object
+    si1, si2: int
 
   Frame* = object
     ip: int
     si: int
+    cp: int
 
   Patt = seq[Inst]
 
@@ -72,7 +77,7 @@ proc `$`*(p: Patt): string =
         result &= " " & $(n+i.offset)
       of opCall:
         result &= " " & i.name & ":" & $i.address
-      of opFail, opReturn, opAny:
+      of opFail, opReturn, opAny, opCapStart, opCapEnd:
         discard
     result &= "\n"
 
@@ -113,6 +118,13 @@ proc buildPatt(patts: Patts, name: string, patt: NimNode): Patt =
         add Inst(op: opStr, str: n.strVal)
       of nnkCharLit:
         add Inst(op: opStr, str: $n.intVal.char)
+      of nnkCall:
+        if n[0].eqIdent "C":
+          add Inst(op: opCapStart)
+          add aux n[1]
+          add Inst(op: opCapEnd)
+        else:
+          error "PEG: Unhandled capture type", n
       of nnkPrefix:
         let p = aux n[1]
         if n[0].eqIdent("?"):
@@ -268,11 +280,12 @@ template skel(cases: untyped, ip: NimNode) =
     var sp = 0
     var stack = newSeq[Frame](64)
 
-    template spush(ip2: int, si2: int = -1) =
+    template spush(ip2: int, si2: int = -1, cp2: int = -1) =
       if sp >= stack.len:
-        stack.setlen stack.len*2
+        stack.setLen stack.len*2
       stack[sp].ip = ip2
       stack[sp].si = si2
+      stack[sp].cp = cp2
       inc sp
     template spop() =
       assert sp > 0
@@ -281,25 +294,47 @@ template skel(cases: untyped, ip: NimNode) =
       assert sp > 0
       dec sp
       ip2 = stack[sp].ip
-    template spop(ip2, si2: var int) =
+    template spop(ip2, si2, cp2: var int) =
       assert sp > 0
       dec sp
       ip2 = stack[sp].ip
       si2 = stack[sp].si
+      cp2 = stack[sp].cp
+
+    # Capture stack management
+
+    var cp = 0
+    var capstack = newSeq[int](2)
+    var captures: seq[Capture]
+
+    template cpush(si: int) =
+      if cp >= capstack.len:
+        capstack.setLen capstack.len*2
+      capstack[cp] = si
+      inc cp
+
+    template cpop(): int =
+      assert cp > 0
+      dec cp
+      echo "*** ", capstack, " ", cp
+      capstack[cp]
 
     # Debug trace. Slow and expensive
 
+    proc doTrace(msg: string) =
+      let si2 = min(si+10, s.len-1)
+      var l = align($ip, 3) &
+           " | " & align($si, 3) &
+           " " & alignLeft(s[si..si2], 24) &
+           "| " & alignLeft(msg, 30) &
+           "| " & alignLeft(repeat("*", sp), 20)
+      if sp > 0:
+        l.add $stack[sp-1]
+      echo l
+
     template trace(msg: string) =
       when npegTrace:
-        let si2 = min(si+10, s.len-1)
-        var l = align($ip, 3) &
-             " | " & align($si, 3) &
-             " " & alignLeft(s[si..si2], 24) &
-             "| " & alignLeft(msg, 30) &
-             "| " & alignLeft(repeat("*", sp), 20)
-        if sp > 0:
-          l.add $stack[sp-1]
-        echo l
+        doTrace(msg)
 
     # Helper procs
 
@@ -312,7 +347,7 @@ template skel(cases: untyped, ip: NimNode) =
       return true
 
     # State machine instruction handlers
-    
+
     template opIStrFn(s2: string) =
       let l = s2.len
       if si <= s.len - l and s[si..<si+l] == s2:
@@ -347,7 +382,7 @@ template skel(cases: untyped, ip: NimNode) =
       trace "any"
 
     template opChoiceFn(n: int) =
-      spush(n, si)
+      spush(n, si, cp)
       inc ip
       trace "choice -> " & $n
 
@@ -368,10 +403,24 @@ template skel(cases: untyped, ip: NimNode) =
       ip = address
       trace "call -> " & label & ":" & $address
 
+    template opCapStartFn() =
+      trace "capstart " & $si
+      cpush(si)
+      inc ip
+
+    template opCapEndFn() =
+      trace "capend"
+      echo capstack
+      let si1 = cpop()
+      echo "pop ", si1
+      captures.add Capture(si1: si1, si2: si)
+      inc ip
+
     template opReturnFn() =
       if sp == 0:
         trace "done"
-        return true
+        result = true
+        break
       spop(ip)
       trace "return"
 
@@ -381,14 +430,20 @@ template skel(cases: untyped, ip: NimNode) =
 
       if sp == 0:
         trace "\e[31;1merror\e[0m --------------"
-        return false
+        break
 
-      spop(ip, si)
+      spop(ip, si, cp)
+
       trace "fail -> " & $ip
 
     while true:
       cases
-  
+
+    echo captures
+    for cap in captures:
+      if cap.si2 != 0:
+        echo s[cap.si1..<cap.si2]
+
   {.pop.}
 
   match
@@ -418,7 +473,8 @@ proc gencode(name: string, program: Patt): NimNode =
       of opCall:
         call.add newStrLitNode(i.name)
         call.add newIntLitNode(i.address)
-      else: discard
+      of opReturn, opAny, opFail, opCapStart, opCapEnd:
+        discard
     cases.add nnkOfBranch.newTree(newLit(n), call)
 
   result = getAst skel(cases, ipNode)

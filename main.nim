@@ -4,31 +4,30 @@ import os
 import json
 
 
+let data ="""
+POST flop HTTP/1.1
+Content-Type: text/plain
+content-length: 23
+"""
 
-when true:
+let s = peg "http":
+  space                 <- ' '
+  crlf                  <- '\n' | "\r\n"
+  meth                  <- C("GET" | "POST" | "PUT")
+  proto                 <- C("HTTP")
+  version               <- C("1.0" | "1.1")
+  alpha                 <- ['a'..'z','A'..'Z']
+  digit                 <- ['0'..'9']
+  url                   <- C(+alpha)
+  eof                   <- -[]
 
-  let s = peg "JSON":
-    S              <- *[' ','\t','\r','\n']
-    String         <- ?S * '"' * *( ['\x20'..'\xff'] - ['"'] - ['\\'] | Escape ) * '"' * ?S
-    Escape         <- '\\' * ([ '[', '"', '|', '\\', 'b', 'f', 'n', 'r', 't' ] | UnicodeEscape)
-    UnicodeEscape  <- 'u' * ['0'..'9','A'..'F','a'..'f']{4}
-    True           <- "true"
-    False          <- "false"
-    Null           <- "null"
-    Number         <- ?Minus * IntPart * ?FractPart * ?ExpPart
-    Minus          <- '-'
-    IntPart        <- '0' | ['1'..'9'] * *['0'..'9']
-    FractPart      <- "." * +['0'..'9']
-    ExpPart        <- ( 'e' | 'E' ) * ?( '+' | '-' ) * +['0'..'9']
-    DOC            <- JSON * -[]
-    JSON           <- ?S * ( Number | Object | Array | String | True | False | Null ) * ?S
-    Object         <- '{' * ( String * ":" * JSON * *( "," * String * ":" * JSON ) | ?S ) * "}"
-    Array          <- "[" * ( JSON * *( "," * JSON ) | ?S ) * "]"
+  req                   <- meth * space * url * space * proto * "/" * version
 
-  let js = readFile"/tmp/movies.js"
-  #discard parsejson(js)
-  echo s(js)
+  header_content_length <- i"Content-Length: " * +digit
+  header_other          <- +(alpha | '-') * ": " * +([]-crlf)
 
+  header                <- header_content_length | header_other
+  http                  <- req * crlf * *(header * crlf) * eof
 
-
+doAssert s(data)
 

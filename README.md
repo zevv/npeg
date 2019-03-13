@@ -9,7 +9,7 @@ patterns and grammars to Nim procedures which will parse a string.
 NPeg patterns can be composed from the following parts.
 
 
-### Atoms:
+### Atoms
 
 ```nim
  'x'           # matches literal character 'x'
@@ -23,7 +23,7 @@ i"xyz"         # matches literal string, case insensitive
 The set syntax `[]` is flexible and can take multiple ranges and characters in one
 expression, for example `['0'..'9','a'..'f','A'..'F']`
 
-### Grammars:
+### Operators
 
 ```nim
 (P)            # grouping
@@ -37,6 +37,17 @@ expression, for example `['0'..'9','a'..'f','A'..'F']`
  P{n}          # matches P n times
  P{m..n}       # matches P m to n times
 ```
+
+### Captures
+
+Captures are still a work in progress.
+
+```
+C(P)           # Captures all text matched in P
+```
+
+
+## NPeg vs PEG
 
 The NPeg syntax is similar to normal PEG notation, but some changes were made
 to allow the grammar to be properly parsed by the Nim compiler:
