@@ -437,8 +437,8 @@ macro peg*(name: string, ns: untyped): untyped =
 
 
 macro patt*(ns: untyped): untyped =
-  var dummy = initTable[string, Patt]()
-  var patt = buildPatt(dummy, "p", ns)
+  var symtab = initTable[string, Patt]()
+  var patt = buildPatt(symtab, "p", ns)
   patt.add Inst(op: opReturn)
   when npegTrace:
     echo patt
