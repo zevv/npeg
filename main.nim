@@ -4,13 +4,11 @@ import os
 import json
 
 
-when false:
-  let s = peg "aap":
-    aap <- *"a" * *"b"
-
+when true:
+  let s = patt *"a" * *"b"
   echo s("aaabbbb")
 
-when true:
+when false:
 
   let s = peg "JSON":
     S              <- *{' ','\t','\r','\n'}

@@ -1,19 +1,21 @@
 import unittest
 import npeg
-
+  
 const verbose = false
-
 abortOnError = true
 
 
 suite "npeg":
 
-
-  test "literal string":
-    let s = peg "test":
-      test <- "abc"
-    doAssert s "abc"
-
+  test "atoms":
+    doAssert patt("a")("a")
+    doAssert not patt("a")("b")
+    doAssert patt("abc")("abc")
+    doAssert patt({'a'})("a")
+    doAssert not patt({'a'})("b")
+    doAssert patt({'a','b'})("a")
+    doAssert patt({'a','b'})("b")
+    doAssert not patt({'a','b'})("c")
 
   test "simple grammar":
     let s = peg "aap":

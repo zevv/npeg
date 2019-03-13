@@ -107,7 +107,7 @@ proc buildPatt(patts: Patts, name: string, patt: NimNode): Patt =
       add Inst(op: opCommit, offset: 1)
 
     case n.kind:
-      of nnKPar:
+      of nnKPar, nnkStmtList:
         add aux(n[0])
       of nnkStrLit:
         add Inst(op: opStr, str: n.strVal)
@@ -201,7 +201,6 @@ proc buildPatt(patts: Patts, name: string, patt: NimNode): Patt =
 proc compile(ns: NimNode): Patts =
   result = initTable[string, Patt]()
 
-  ns.expectKind nnkStmtList
   for n in ns:
     n.expectKind nnkInfix
     n[0].expectKind nnkIdent
@@ -256,6 +255,8 @@ proc link(patts: Patts, initial_name: string): Patt =
 #
 
 template skel(cases: untyped, ip: NimNode) =
+
+  {.push hint[XDeclaredButNotUsed]: off.}
 
   let match = proc(s: string): bool =
 
@@ -387,6 +388,8 @@ template skel(cases: untyped, ip: NimNode) =
 
     while true:
       cases
+  
+  {.pop.}
 
   match
 
@@ -428,9 +431,16 @@ proc gencode(name: string, program: Patt): NimNode =
 macro peg*(name: string, ns: untyped): untyped =
   let grammar = compile(ns)
   let patt = link(grammar, name.strVal)
-  let program = gencode(name.strVal, patt)
   when npegTrace:
     echo patt
-  program
+  gencode(name.strVal, patt)
 
+
+macro patt*(ns: untyped): untyped =
+  var dummy = initTable[string, Patt]()
+  var patt = buildPatt(dummy, "p", ns)
+  patt.add Inst(op: opReturn)
+  when npegTrace:
+    echo patt
+  gencode("p", patt)
 
