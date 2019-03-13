@@ -437,7 +437,7 @@ template skel(cases: untyped, ip: NimNode) =
         spop()
 
       if sp == 0:
-        trace "\e[31;1merror\e[0m --------------"
+        trace "error"
         break
 
       spop(ip, si, cp)
