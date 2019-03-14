@@ -89,6 +89,19 @@ let p = peg "ident":
 doAssert p("lowercaseword")
 ```
 
+#### Searching
+
+Patterns are always matched in anchored mode only. To search for a pattern in
+a stream, a construct like this can be used:
+
+```nim
+p <- "hello"
+search <- p | [] * search
+```
+
+The above grammar first tries to match pattern `p`, or if that fails, matches
+any character `[]` and recurses back to itself.
+
 
 #### Ordering of rules in a grammar
 
