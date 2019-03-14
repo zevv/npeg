@@ -12,11 +12,23 @@ const npegTrace = defined(npegTrace)
 type
 
   Opcode = enum
-    opChoice, opCommit, opPartCommit, opCall, opReturn, opAny, opSet, opStr,
-    opIStr, opFail, opCapStart, opCapEnd, opSpan
+    opStr,          # Matching: Literal string or character
+    opIStr,         # Matching: Literal string or character, case insensitive
+    opSet,          # Matching: Character set and/or range
+    opAny,          # Matching: Any character
+    opSpan          # Matching: Match a sequence of 0 or more character sets
+    opChoice,       # Flow control: stores current position
+    opCommit,       # Flow control: commit previous choice
+    opPartCommit,   # Flow control: optimized commit/choice pair
+    opCall,         # Flow control: call another rule
+    opReturn,       # Flow control: return from earlier call
+    opFail,         # Fail: unwind stack until last frame
+    opCapStart,     # Capture: Start a capture
+    opCapEnd,       # Capture: End a capture
 
   CapKind = enum
-    ckStr, ckProc
+    ckStr,          # String capture
+    ckProc,         # Proc call capture
 
   CharSet = set[char]
 
@@ -53,6 +65,8 @@ type
   Patts = Table[string, Patt]
 
 
+# Create a short and friendly text representation of a character set.
+
 proc dumpset(cs: CharSet): string =
   proc esc(c: char): string =
     case c:
@@ -75,6 +89,10 @@ proc dumpset(cs: CharSet): string =
   if result[result.len-1] == ',': result.setLen(result.len-1)
   result.add "}"
 
+
+# Create a friendly version of the given string, escaping not-printables
+# and no longer then `l`
+
 proc dumpstring*(s: string, o:int=0, l:int=1024): string =
   var i = o
   while i < s.len:
@@ -87,6 +105,9 @@ proc dumpstring*(s: string, o:int=0, l:int=1024): string =
         return
       result.add "\\x" & toHex(s[i].int, 2)
     inc i
+
+
+# Create string representation of a pattern
 
 proc `$`*(p: Patt): string =
   for n, i in p.pairs:
@@ -107,9 +128,7 @@ proc `$`*(p: Patt): string =
     result &= "\n"
 
 
-#
 # Some tests on patterns
-#
 
 proc isSet(p: Patt): bool =
   p.len == 1 and p[0].op == opSet
@@ -126,9 +145,7 @@ proc toSet(p: Patt): Option[Charset] =
       return some { toLowerAscii(i.str[0]), toUpperAscii(i.str[0]) }
 
 
-#
 # Recursively compile a peg pattern to a sequence of parser instructions
-#
 
 proc buildPatt(patts: Patts, name: string, patt: NimNode): Patt =
 
@@ -258,9 +275,7 @@ proc buildPatt(patts: Patts, name: string, patt: NimNode): Patt =
   result = aux(patt)
 
 
-#
 # Compile the PEG to a table of patterns
-#
 
 proc compile(ns: NimNode): Patts =
   result = initTable[string, Patt]()
@@ -275,11 +290,9 @@ proc compile(ns: NimNode): Patts =
     result[pname] = buildPatt(result, pname, n[2])
 
 
-#
 # Link all patterns into a grammar, which is itself again a valid pattern.
 # Start with the initial rule, add all other non terminals and fixup opCall
 # addresses
-#
 
 proc link(patts: Patts, initial_name: string): Patt =
 
@@ -312,11 +325,9 @@ proc link(patts: Patts, initial_name: string): Patt =
 
   return grammar
 
-#
 # Template for generating the parsing match proc.  A dummy 'ip' node is passed
 # into this template to prevent its name from getting mangled so that the code
 # in the `peg` macro can access it
-#
 
 template skel(cases: untyped, ip: NimNode) =
 
@@ -513,9 +524,7 @@ template skel(cases: untyped, ip: NimNode) =
   match
 
 
-#
 # Convert the list of parser instructions into a Nim finite state machine
-#
 
 proc gencode(name: string, program: Patt): NimNode =
 
@@ -550,9 +559,7 @@ proc gencode(name: string, program: Patt): NimNode =
   result = getAst skel(cases, ipNode)
 
 
-#
 # Convert a pattern to a Nim proc implementing the parser state machine
-#
 
 macro peg*(name: string, ns: untyped): untyped =
   let grammar = compile(ns)
