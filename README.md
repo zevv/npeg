@@ -44,6 +44,7 @@ Captures are still a work in progress.
 
 ```
 C(P)           # Captures all text matched in P
+Cp(proc, P)    # Passes the captured string to procedure `proc`
 ```
 
 
@@ -64,23 +65,27 @@ to allow the grammar to be properly parsed by the Nim compiler:
 A simple pattern can be compiled with the `patt` macro:
 
 ```nim
-let p = patt *{'a'..'z'}
+let p = patt *['a'..'z']
 doAssert p("lowercaseword")
 ```
 
 ### Grammars
 
 The `peg` macro provides a method to define (recursive) grammars. The first
-argument is the name of initial rule, followed by a list of named patterns:
+argument is the name of initial patterns, followed by a list of named patterns.
+Patterns can now refer to other patterns by name, allowing for recursion:
 
 ```nim
 let p = peg "ident":
-  lower <- {'a'..'z'}
+  lower <- ['a'..'z']
   ident <- *lower
 doAssert p("lowercaseword")
 ```
 
-The order in which the grammar rules are defined affects the generated parser.
+
+#### Ordering of rules in a grammar
+
+The order in which the grammar patterns are defined affects the generated parser.
 Although NPeg could aways reorder, this is a design choice to give the user
 more control over the generated parser:
 
@@ -95,7 +100,38 @@ more control over the generated parser:
 The exact parser size and performance behavior depends on many factors; it pays
 to experiment with different orderings and measure the results.
 
-to another ru
+
+### Limitations
+
+NPeg does not support left recursion (this applies to PEGs in general). For
+example, the rule 
+
+```nim
+A <- A / 'a'
+```
+
+will cause an infinite loop because it allows for left-recursion of the
+non-terminal `A`. Similarly, the grammar
+
+```nim
+A <- B / 'a' A
+B <- A is
+```
+
+is problematic because it is mutually left-recursive through the non-terminal
+`B`.
+
+
+Loops of patterns that can match the empty string will not result in the
+expected behaviour. For example, the rule
+
+```nim
+*""
+```
+
+will cause the parser to stall and go into an infinite loop.
+
+
 
 ## Examples
 
