@@ -33,7 +33,7 @@ one expression, for example `['0'-'9','a'-'f','A'-'F']`.
  P1 - P2       # matches P1 if P2 does not match
 ?P             # matches P 0 or 1 times
 *P             # matches P 0 or more times
-+P             # matches P 1 or more times P
++P             # matches P 1 or more times
  P{n}          # matches P n times
  P{m..n}       # matches P m to n times
 ```
