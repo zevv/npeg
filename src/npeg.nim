@@ -38,6 +38,8 @@ type
 
   CapCallback = proc(s: string)
 
+  MatchResult = bool
+
   Frame* = object
     ip: int
     si: int
@@ -299,7 +301,7 @@ template skel(cases: untyped, ip: NimNode) =
 
   {.push hint[XDeclaredButNotUsed]: off.}
 
-  let match = proc(s: string): bool =
+  let match = proc(s: string): MatchResult =
 
     var ip = 0
     var si = 0
