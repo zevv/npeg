@@ -31,7 +31,7 @@ cf-ray: 4b78ce02a9c7c82d-AMS
 
     code                  <- C(+digit)
     msg                   <- +([] - '\r' - '\n')
-    response              <- proto * '/' * version * space * +digit * space * msg 
+    response              <- proto * '/' * version * space * code * space * msg 
     header                <- header_content_length | header_other
     http                  <- response * crlf * *(header * crlf) * eof
 
@@ -39,5 +39,8 @@ cf-ray: 4b78ce02a9c7c82d-AMS
     header_other          <- +(alpha | '-') * ": " * +([]-['\n']-['\r'])
 
 
-  doAssert s2(data)
+  let (ok, pos, caps) = s2(data)
+  echo ok
+  echo pos
+  echo caps
 

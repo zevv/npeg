@@ -1,4 +1,32 @@
 
+#
+# Copyright (c) 2018 Ico Doornekamp
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in
+# all copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+# THE SOFTWARE.
+#
+# This parser implementation is based on the following papers:
+#
+# - Roberto Ierusalimschy. A Text Pattern-Matching Tool based on Parsing Expression Grammars
+# - Jos Craaijo. An efficient parsing machine for PEGs
+#
+
+
 import macros
 import typetraits
 import strutils
@@ -62,7 +90,6 @@ type
 
   Patts = Table[string, Patt]
 
-
 # Create a set containing all characters. This is used for optimizing
 # set unions and differences with opAny
 
@@ -72,19 +99,23 @@ proc mkAnySet(): CharSet {.compileTime.} =
 const anySet = mkAnySet()
 
 
+# I don't know how to get rid of this on yet
+
+proc nop*(s: string) = discard
+
+
 # Create a short and friendly text representation of a character set.
 
 proc dumpSet(cs: CharSet): string =
   proc esc(c: char): string =
     case c:
-      of '\n': result = "\\n"
-      of '\r': result = "\\r"
-      of '\t': result = "\\t"
+      of '\n': result = "'\\n'"
+      of '\r': result = "'\\r'"
+      of '\t': result = "'\\t'"
       elif c >= ' ' and c <= '~':
-        result = $c
+        result = "'" & $c & "'"
       else:
-        result = "0x" & tohex(c.int, 2)
-    result = "'" & result & "'"
+        result = "\\x" & tohex(c.int, 2).toLowerAscii
   result.add "{"
   var c = 0
   while c <= 255:
@@ -94,7 +125,7 @@ proc dumpSet(cs: CharSet): string =
     if (c - 1 == first):
       result.add esc(first.char) & ","
     elif c - 1 > first:
-      result.add esc(first.char) & ".." & esc((c-1).char) & ","
+      result.add esc(first.char) & "-" & esc((c-1).char) & ","
     inc c
   if result[result.len-1] == ',': result.setLen(result.len-1)
   result.add "}"
@@ -103,7 +134,7 @@ proc dumpSet(cs: CharSet): string =
 # Create a friendly version of the given string, escaping not-printables
 # and no longer then `l`
 
-proc dumpstring*(s: string, o:int=0, l:int=1024): string =
+proc dumpString*(s: string, o:int=0, l:int=1024): string =
   var i = o
   while i < s.len:
     if s[i] >= ' ' and s[i] <= 127.char:
@@ -243,10 +274,6 @@ proc buildPatt(patts: Patts, name: string, patt: NimNode): Patt =
             add p1
             add Inst(op: opCommit, offset: p2.len+1)
             add p2
-        elif n[0].eqIdent("%"):
-          add Inst(op: opCapStart)
-          add aux n[1]
-          add Inst(op: opCapEnd, capKind: ckProc, capCallback: n[2])
         else:
           krak n, "Unhandled infix operator"
       of nnkCurlyExpr:
@@ -354,6 +381,7 @@ template skel(cases: untyped, ip: NimNode) =
 
   let match = proc(s: string): MatchResult =
 
+    var ok = false
     var ip = 0
     var si = 0
 
@@ -516,7 +544,7 @@ template skel(cases: untyped, ip: NimNode) =
       trace "return"
       if sp == 0:
         trace "done"
-        result = true
+        ok = true
         break
       spop(ip)
 
@@ -535,8 +563,7 @@ template skel(cases: untyped, ip: NimNode) =
     while true:
       cases
 
-    for c in captures:
-      echo c
+    result = ok
 
   {.pop.}
 
@@ -570,7 +597,7 @@ proc gencode(name: string, program: Patt): NimNode =
         if i.capCallback.kind == nnkIdent:
           call.add i.capCallback
         else:
-          call.add newStrLitNode("")
+          call.add ident("nop")
       of opReturn, opAny, opFail, opCapStart:
         discard
     cases.add nnkOfBranch.newTree(newLit(n), call)
