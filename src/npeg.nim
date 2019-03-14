@@ -57,6 +57,8 @@ type
   CapKind = enum
     ckStr,          # String capture
     ckArray,        # Array
+    ckObject,       # Object
+    ckField,        # Object field
     ckProc,         # Proc call capture
 
   CharSet = set[char]
@@ -75,6 +77,7 @@ type
       of opCapStart, opCapEnd:
         capKind: CapKind
         capCallback: NimNode
+        fieldName: string
       of opFail, opReturn, opAny:
         discard
 
@@ -230,6 +233,11 @@ proc buildPatt(patts: Patts, name: string, patt: NimNode): Patt =
           addCap n[1], ckStr
         elif n[0].eqIdent "Ca":
           addCap n[1], ckArray
+        elif n[0].eqIdent "Co":
+          addCap n[1], ckObject
+        elif n[0].eqIdent "Cf":
+          addCap n[2], ckField
+          result[result.high].fieldName = n[1].strVal
         elif n[0].eqIdent "Cp":
           addCap n[2], ckProc
           result[result.high].capCallback = n[1]
@@ -541,11 +549,16 @@ template skel(cases: untyped, ip: NimNode) =
             let a = newJArray()
             dataStack[datastack.high].add a
             dataStack.add a
+        of ckObject:
+          if dataStack.len > 0:
+            let a = newJObject()
+            dataStack[datastack.high].add a
+            dataStack.add a
         else:
           discard
       inc ip
 
-    template opCapEndFn(n: int, fn: untyped) =
+    template opCapEndFn(n: int, fn: untyped, fieldName: string) =
       let ck = CapKind(n)
       trace "capend " & $ck
       let capStr = s[cpop()..<si]
@@ -553,9 +566,12 @@ template skel(cases: untyped, ip: NimNode) =
         of ckStr:
           if dataStack.len > 0:
             dataStack[dataStack.high].add newJString(capStr)
+        of ckField:
+          if dataStack.len > 0:
+            dataStack[dataStack.high][fieldName] = newJString(capStr)
         of ckProc:
           fn(capStr)
-        of ckArray:
+        of ckArray, ckObject:
           if dataSTack.len > 0:
             dataStack.del dataStack.high
       inc ip
@@ -620,6 +636,7 @@ proc gencode(name: string, program: Patt): NimNode =
           call.add i.capCallback
         else:
           call.add ident("nop")
+        call.add newStrLitNode(i.fieldName)
       of opReturn, opAny, opFail:
         discard
     cases.add nnkOfBranch.newTree(newLit(n), call)

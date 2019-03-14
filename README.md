@@ -41,12 +41,14 @@ one expression, for example `['0'-'9','a'-'f','A'-'F']`.
 ### Captures
 
 ```
-C(P)           # Captures all text matched in P
-Ca()           # Create a new capture array
+C(P)           # Stores the capture in the open JSON array
+Ca()           # Create a new capture JSON array
+Co()           # Create a new capture JSON object
+Cf("name", P)  # Stores the capture in the open JSON object
 Cp(proc, P)    # Passes the captured string to procedure `proc`
 ```
 
-Warning: Captures are stil in development.
+Warning: Captures are stil in development, the interface is likely to change.
 
 Captured data in patterns can be saved to a tree of Json nodes which can be
 accessed by the application after the parsing completes. Check the examples
@@ -204,20 +206,17 @@ let s2 = peg "http":
   digit       <- ['0'-'9']
   url         <- +(alpha | digit | '/' | '_' | '.')
   eof         <- ![]
-  
-  proto       <- C(+alpha)
-  version     <- C(+digit * '.' * +digit)
-  code        <- C(+digit)
-  msg         <- C(+([] - '\r' - '\n'))
-
-  response    <- Ca(proto * '/' * version * space * code * space * msg)
-
-  http        <- response * crlf * *(header * crlf) * eof
-
   header_name <- +(alpha | '-')
   header_val  <- +([]-['\n']-['\r'])
-  header      <- Ca( C(header_name) * ": " * C(header_val) )
 
+  proto       <- Cf( "proto", +alpha )
+  version     <- Cf( "version", +digit * '.' * +digit )
+  code        <- Cf( "code", +digit )
+  msg         <- Cf( "msg", +([] - '\r' - '\n') )
+  response    <- Co( proto * '/' * version * space * code * space * msg )
+  header      <- Ca( C(header_name) * ": " * C(header_val) )
+  headers     <- Ca( *(header * crlf) )
+  http        <- response * crlf * headers * eof
 
 var captures = newJArray()
 doAssert s2(data, captures)
@@ -227,21 +226,17 @@ echo captures.pretty
 The resulting JSON data:
 ```json
 [
+  {
+    "proto": "HTTP",
+    "version": "2.0",
+    "code": "304",
+    "msg": "Not Modified"
+  },
   [
-    "HTTP",
-    "2.0",
-    "304",
-    "Not Modified"
-  ], [
-    "date",
-    "Thu, 14 Mar 2019 19:55:21 GMT"
-  ], [
-    "cache-control",
-    "no-cache"
-  ], [
-    "server",
-    "cloudflare"
-  ],
+    [ "date",          "Thu, 14 Mar 2019 19:55:21 GMT" ],
+    [ "cache-control", "no-cache" ],
+    [ "server",        "cloudflare" ],
+  ]
 ]
 ```
 
