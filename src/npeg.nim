@@ -49,6 +49,7 @@ type
     opCommit,       # Flow control: commit previous choice
     opPartCommit,   # Flow control: optimized commit/choice pair
     opCall,         # Flow control: call another rule
+    opJump,         # Flow control: jump to target
     opReturn,       # Flow control: return from earlier call
     opFail,         # Fail: unwind stack until last frame
     opCapStart,     # Capture: Start a capture
@@ -69,7 +70,7 @@ type
         offset: int
       of opStr, opIStr:
         str: string
-      of opCall:
+      of opCall, opJump:
         name: string
         address: int
       of opSet, opSpan:
@@ -164,7 +165,7 @@ proc `$`*(p: Patt): string =
         result &= " '" & dumpset(i.cs) & "'"
       of opChoice, opCommit, opPartCommit:
         result &= " " & $(n+i.offset)
-      of opCall:
+      of opCall, opJump:
         result &= " " & i.name & ":" & $i.address
       of opFail, opReturn, opAny, opCapStart, opCapEnd:
         discard
@@ -375,11 +376,13 @@ proc link(patts: Patts, initial_name: string): Patt =
 
   emit initial_name
 
-  # Fixup grammar call addresses
+  # Fixup call addresses and do tail call optimization
 
-  for i in grammar.mitems:
+  for n, i in grammar.mpairs:
     if i.op == opCall:
       i.address = symtab[i.name]
+    if i.op == opCall and grammar[n+1].op == opReturn:
+      i.op = opJump
 
   return grammar
 
@@ -539,6 +542,10 @@ template skel(cases: untyped, ip: NimNode) =
       spush(ip+1)
       ip = address
 
+    template opJumpFn(label: string, address: int) =
+      trace "jump -> " & label & ":" & $address
+      ip = address
+
     template opCapStartFn(n: int) =
       let ck = CapKind(n)
       trace "capstart " & $ck
@@ -625,7 +632,7 @@ proc gencode(name: string, program: Patt): NimNode =
         call.add setNode
       of opChoice, opCommit, opPartCommit:
         call.add newIntLitNode(n + i.offset)
-      of opCall:
+      of opCall, opJump:
         call.add newStrLitNode(i.name)
         call.add newIntLitNode(i.address)
       of opCapStart:

@@ -3,7 +3,12 @@ import npeg
 import os
 import json
 
-doAssert     patt('a'{2..4})("aaaaa")
+
+let s = peg "wot":
+  a <- "hello"
+  wot <- a | [] * wot
+
+echo s("dit is hello ja daag")
 
 
 when false:
