@@ -386,58 +386,58 @@ template skel(cases: untyped, ip: NimNode) =
     # State machine instruction handlers
 
     template opStrFn(s2: string) =
+      trace "str " & s2.dumpstring
       if subStrCmp(s, si, s2):
         inc ip
         inc si, s2.len
       else:
         ip = -1
-      trace "str " & s2.dumpstring
 
     template opIStrFn(s2: string) =
+      trace "str " & s2.dumpstring
       if subIStrCmp(s, si, s2):
         inc ip
         inc si, s2.len
       else:
         ip = -1
-      trace "str " & s2.dumpstring
 
     template opSetFn(cs: set[char]) =
+      trace dumpset(cs)
       if si < s.len and s[si] in cs:
         inc ip
         inc si
       else:
         ip = -1
-      trace dumpset(cs)
 
     template opAnyFn() =
+      trace "any"
       if si < s.len:
         inc ip
         inc si
       else:
         ip = -1
-      trace "any"
 
     template opChoiceFn(n: int) =
+      trace "choice -> " & $n
       spush(n, si, cp)
       inc ip
-      trace "choice -> " & $n
 
     template opCommitFn(n: int) =
-      spop()
       trace "commit -> " & $n
+      spop()
       ip = n
 
     template opPartCommitFn(n: int) =
+      trace "pcommit -> " & $n
       assert sp > 0
       #stack[sp].ip = ip
       stack[sp-1].si = si
       ip = n
-      trace "pcommit -> " & $n
 
     template opCallFn(label: string, address: int) =
+      trace "call -> " & label & ":" & $address
       spush(ip+1)
       ip = address
-      trace "call -> " & label & ":" & $address
 
     template opCapStartFn() =
       trace "capstart " & $si
@@ -456,12 +456,12 @@ template skel(cases: untyped, ip: NimNode) =
       inc ip
 
     template opReturnFn() =
+      trace "return"
       if sp == 0:
         trace "done"
         result = true
         break
       spop(ip)
-      trace "return"
 
     template opFailFn() =
       while sp > 0 and stack[sp-1].si == -1:
