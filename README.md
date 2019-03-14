@@ -40,7 +40,7 @@ one expression, for example `['0'-'9','a'-'f','A'-'F']`.
 
 ### Captures
 
-```
+```nim
 C(P)           # Stores the capture in the open JSON array
 Ca()           # Create a new capture JSON array
 Co()           # Create a new capture JSON object
