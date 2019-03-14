@@ -40,12 +40,21 @@ one expression, for example `['0'-'9','a'-'f','A'-'F']`.
 
 ### Captures
 
-Captures are still a work in progress.
-
 ```
 C(P)           # Captures all text matched in P
 Cp(proc, P)    # Passes the captured string to procedure `proc`
 ```
+
+Captures save the part of the input string that matches on pattern P. NPeg will
+offer different methods to handle these captures: save them to a list or other
+data structure of strings, or call a procedure with the matched string during
+parsing.
+
+NPegs capture handling is still in development, my biggest problem is defining
+a good method for collecting the captured strings and finding a friendly API
+for passing them to the user. I am open for any ideas and feedback. One idea is
+to capture the data into JsonNodes. This is pretty flexible, but adds a
+dependency to the json module.
 
 
 ## NPeg vs PEG
