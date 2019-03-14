@@ -1,6 +1,8 @@
 import unittest
 import npeg
   
+{.push warning[Spacing]: off.}
+
 const verbose = false
 abortOnError = true
 
