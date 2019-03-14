@@ -148,7 +148,7 @@ proc buildPatt(patts: Patts, name: string, patt: NimNode): Patt =
           add aux n[2]
           add Inst(op: opCapEnd, capKind: ckProc, capCallback: n[1])
         else:
-          error "PEG: Unhandled capture type", n
+          error "PEG: Unhandled capture type: ", n
       of nnkPrefix:
         let p = aux n[1]
         if n[0].eqIdent("?"):
@@ -164,7 +164,7 @@ proc buildPatt(patts: Patts, name: string, patt: NimNode): Patt =
           add Inst(op: opCommit, offset: 1)
           add Inst(op: opFail)
         else:
-          error "PEG: Unhandled prefix operator", n
+          error "PEG: Unhandled prefix operator: ", n
       of nnkInfix:
         let p1 = aux n[1]
         let p2 = aux n[2]
@@ -188,8 +188,12 @@ proc buildPatt(patts: Patts, name: string, patt: NimNode): Patt =
             add p1
             add Inst(op: opCommit, offset: p2.len+1)
             add p2
+        elif n[0].eqIdent("%"):
+          add Inst(op: opCapStart)
+          add aux n[1]
+          add Inst(op: opCapEnd, capKind: ckProc, capCallback: n[2])
         else:
-          error "PEG: Unhandled infix operator " & n.repr, n
+          error "PEG: Unhandled infix operator: " & n.repr, n
       of nnkCurlyExpr:
         let p = aux(n[0])
         let min = n[1].intVal
@@ -238,6 +242,7 @@ proc compile(ns: NimNode): Patts =
   result = initTable[string, Patt]()
 
   for n in ns:
+    echo n.astGenRepr
     n.expectKind nnkInfix
     n[0].expectKind nnkIdent
     n[1].expectKind nnkIdent
@@ -367,20 +372,27 @@ template skel(cases: untyped, ip: NimNode) =
         if s[si+i] != s2[i]:
           return false
       return true
+    
+    proc subIStrCmp(s: string, si: int, s2: string): bool =
+      if si > s.len - s2.len:
+        return false
+      for i in 0..<s2.len:
+        if s[si+i].toLowerAscii != s2[i].toLowerAscii:
+          return false
+      return true
 
     # State machine instruction handlers
 
-    template opIStrFn(s2: string) =
-      let l = s2.len
-      if si <= s.len - l and s[si..<si+l] == s2:
-        inc ip
-        inc si, l
-      else:
-        ip = -1
-      trace s2.dumpstring
-
     template opStrFn(s2: string) =
       if subStrCmp(s, si, s2):
+        inc ip
+        inc si, s2.len
+      else:
+        ip = -1
+      trace "str " & s2.dumpstring
+
+    template opIStrFn(s2: string) =
+      if subIStrCmp(s, si, s2):
         inc ip
         inc si, s2.len
       else:
@@ -430,7 +442,7 @@ template skel(cases: untyped, ip: NimNode) =
       cpush(si)
       inc ip
 
-    template opCapEndFn(n: int, cb: untyped) =
+    template opCapEndFn(n: int, fn: untyped) =
       let ck = CapKind(n)
       trace "capend " & $ck
       let capStr = s[cpop()..<si]
@@ -438,7 +450,7 @@ template skel(cases: untyped, ip: NimNode) =
         of ckStr:
           captures.add capStr
         of ckProc:
-          echo "Cp not yet finished"
+          fn(capStr)
       inc ip
 
     template opReturnFn() =
