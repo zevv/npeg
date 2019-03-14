@@ -162,18 +162,22 @@ A complete JSON parser:
 
 let match = peg "DOC":
   S              <- *[' ','\t','\r','\n']
-  String         <- ?S * '"' * *(['\x20'-'\xff'] - '"' - '\\' | Escape ) * '"' * ?S
-  Escape         <- '\\' * ([ '[', '"', '|', '\\', 'b', 'f', 'n', 'r', 't' ] | UnicodeEscape)
-  UnicodeEscape  <- 'u' * ['0'-'9','A'-'F','a'-'f']{4}
   True           <- "true"
   False          <- "false"
   Null           <- "null"
-  Number         <- ?Minus * IntPart * ?FractPart * ?ExpPart
+
+  UnicodeEscape  <- 'u' * ['0'-'9','A'-'F','a'-'f']{4}
+  Escape         <- '\\' * ([ '[', '"', '|', '\\', 'b', 'f', 'n', 'r', 't' ] | UnicodeEscape)
+  StringBody     <- ?Escape * *( +( ['\x20'-'\xff'] - ['"'] - ['\\']) * *Escape) 
+  String         <- ?S * '"' * StringBody * '"' * ?S
+
   Minus          <- '-'
   IntPart        <- '0' | ['1'-'9'] * *['0'-'9']
   FractPart      <- "." * +['0'-'9']
   ExpPart        <- ( 'e' | 'E' ) * ?( '+' | '-' ) * +['0'-'9']
-  DOC            <- JSON * ![]
+  Number         <- ?Minus * IntPart * ?FractPart * ?ExpPart
+
+  DOC            <- JSON * -[]
   JSON           <- ?S * ( Number | Object | Array | String | True | False | Null ) * ?S
   Object         <- '{' * ( String * ":" * JSON * *( "," * String * ":" * JSON ) | ?S ) * "}"
   Array          <- "[" * ( JSON * *( "," * JSON ) | ?S ) * "]"

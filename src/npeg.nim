@@ -51,8 +51,6 @@ type
 
   Capture = string
 
-  CapCallback = proc(s: string)
-
   MatchResult = bool
 
   Frame* = object
@@ -172,6 +170,9 @@ proc buildPatt(patts: Patts, name: string, patt: NimNode): Patt =
       add aux n
       add i
 
+    template krak(n: NimNode, msg: string) =
+      error "NPeg: " & msg & ": " & n.repr
+
     case n.kind:
       of nnKPar, nnkStmtList:
         add aux(n[0])
@@ -185,7 +186,7 @@ proc buildPatt(patts: Patts, name: string, patt: NimNode): Patt =
         elif n[0].eqIdent "Cp":
           addCap n[2], Inst(op: opCapEnd, capKind: ckProc, capCallback: n[1])
         else:
-          error "PEG: Unhandled capture type: ", n
+          krak n, "Unhandled capture type"
       of nnkPrefix:
         let p = aux n[1]
         if n[0].eqIdent("?"):
@@ -201,7 +202,7 @@ proc buildPatt(patts: Patts, name: string, patt: NimNode): Patt =
           add Inst(op: opCommit, offset: 1)
           add Inst(op: opFail)
         else:
-          error "PEG: Unhandled prefix operator: ", n
+          krak n, "Unhandled prefix operator: "
       of nnkInfix:
         let p1 = aux n[1]
         let p2 = aux n[2]
@@ -234,16 +235,19 @@ proc buildPatt(patts: Patts, name: string, patt: NimNode): Patt =
           add aux n[1]
           add Inst(op: opCapEnd, capKind: ckProc, capCallback: n[2])
         else:
-          error "PEG: Unhandled infix operator: " & n.repr, n
+          krak n, "Unhandled infix operator"
       of nnkCurlyExpr:
         let p = aux(n[0])
-        let min = n[1].intVal
-        for i in 1..min:
-          add p
-        if n.len == 3:
-          let max = n[2].intval
-          for i in min..max:
-            addMaybe p
+        var min, max: BiggestInt
+        if n[1].kind == nnkIntLit:
+          min = n[1].intVal
+        elif n[1].kind == nnkInfix and n[1][0].eqIdent(".."):
+          min = n[1][1].intVal
+          max = n[1][2].intVal
+        else:
+          krak n, "syntax error"
+        for i in 1..min: add p
+        for i in min..max: addMaybe p
       of nnkIdent:
         let name = n.strVal
         if name in patts:
@@ -259,7 +263,7 @@ proc buildPatt(patts: Patts, name: string, patt: NimNode): Patt =
             for c in nc[1].intVal..nc[2].intVal:
               cs.incl c.char
           else:
-            error "PEG: syntax error: " & n.repr & "\n" & n.astGenRepr, n
+            krak n, "syntax error"
         if cs.card == 0:
           add Inst(op: opAny)
         else:
@@ -268,9 +272,9 @@ proc buildPatt(patts: Patts, name: string, patt: NimNode): Patt =
         if n[0].eqIdent("i"):
           add Inst(op: opIStr, str: n[1].strVal)
         else:
-          error "PEG: unhandled string prefix", n
+          krak n, "unhandled string prefix"
       else:
-        error "PEG: syntax error: " & n.repr & "\n" & n.astGenRepr, n
+        krak n, "syntax error"
  
   result = aux(patt)
 
