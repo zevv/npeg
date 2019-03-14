@@ -63,15 +63,27 @@ type
   Patts = Table[string, Patt]
 
 
+# Create a set containing all characters. This is used for optimizing
+# set unions and differences with opAny
+
+proc mkAnySet(): CharSet {.compileTime.} =
+  for c in char.low..char.high:
+    result.incl c
+const anySet = mkAnySet()
+
+
 # Create a short and friendly text representation of a character set.
 
-proc dumpset(cs: CharSet): string =
+proc dumpSet(cs: CharSet): string =
   proc esc(c: char): string =
     case c:
       of '\n': result = "\\n"
       of '\r': result = "\\r"
       of '\t': result = "\\t"
-      else: result = $c
+      elif c >= ' ' and c <= '~':
+        result = $c
+      else:
+        result = "0x" & tohex(c.int, 2)
     result = "'" & result & "'"
   result.add "{"
   var c = 0
@@ -111,10 +123,8 @@ proc `$`*(p: Patt): string =
   for n, i in p.pairs:
     result &= $n & ": " & $i.op
     case i.op:
-      of opStr:
-        result &= dumpstring(i.str)
-      of opIStr:
-        result &= "i" & dumpstring(i.str)
+      of opStr, opIStr:
+        result &= " " & dumpstring(i.str)
       of opSet, opSpan:
         result &= " '" & dumpset(i.cs) & "'"
       of opChoice, opCommit, opPartCommit:
@@ -132,7 +142,7 @@ proc isSet(p: Patt): bool =
   p.len == 1 and p[0].op == opSet
 
 
-proc toSet(p: Patt): Option[Charset] =
+proc toSet(p: Patt): Option[CharSet] =
   if p.len == 1:
     let i = p[0]
     if i.op == opSet:
@@ -141,6 +151,8 @@ proc toSet(p: Patt): Option[Charset] =
       return some { i.str[0] }
     if i.op == opIStr and i.str.len == 1:
       return some { toLowerAscii(i.str[0]), toUpperAscii(i.str[0]) }
+    if i.op == opAny:
+      return some anySet
 
 
 # Recursively compile a peg pattern to a sequence of parser instructions
@@ -171,9 +183,10 @@ proc buildPatt(patts: Patts, name: string, patt: NimNode): Patt =
       add i
 
     template krak(n: NimNode, msg: string) =
-      error "NPeg: " & msg & ": " & n.repr
+      error "NPeg: " & msg & ": " & n.repr, n
 
     case n.kind:
+
       of nnKPar, nnkStmtList:
         add aux(n[0])
       of nnkStrLit:
@@ -310,6 +323,8 @@ proc link(patts: Patts, initial_name: string): Patt =
   # not yet emitted
 
   proc emit(name: string) =
+    when npegTrace:
+      echo "Emit ", name
     let patt = patts[name]
     symTab[name] = grammar.len
     grammar.add patt

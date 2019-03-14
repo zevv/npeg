@@ -3,37 +3,40 @@ import npeg
 import os
 import json
 
-proc doe(s: string) =
-  echo "DOE ", s
 
-let s = patt "a" * Cp(doe, "b")
-echo s("ab")
 
 when true:
 
   let data ="""
-POST flop HTTP/1.1
-Content-Type: text/plain
-content-length: 23
+HTTP/2.0 304 Not Modified
+date: Thu, 14 Mar 2019 19:55:21 GMT
+last-modified: Fri, 01 Feb 2019 11:20:09 GMT
+etag: "5c542b69-e1ffd"
+expires: Thu, 14 Mar 2019 19:55:20 GMT
+cache-control: no-cache
+expect-ct: max-age=604800, report-uri="https://report-uri.cloudflare.com/cdn-cgi/beacon/expect-ct"
+server: cloudflare
+cf-ray: 4b78ce02a9c7c82d-AMS
 """
 
   let s2 = peg "http":
     space                 <- ' '
     crlf                  <- '\n' * ?'\r'
-    meth                  <- "GET" | "POST" | "PUT"
     proto                 <- "HTTP"
-    version               <- "1.0" | "1.1"
-    alpha                 <- ['a'..'z','A'..'Z']
-    digit                 <- ['0'..'9']
-    url                   <- +alpha
-    eof                   <- -[]
+    version               <- +digit * '.' * +digit
+    alpha                 <- ['a'-'z','A'-'Z']
+    digit                 <- ['0'-'9']
+    url                   <- +(alpha | digit | '/' | '_' | '.')
+    eof                   <- ![]
 
-    req                   <- meth * space * url * space * proto * "/" * version
+    code                  <- C(+digit)
+    msg                   <- +([] - '\r' - '\n')
+    response              <- proto * '/' * version * space * +digit * space * msg 
     header                <- header_content_length | header_other
-    http                  <- req * crlf * *(header * crlf) * eof
+    http                  <- response * crlf * *(header * crlf) * eof
 
     header_content_length <- i"Content-Length: " * +digit
-    header_other          <- +(alpha | '-') * ": " * +([]-crlf)
+    header_other          <- +(alpha | '-') * ": " * +([]-['\n']-['\r'])
 
 
   doAssert s2(data)
