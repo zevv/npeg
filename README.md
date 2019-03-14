@@ -80,7 +80,22 @@ let p = peg "ident":
 doAssert p("lowercaseword")
 ```
 
+The order in which the grammar rules are defined affects the generated parser.
+Although NPeg could aways reorder, this is a design choice to give the user
+more control over the generated parser:
 
+* when a pattern refers to another pattern that has been defined earlier, the
+  referred pattern will be inlined. This increases the code size, but generally
+  improves performance.
+
+* when a pattern refers to another pattern that has not yet been defined, the
+  pattern will create a call to the referred pattern. This reduces code size, but
+  might also result in a slower parser.
+
+The exact parser size and performance behavior depends on many factors; it pays
+to experiment with different orderings and measure the results.
+
+to another ru
 
 ## Examples
 
