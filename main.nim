@@ -19,7 +19,7 @@ content-length: 23
 
   let s2 = peg "http":
     space                 <- ' '
-    crlf                  <- '\n' | "\r\n"
+    crlf                  <- '\n' * ?'\r'
     meth                  <- "GET" | "POST" | "PUT"
     proto                 <- "HTTP"
     version               <- "1.0" | "1.1"
@@ -29,12 +29,12 @@ content-length: 23
     eof                   <- -[]
 
     req                   <- meth * space * url * space * proto * "/" * version
+    header                <- header_content_length | header_other
+    http                  <- req * crlf * *(header * crlf) * eof
 
     header_content_length <- i"Content-Length: " * +digit
     header_other          <- +(alpha | '-') * ": " * +([]-crlf)
 
-    header                <- header_content_length | header_other
-    http                  <- req * crlf * *(header * crlf) * eof
 
   doAssert s2(data)
 

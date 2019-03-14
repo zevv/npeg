@@ -2,6 +2,7 @@
 import macros
 import typetraits
 import strutils
+import options
 import tables
 
 export escape
@@ -12,10 +13,12 @@ type
 
   Opcode = enum
     opChoice, opCommit, opPartCommit, opCall, opReturn, opAny, opSet, opStr,
-    opIStr, opFail, opCapStart, opCapEnd
+    opIStr, opFail, opCapStart, opCapEnd, opSpan
 
   CapKind = enum
     ckStr, ckProc
+
+  CharSet = set[char]
 
   Inst = object
     case op: Opcode
@@ -26,8 +29,8 @@ type
       of opCall:
         name: string
         address: int
-      of opSet:
-        cs: set[char]
+      of opSet, opSpan:
+        cs: CharSet
       of opCapEnd:
         capKind: CapKind
         capCallback: NimNode
@@ -50,7 +53,7 @@ type
   Patts = Table[string, Patt]
 
 
-proc dumpset(cs: set[char]): string =
+proc dumpset(cs: CharSet): string =
   proc esc(c: char): string =
     case c:
       of '\n': result = "\\n"
@@ -93,7 +96,7 @@ proc `$`*(p: Patt): string =
         result &= dumpstring(i.str)
       of opIStr:
         result &= "i" & dumpstring(i.str)
-      of opSet:
+      of opSet, opSpan:
         result &= " '" & dumpset(i.cs) & "'"
       of opChoice, opCommit, opPartCommit:
         result &= " " & $(n+i.offset)
@@ -112,6 +115,17 @@ proc isSet(p: Patt): bool =
   p.len == 1 and p[0].op == opSet
 
 
+proc toSet(p: Patt): Option[Charset] =
+  if p.len == 1:
+    let i = p[0]
+    if i.op == opSet:
+      return some i.cs
+    if i.op == opStr and i.str.len == 1:
+      return some { i.str[0] }
+    if i.op == opIStr and i.str.len == 1:
+      return some { toLowerAscii(i.str[0]), toUpperAscii(i.str[0]) }
+
+
 #
 # Recursively compile a peg pattern to a sequence of parser instructions
 #
@@ -124,14 +138,22 @@ proc buildPatt(patts: Patts, name: string, patt: NimNode): Patt =
       result.add p
 
     template addLoop(p: Patt) =
-      add Inst(op: opChoice, offset: p.len+2)
-      add p
-      add Inst(op: opPartCommit, offset: -p.len)
+      if p.isSet:
+        add Inst(op: opSpan, cs: p[0].cs)
+      else:
+        add Inst(op: opChoice, offset: p.len+2)
+        add p
+        add Inst(op: opPartCommit, offset: -p.len)
 
     template addMaybe(p: Patt) =
       add Inst(op: opChoice, offset: p.len + 2)
       add p
       add Inst(op: opCommit, offset: 1)
+
+    template addCap(n: NimNode, i: Inst) =
+      add Inst(op: opCapStart)
+      add aux n
+      add i
 
     case n.kind:
       of nnKPar, nnkStmtList:
@@ -142,13 +164,9 @@ proc buildPatt(patts: Patts, name: string, patt: NimNode): Patt =
         add Inst(op: opStr, str: $n.intVal.char)
       of nnkCall:
         if n[0].eqIdent "C":
-          add Inst(op: opCapStart)
-          add aux n[1]
-          add Inst(op: opCapEnd, capKind: ckStr)
+          addCap n[1], Inst(op: opCapEnd, capKind: ckStr)
         elif n[0].eqIdent "Cp":
-          add Inst(op: opCapStart)
-          add aux n[2]
-          add Inst(op: opCapEnd, capKind: ckProc, capCallback: n[1])
+          addCap n[2], Inst(op: opCapEnd, capKind: ckProc, capCallback: n[1])
         else:
           error "PEG: Unhandled capture type: ", n
       of nnkPrefix:
@@ -174,8 +192,10 @@ proc buildPatt(patts: Patts, name: string, patt: NimNode): Patt =
           add p1
           add p2
         elif n[0].eqIdent("-"):
-          if p1.isset and p2.isset:
-            add Inst(op: opSet, cs: p1[0].cs - p2[0].cs)
+          let cs1 = toSet(p1)
+          let cs2 = toSet(p2)
+          if cs1.isSome and cs2.isSome:
+            add Inst(op: opSet, cs: cs1.get - cs2.get)
           else:
             add Inst(op: opChoice, offset: p2.len + 3)
             add p2
@@ -183,8 +203,10 @@ proc buildPatt(patts: Patts, name: string, patt: NimNode): Patt =
             add Inst(op: opFail)
             add p1
         elif n[0].eqIdent("|"):
-          if p1.isset and p2.isset:
-            add Inst(op: opSet, cs: p1[0].cs + p2[0].cs)
+          let cs1 = toSet(p1)
+          let cs2 = toSet(p2)
+          if cs1.isSome and cs2.isSome:
+            add Inst(op: opSet, cs: cs1.get + cs2.get)
           else:
             add Inst(op: opChoice, offset: p1.len+2)
             add p1
@@ -212,7 +234,7 @@ proc buildPatt(patts: Patts, name: string, patt: NimNode): Patt =
         else:
           add Inst(op: opCall, name: n.strVal)
       of nnkBracket:
-        var cs: set[char]
+        var cs: CharSet
         for nc in n:
           if nc.kind == nnkCharLit:
             cs.incl nc.intVal.char
@@ -244,7 +266,6 @@ proc compile(ns: NimNode): Patts =
   result = initTable[string, Patt]()
 
   for n in ns:
-    echo n.astGenRepr
     n.expectKind nnkInfix
     n[0].expectKind nnkIdent
     n[1].expectKind nnkIdent
@@ -401,13 +422,19 @@ template skel(cases: untyped, ip: NimNode) =
       else:
         ip = -1
 
-    template opSetFn(cs: set[char]) =
-      trace dumpset(cs)
+    template opSetFn(cs: CharSet) =
+      trace "set " & dumpset(cs)
       if si < s.len and s[si] in cs:
         inc ip
         inc si
       else:
         ip = -1
+    
+    template opSpanFn(cs: CharSet) =
+      trace "span " & dumpset(cs)
+      while si < s.len and s[si] in cs:
+        inc si
+      inc ip
 
     template opAnyFn() =
       trace "any"
@@ -501,7 +528,7 @@ proc gencode(name: string, program: Patt): NimNode =
     case i.op:
       of opStr, opIStr:
         call.add newStrLitNode(i.str)
-      of opSet:
+      of opSet, opSpan:
         let setNode = nnkCurly.newTree()
         for c in i.cs: setNode.add newLit(c)
         call.add setNode

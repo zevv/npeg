@@ -126,4 +126,6 @@ content-length: 23
       Array          <- "[" * ( JSON * *( "," * JSON ) | ?S ) * "]"
 
     doAssert s(json)
+    let json2 = readfile("/tmp/movies.js")
+    doAssert s(json2)
 
