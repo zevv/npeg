@@ -195,7 +195,7 @@ proc buildPatt(patts: Patts, name: string, patt: NimNode): Patt =
           addLoop p
         elif n[0].eqIdent("*"):
           addLoop p
-        elif n[0].eqIdent("-"):
+        elif n[0].eqIdent("-") or n[0].eqIdent("!"):
           add Inst(op: opChoice, offset: p.len + 3)
           add p
           add Inst(op: opCommit, offset: 1)
@@ -255,8 +255,7 @@ proc buildPatt(patts: Patts, name: string, patt: NimNode): Patt =
         for nc in n:
           if nc.kind == nnkCharLit:
             cs.incl nc.intVal.char
-          elif nc.kind == nnkInfix and nc[0].kind == nnkIdent and 
-              (nc[0].eqIdent("..") or nc[0].eqIdent("-")):
+          elif nc.kind == nnkInfix and nc[0].kind == nnkIdent and nc[0].eqIdent("-"):
             for c in nc[1].intVal..nc[2].intVal:
               cs.incl c.char
           else:

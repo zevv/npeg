@@ -21,11 +21,11 @@ suite "npeg":
 
   test "simple examples":
 
-    let p1 = patt *['a'..'z']
+    let p1 = patt *['a'-'z']
     doAssert p1("lowercaseword")
 
     let p2 = peg "ident":
-      lower <- ['a'..'z']
+      lower <- ['a'-'z']
       ident <- *lower
     doAssert p2("lowercaseword")
 
@@ -43,10 +43,10 @@ content-length: 23
       meth                  <- "GET" | "POST" | "PUT"
       proto                 <- "HTTP"
       version               <- "1.0" | "1.1"
-      alpha                 <- ['a'..'z','A'..'Z']
-      digit                 <- ['0'..'9']
+      alpha                 <- ['a'-'z','A'-'Z']
+      digit                 <- ['0'-'9']
       url                   <- +alpha
-      eof                   <- -[]
+      eof                   <- ![]
 
       req                   <- meth * space * url * space * proto * "/" * version
 
@@ -63,13 +63,13 @@ content-length: 23
 
     let s = peg "line":
       ws       <- *' '
-      digit    <- ['0'..'9'] * ws
+      digit    <- ['0'-'9'] * ws
       number   <- +digit * ws
       termOp   <- ['+', '-'] * ws
       factorOp <- ['*', '/'] * ws
       open     <- '(' * ws
       close    <- ')' * ws
-      eol      <- -[]
+      eol      <- ![]
       exp      <- term * *(termOp * term)
       term     <- factor * *(factorOp * factor)
       factor   <- number | (open * exp * close)
@@ -111,18 +111,18 @@ content-length: 23
 
     let s = peg "DOC":
       S              <- *[' ','\t','\r','\n']
-      String         <- ?S * '"' * *(['\x20'..'\xff'] - '"' - '\\' | Escape ) * '"' * ?S
+      String         <- ?S * '"' * *(['\x20'-'\xff'] - '"' - '\\' | Escape ) * '"' * ?S
       Escape         <- '\\' * ([ '[', '"', '|', '\\', 'b', 'f', 'n', 'r', 't' ] | UnicodeEscape)
-      UnicodeEscape  <- 'u' * ['0'..'9','A'..'F','a'..'f']{4}
+      UnicodeEscape  <- 'u' * ['0'-'9','A'-'F','a'-'f']{4}
       True           <- "true"
       False          <- "false"
       Null           <- "null"
       Number         <- ?Minus * IntPart * ?FractPart * ?ExpPart
       Minus          <- '-'
-      IntPart        <- '0' | ['1'..'9'] * *['0'..'9']
-      FractPart      <- "." * +['0'..'9']
-      ExpPart        <- ( 'e' | 'E' ) * ?( '+' | '-' ) * +['0'..'9']
-      DOC            <- JSON * -[]
+      IntPart        <- '0' | ['1'-'9'] * *['0'-'9']
+      FractPart      <- "." * +['0'-'9']
+      ExpPart        <- ( 'e' | 'E' ) * ?( '+' | '-' ) * +['0'-'9']
+      DOC            <- JSON * ![]
       JSON           <- ?S * ( Number | Object | Array | String | True | False | Null ) * ?S
       Object         <- '{' * ( String * ":" * JSON * *( "," * String * ":" * JSON ) | ?S ) * "}"
       Array          <- "[" * ( JSON * *( "," * JSON ) | ?S ) * "]"
