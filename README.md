@@ -42,19 +42,15 @@ one expression, for example `['0'-'9','a'-'f','A'-'F']`.
 
 ```
 C(P)           # Captures all text matched in P
+Ca()           # Create a new capture array
 Cp(proc, P)    # Passes the captured string to procedure `proc`
 ```
 
-Captures save the part of the input string that matches on pattern P. NPeg will
-offer different methods to handle these captures: save them to a list or other
-data structure of strings, or call a procedure with the matched string during
-parsing.
+Warning: Captures are stil in development.
 
-NPegs capture handling is still in development, my biggest problem is defining
-a good method for collecting the captured strings and finding a friendly API
-for passing them to the user. I am open for any ideas and feedback. One idea is
-to capture the data into JsonNodes. This is pretty flexible, but adds a
-dependency to the json module.
+Captured data in patterns can be saved to a tree of Json nodes which can be
+accessed by the application after the parsing completes. Check the examples
+sectoin below to see captures in action.
 
 
 ## NPeg vs PEG
@@ -144,7 +140,7 @@ will cause the parser to stall and go into an infinite loop.
 
 ## Examples
 
-Parsing mathematical expressions:
+### Parsing mathematical expressions
 
 ```nim
 let s = peg "line":
@@ -165,10 +161,9 @@ doAssert s "3 * (4+5) + 2"
 ```
 
 
-A complete JSON parser:
+### A complete JSON parser
 
 ```nim
-
 let match = peg "DOC":
   S              <- *[' ','\t','\r','\n']
   True           <- "true"
@@ -196,4 +191,57 @@ doAssert match(doc)
 ```
 
 
+### Captures
+
+The following example shows captures in action. This PEG parses a HTTP
+request into a nested JSON tree:
+
+```nim
+let s2 = peg "http":
+  space       <- ' '
+  crlf        <- '\n' * ?'\r'
+  alpha       <- ['a'-'z','A'-'Z']
+  digit       <- ['0'-'9']
+  url         <- +(alpha | digit | '/' | '_' | '.')
+  eof         <- ![]
+  
+  proto       <- C(+alpha)
+  version     <- C(+digit * '.' * +digit)
+  code        <- C(+digit)
+  msg         <- C(+([] - '\r' - '\n'))
+
+  response    <- Ca(proto * '/' * version * space * code * space * msg)
+
+  http        <- response * crlf * *(header * crlf) * eof
+
+  header_name <- +(alpha | '-')
+  header_val  <- +([]-['\n']-['\r'])
+  header      <- Ca( C(header_name) * ": " * C(header_val) )
+
+
+var captures = newJArray()
+doAssert s2(data, captures)
+echo captures.pretty
+```
+
+The resulting JSON data:
+```json
+[
+  [
+    "HTTP",
+    "2.0",
+    "304",
+    "Not Modified"
+  ], [
+    "date",
+    "Thu, 14 Mar 2019 19:55:21 GMT"
+  ], [
+    "cache-control",
+    "no-cache"
+  ], [
+    "server",
+    "cloudflare"
+  ],
+]
+```
 

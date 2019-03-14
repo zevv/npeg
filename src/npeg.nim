@@ -28,10 +28,10 @@
 
 
 import macros
-import typetraits
 import strutils
 import options
 import tables
+import json
 
 export escape
 
@@ -56,6 +56,7 @@ type
 
   CapKind = enum
     ckStr,          # String capture
+    ckArray,        # Array
     ckProc,         # Proc call capture
 
   CharSet = set[char]
@@ -71,10 +72,10 @@ type
         address: int
       of opSet, opSpan:
         cs: CharSet
-      of opCapEnd:
+      of opCapStart, opCapEnd:
         capKind: CapKind
         capCallback: NimNode
-      of opFail, opReturn, opAny, opCapStart:
+      of opFail, opReturn, opAny:
         discard
 
   Capture = string
@@ -208,10 +209,10 @@ proc buildPatt(patts: Patts, name: string, patt: NimNode): Patt =
       add p
       add Inst(op: opCommit, offset: 1)
 
-    template addCap(n: NimNode, i: Inst) =
-      add Inst(op: opCapStart)
+    template addCap(n: NimNode, ck: CapKind) =
+      add Inst(op: opCapStart, capKind: ck)
       add aux n
-      add i
+      add Inst(op: opCapEnd, capKind: ck)
 
     template krak(n: NimNode, msg: string) =
       error "NPeg: " & msg & ": " & n.repr, n
@@ -226,9 +227,12 @@ proc buildPatt(patts: Patts, name: string, patt: NimNode): Patt =
         add Inst(op: opStr, str: $n.intVal.char)
       of nnkCall:
         if n[0].eqIdent "C":
-          addCap n[1], Inst(op: opCapEnd, capKind: ckStr)
+          addCap n[1], ckStr
+        elif n[0].eqIdent "Ca":
+          addCap n[1], ckArray
         elif n[0].eqIdent "Cp":
-          addCap n[2], Inst(op: opCapEnd, capKind: ckProc, capCallback: n[1])
+          addCap n[2], ckProc
+          result[result.high].capCallback = n[1]
         else:
           krak n, "Unhandled capture type"
       of nnkPrefix:
@@ -379,11 +383,15 @@ template skel(cases: untyped, ip: NimNode) =
 
   {.push hint[XDeclaredButNotUsed]: off.}
 
-  let match = proc(s: string): MatchResult =
+  let match = proc(s: string, captures: JsonNode=nil): MatchResult =
 
     var ok = false
     var ip = 0
     var si = 0
+
+    var dataStack = newSeq[JSonNode]()
+    if captures != nil:
+      dataStack.add captures
 
     # Stack management
 
@@ -415,7 +423,6 @@ template skel(cases: untyped, ip: NimNode) =
 
     var cp = 0
     var capstack = newSeq[int](2)
-    var captures: seq[Capture]
 
     template cpush(si: int) =
       if cp >= capstack.len:
@@ -524,9 +531,18 @@ template skel(cases: untyped, ip: NimNode) =
       spush(ip+1)
       ip = address
 
-    template opCapStartFn() =
-      trace "capstart " & $si
+    template opCapStartFn(n: int) =
+      let ck = CapKind(n)
+      trace "capstart " & $ck
       cpush(si)
+      case ck:
+        of ckArray:
+          if dataStack.len > 0:
+            let a = newJArray()
+            dataStack[datastack.high].add a
+            dataStack.add a
+        else:
+          discard
       inc ip
 
     template opCapEndFn(n: int, fn: untyped) =
@@ -535,9 +551,13 @@ template skel(cases: untyped, ip: NimNode) =
       let capStr = s[cpop()..<si]
       case ck:
         of ckStr:
-          captures.add capStr
+          if dataStack.len > 0:
+            dataStack[dataStack.high].add newJString(capStr)
         of ckProc:
           fn(capStr)
+        of ckArray:
+          if dataSTack.len > 0:
+            dataStack.del dataStack.high
       inc ip
 
     template opReturnFn() =
@@ -592,13 +612,15 @@ proc gencode(name: string, program: Patt): NimNode =
       of opCall:
         call.add newStrLitNode(i.name)
         call.add newIntLitNode(i.address)
+      of opCapStart:
+        call.add newIntLitNode(i.capKind.int)
       of opCapEnd:
         call.add newIntLitNode(i.capKind.int)
         if i.capCallback.kind == nnkIdent:
           call.add i.capCallback
         else:
           call.add ident("nop")
-      of opReturn, opAny, opFail, opCapStart:
+      of opReturn, opAny, opFail:
         discard
     cases.add nnkOfBranch.newTree(newLit(n), call)
 
