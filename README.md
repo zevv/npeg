@@ -165,7 +165,7 @@ let s = peg "line":
   ws       <- *' '
   digit    <- {'0'..'9'} * ws
   number   <- +digit * ws
-  termOp   <- {'+', '..'} * ws
+  termOp   <- {'+', '-'} * ws
   factorOp <- {'*', '/'} * ws
   open     <- '(' * ws
   close    <- ')' * ws
