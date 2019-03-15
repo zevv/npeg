@@ -13,24 +13,24 @@ suite "npeg":
     doAssert     patt("a")("a")
     doAssert not patt("a")("b")
     doAssert     patt("abc")("abc")
-    doAssert     patt(['a'])("a")
-    doAssert not patt(['a'])("b")
-    doAssert     patt(['a','b'])("a")
-    doAssert     patt(['a','b'])("b")
-    doAssert not patt(['a','b'])("c")
-    doAssert     patt(['a'-'c'])("a")
-    doAssert     patt(['a'-'c'])("b")
-    doAssert     patt(['a'-'c'])("c")
-    doAssert not patt(['a'-'c'])("d")
-    doAssert     patt(['a'..'c'])("a")
+    doAssert     patt({'a'})("a")
+    doAssert not patt({'a'})("b")
+    doAssert     patt({'a','b'})("a")
+    doAssert     patt({'a','b'})("b")
+    doAssert not patt({'a','b'})("c")
+    doAssert     patt({'a'..'c'})("a")
+    doAssert     patt({'a'..'c'})("b")
+    doAssert     patt({'a'..'c'})("c")
+    doAssert not patt({'a'..'c'})("d")
+    doAssert     patt({'a'..'c'})("a")
 
   test "not":
     doAssert     patt('a' * !'b')("ac")
     doAssert not patt('a' * !'b')("ab")
 
   test "count":
-    doAssert     patt([]{3})("aaaa")
-    doAssert     patt([]{4})("aaaa")
+    doAssert     patt(_{3})("aaaa")
+    doAssert     patt(_{4})("aaaa")
     doAssert not patt('a'{5})("aaaa")
     doAssert not patt('a'{2..4})("a")
     doAssert     patt('a'{2..4})("aa")
@@ -56,11 +56,11 @@ suite "npeg":
 
   test "simple examples":
 
-    let p1 = patt +['a'-'z']
+    let p1 = patt +{'a'..'z'}
     doAssert p1("lowercaseword")
 
     let p2 = peg "ident":
-      lower <- ['a'-'z']
+      lower <- {'a'..'z'}
       ident <- +lower
     doAssert p2("lowercaseword")
 
@@ -77,7 +77,7 @@ suite "npeg":
     #    3 <---0---> 4
 
     let s = peg "P1":
-      P1 <- '0' * P2 | '1' * P3 | ![]
+      P1 <- '0' * P2 | '1' * P3 | !_
       P2 <- '0' * P1 | '1' * P4
       P3 <- '0' * P4 | '1' * P1
       P4 <- '0' * P3 | '1' * P2
@@ -99,15 +99,15 @@ content-length: 23
       meth                  <- "GET" | "POST" | "PUT"
       proto                 <- "HTTP"
       version               <- "1.0" | "1.1"
-      alpha                 <- ['a'-'z','A'-'Z']
-      digit                 <- ['0'-'9']
+      alpha                 <- {'a'..'z','A'..'Z'}
+      digit                 <- {'0'..'9'}
       url                   <- +alpha
-      eof                   <- ![]
+      eof                   <- !_
 
       req                   <- meth * space * url * space * proto * "/" * version
 
       header_content_length <- i"Content-Length: " * +digit
-      header_other          <- +(alpha | '-') * ": " * +([]-crlf)
+      header_other          <- +(alpha | '-') * ": " * +(_-crlf)
     
       header                <- header_content_length | header_other
       http                  <- req * crlf * *(header * crlf) * eof
@@ -119,13 +119,13 @@ content-length: 23
 
     let s = peg "line":
       ws       <- *' '
-      digit    <- ['0'-'9'] * ws
+      digit    <- {'0'..'9'} * ws
       number   <- +digit * ws
-      termOp   <- ['+', '-'] * ws
-      factorOp <- ['*', '/'] * ws
+      termOp   <- {'+', '-'} * ws
+      factorOp <- {'*', '/'} * ws
       open     <- '(' * ws
       close    <- ')' * ws
-      eol      <- ![]
+      eol      <- !_
       exp      <- term * *(termOp * term)
       term     <- factor * *(factorOp * factor)
       factor   <- number | (open * exp * close)
@@ -166,23 +166,23 @@ content-length: 23
       """
 
     let s = peg "DOC":
-      S              <- *[' ','\t','\r','\n']
+      S              <- *{' ','\t','\r','\n'}
       True           <- "true"
       False          <- "false"
       Null           <- "null"
 
-      UnicodeEscape  <- 'u' * ['0'-'9','A'-'F','a'-'f']{4}
-      Escape         <- '\\' * ([ '[', '"', '|', '\\', 'b', 'f', 'n', 'r', 't' ] | UnicodeEscape)
-      StringBody     <- ?Escape * *( +( ['\x20'-'\xff'] - ['"'] - ['\\']) * *Escape) 
+      UnicodeEscape  <- 'u' * {'0'..'9','A'..'F','a'..'f'}{4}
+      Escape         <- '\\' * ({ '{', '"', '|', '\\', 'b', 'f', 'n', 'r', 't' } | UnicodeEscape)
+      StringBody     <- ?Escape * *( +( {'\x20'..'\xff'} - {'"'} - {'\\'}) * *Escape) 
       String         <- ?S * '"' * StringBody * '"' * ?S
 
       Minus          <- '-'
-      IntPart        <- '0' | ['1'-'9'] * *['0'-'9']
-      FractPart      <- "." * +['0'-'9']
-      ExpPart        <- ( 'e' | 'E' ) * ?( '+' | '-' ) * +['0'-'9']
+      IntPart        <- '0' | {'1'..'9'} * *{'0'..'9'}
+      FractPart      <- "." * +{'0'..'9'}
+      ExpPart        <- ( 'e' | 'E' ) * ?( '+' | '-' ) * +{'0'..'9'}
       Number         <- ?Minus * IntPart * ?FractPart * ?ExpPart
 
-      DOC            <- JSON * -[]
+      DOC            <- JSON * !_
       JSON           <- ?S * ( Number | Object | Array | String | True | False | Null ) * ?S
       Object         <- '{' * ( String * ":" * JSON * *( "," * String * ":" * JSON ) | ?S ) * "}"
       Array          <- "[" * ( JSON * *( "," * JSON ) | ?S ) * "]"

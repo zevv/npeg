@@ -259,13 +259,13 @@ proc buildPatt(patts: Patts, name: string, patt: NimNode): Patt =
           addLoop p
         elif n[0].eqIdent("*"):
           addLoop p
-        elif n[0].eqIdent("-") or n[0].eqIdent("!"):
+        elif n[0].eqIdent("!"):
           add Inst(op: opChoice, offset: p.len + 3)
           add p
           add Inst(op: opCommit, offset: 1)
           add Inst(op: opFail)
         else:
-          krak n, "Unhandled prefix operator: "
+          krak n, "Unhandled prefix operator"
       of nnkInfix:
         let p1 = aux n[1]
         let p2 = aux n[2]
@@ -308,12 +308,15 @@ proc buildPatt(patts: Patts, name: string, patt: NimNode): Patt =
         for i in 1..min: add p
         for i in min..max: addMaybe p
       of nnkIdent:
-        let name = n.strVal
-        if name in patts:
-          add patts[name]
+        if n.eqIdent "_":
+          add Inst(op: opAny)
         else:
-          add Inst(op: opCall, name: n.strVal)
-      of nnkBracket:
+          let name = n.strVal
+          if name in patts:
+            add patts[name]
+          else:
+            add Inst(op: opCall, name: n.strVal)
+      of nnkCurly:
         var cs: CharSet
         for nc in n:
           if nc.kind == nnkCharLit:

@@ -15,14 +15,14 @@ NPeg patterns can be composed from the following parts.
  'x'           # matches literal character 'x'
  "xyz"         # matches literal string "xyz"
 i"xyz"         # matches literal string, case insensitive
- []            # matches any character
- ['x'-'y']     # matches any character in the range from 'x'-'y'
- ['x','y','z'] # matches any character from the set
+ _             # matches any character
+ {'x'..'y'}    # matches any character in the range from 'x'..'y'
+ {'x','y','z'} # matches any character from the set
 ```
 
-The set syntax `[]` is flexible and can take multiple ranges and characters in
-one expression, for example `['0'-'9','a'-'f','A'-'F']`. For ranges the more
-Nim-like notation of `['x'..'y']` is also supported.
+The set syntax `_` is flexible and can take multiple ranges and characters in
+one expression, for example `{'0'..'9','a'..'f','A'..'F'}`.
+
 
 ### Operators
 
@@ -38,8 +38,6 @@ Nim-like notation of `['x'..'y']` is also supported.
  P{n}          # matches P n times
  P{m..n}       # matches P m to n times
 ```
-
-For counts the more Nim-like notation of `{m..n}` is also supported.
 
 ### Captures
 
@@ -75,7 +73,7 @@ to allow the grammar to be properly parsed by the Nim compiler:
 A simple pattern can be compiled with the `patt` macro:
 
 ```nim
-let p = patt *['a'-'z']
+let p = patt *{'a'..'z'}
 doAssert p("lowercaseword")
 ```
 
@@ -87,7 +85,7 @@ Patterns can now refer to other patterns by name, allowing for recursion:
 
 ```nim
 let p = peg "ident":
-  lower <- ['a'-'z']
+  lower <- {'a'..'z'}
   ident <- *lower
 doAssert p("lowercaseword")
 ```
@@ -99,11 +97,11 @@ a stream, a construct like this can be used:
 
 ```nim
 p <- "hello"
-search <- p | [] * search
+search <- p | _ * search
 ```
 
 The above grammar first tries to match pattern `p`, or if that fails, matches
-any character `[]` and recurses back to itself.
+any character `_` and recurses back to itself.
 
 
 #### Ordering of rules in a grammar
@@ -163,13 +161,13 @@ will cause the parser to stall and go into an infinite loop.
 ```nim
 let s = peg "line":
   ws       <- *' '
-  digit    <- ['0'-'9'] * ws
+  digit    <- {'0'..'9'} * ws
   number   <- +digit * ws
-  termOp   <- ['+', '-'] * ws
-  factorOp <- ['*', '/'] * ws
+  termOp   <- {'+', '..'} * ws
+  factorOp <- {'*', '/'} * ws
   open     <- '(' * ws
   close    <- ')' * ws
-  eol      <- ![]
+  eol      <- !_
   exp      <- term * *(termOp * term)
   term     <- factor * *(factorOp * factor)
   factor   <- number | (open * exp * close)
@@ -183,23 +181,23 @@ doAssert s "3 * (4+5) + 2"
 
 ```nim
 let match = peg "DOC":
-  S              <- *[' ','\t','\r','\n']
+  S              <- *{' ','\t','\r','\n'}
   True           <- "true"
   False          <- "false"
   Null           <- "null"
 
-  UnicodeEscape  <- 'u' * ['0'-'9','A'-'F','a'-'f']{4}
-  Escape         <- '\\' * ([ '[', '"', '|', '\\', 'b', 'f', 'n', 'r', 't' ] | UnicodeEscape)
-  StringBody     <- ?Escape * *( +( ['\x20'-'\xff'] - ['"'] - ['\\']) * *Escape) 
+  UnicodeEscape  <- 'u' * {'0'..'9','A'..'F','a'..'f'}{4}
+  Escape         <- '\\' * ({ '{', '"', '|', '\\', 'b', 'f', 'n', 'r', 't' } | UnicodeEscape)
+  StringBody     <- ?Escape * *( +( {'\x20'..'\xff'} - {'"'} - {'\\'}) * *Escape) 
   String         <- ?S * '"' * StringBody * '"' * ?S
 
   Minus          <- '-'
-  IntPart        <- '0' | ['1'-'9'] * *['0'-'9']
-  FractPart      <- "." * +['0'-'9']
-  ExpPart        <- ( 'e' | 'E' ) * ?( '+' | '-' ) * +['0'-'9']
+  IntPart        <- '0' | {'1'..'9'} * *{'0'..'9'}
+  FractPart      <- "." * +{'0'..'9'}
+  ExpPart        <- ( 'e' | 'E' ) * ?( '+' | '-' ) * +{'0'..'9'}
   Number         <- ?Minus * IntPart * ?FractPart * ?ExpPart
 
-  DOC            <- JSON * -[]
+  DOC            <- JSON * -_
   JSON           <- ?S * ( Number | Object | Array | String | True | False | Null ) * ?S
   Object         <- '{' * ( String * ":" * JSON * *( "," * String * ":" * JSON ) | ?S ) * "}"
   Array          <- "[" * ( JSON * *( "," * JSON ) | ?S ) * "]"
@@ -218,17 +216,17 @@ request into a nested JSON tree:
 let s2 = peg "http":
   space       <- ' '
   crlf        <- '\n' * ?'\r'
-  alpha       <- ['a'-'z','A'-'Z']
-  digit       <- ['0'-'9']
+  alpha       <- {'a'..'z','A'..'Z'}
+  digit       <- {'0'..'9'}
   url         <- +(alpha | digit | '/' | '_' | '.')
-  eof         <- ![]
-  header_name <- +(alpha | '-')
-  header_val  <- +([]-['\n']-['\r'])
+  eof         <- !_
+  header_name <- +(alpha | '..')
+  header_val  <- +(_-{'\n'}-{'\r'})
 
   proto       <- Cf( "proto", +alpha )
   version     <- Cf( "version", +digit * '.' * +digit )
   code        <- Cf( "code", +digit )
-  msg         <- Cf( "msg", +([] - '\r' - '\n') )
+  msg         <- Cf( "msg", +(_ - '\r' - '\n') )
   response    <- Co( proto * '/' * version * space * code * space * msg )
   header      <- Ca( C(header_name) * ": " * C(header_val) )
   headers     <- Ca( *(header * crlf) )
