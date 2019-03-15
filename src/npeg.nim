@@ -65,6 +65,7 @@ type
   CharSet = set[char]
 
   Inst = object
+    n: NimNode
     case op: Opcode
       of opChoice, opCommit, opPartCommit:
         offset: int
@@ -197,7 +198,12 @@ proc buildPatt(patts: Patts, name: string, patt: NimNode): Patt =
 
   proc aux(n: NimNode): Patt =
 
-    template add(p: Inst|Patt) =
+    template add(p: Inst) =
+      var pc = p
+      pc.n = n
+      result.add pc
+    
+    template add(p: Patt) =
       result.add p
 
     template addLoop(p: Patt) =
@@ -375,6 +381,8 @@ proc link(patts: Patts, initial_name: string): Patt =
 
     for i in patt:
       if i.op == opCall and i.name notin symTab:
+        if i.name notin patts:
+          error "Undefined pattern \"" & i.name & "\"", i.n
         emit i.name
 
   emit initial_name
