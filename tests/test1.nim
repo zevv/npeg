@@ -10,6 +10,10 @@ abortOnError = true
 suite "npeg":
 
   test "atoms":
+    doAssert     patt(0 * "a")("a")
+    doAssert     patt(1)("a")
+    doAssert     patt(1)("a")
+    doAssert not patt(2)("a")
     doAssert     patt("a")("a")
     doAssert not patt("a")("b")
     doAssert     patt("abc")("abc")
@@ -77,7 +81,7 @@ suite "npeg":
     #    3 <---0---> 4
 
     let s = peg "P1":
-      P1 <- '0' * P2 | '1' * P3 | !_
+      P1 <- '0' * P2 | '1' * P3 | !1
       P2 <- '0' * P1 | '1' * P4
       P3 <- '0' * P4 | '1' * P1
       P4 <- '0' * P3 | '1' * P2
@@ -102,7 +106,7 @@ content-length: 23
       alpha                 <- {'a'..'z','A'..'Z'}
       digit                 <- {'0'..'9'}
       url                   <- +alpha
-      eof                   <- !_
+      eof                   <- !1
 
       req                   <- meth * space * url * space * proto * "/" * version
 
@@ -125,7 +129,7 @@ content-length: 23
       factorOp <- {'*', '/'} * ws
       open     <- '(' * ws
       close    <- ')' * ws
-      eol      <- !_
+      eol      <- !1
       exp      <- term * *(termOp * term)
       term     <- factor * *(factorOp * factor)
       factor   <- number | (open * exp * close)
@@ -182,7 +186,7 @@ content-length: 23
       ExpPart        <- ( 'e' | 'E' ) * ?( '+' | '-' ) * +{'0'..'9'}
       Number         <- ?Minus * IntPart * ?FractPart * ?ExpPart
 
-      DOC            <- JSON * !_
+      DOC            <- JSON * !1
       JSON           <- ?S * ( Number | Object | Array | String | True | False | Null ) * ?S
       Object         <- '{' * ( String * ":" * JSON * *( "," * String * ":" * JSON ) | ?S ) * "}"
       Array          <- "[" * ( JSON * *( "," * JSON ) | ?S ) * "]"

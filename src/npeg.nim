@@ -44,6 +44,7 @@ type
     opIStr,         # Matching: Literal string or character, case insensitive
     opSet,          # Matching: Character set and/or range
     opAny,          # Matching: Any character
+    opNop,          # Matching: Always matches, consumes nothing
     opSpan          # Matching: Match a sequence of 0 or more character sets
     opChoice,       # Flow control: stores current position
     opCommit,       # Flow control: commit previous choice
@@ -80,7 +81,7 @@ type
         capKind: CapKind
         capCallback: NimNode
         fieldName: string
-      of opFail, opReturn, opAny:
+      of opFail, opReturn, opAny, opNop:
         discard
 
   Capture = string
@@ -168,7 +169,7 @@ proc `$`*(p: Patt): string =
         result &= " " & $(n+i.offset)
       of opCall, opJump:
         result &= " " & i.name & ":" & $i.address
-      of opFail, opReturn, opAny, opCapStart, opCapEnd:
+      of opFail, opReturn, opNop, opAny, opCapStart, opCapEnd:
         discard
     result &= "\n"
 
@@ -225,12 +226,19 @@ proc buildPatt(patts: Patts, name: string, patt: NimNode): Patt =
       add Inst(op: opCapEnd, capKind: ck)
 
     template krak(n: NimNode, msg: string) =
-      error "NPeg: " & msg & ": " & n.repr, n
+      error "NPeg: " & msg & ": " & n.repr & "\n" & n.astGenRepr, n
 
     case n.kind:
 
       of nnKPar, nnkStmtList:
         add aux(n[0])
+      of nnkIntLit:
+        let c = n.intVal
+        if c > 0:
+          for i in 1..c:
+            add Inst(op: opAny)
+        else:
+          add Inst(op: opNop)
       of nnkStrLit:
         add Inst(op: opStr, str: n.strVal)
       of nnkCharLit:
@@ -525,6 +533,10 @@ template skel(cases: untyped, ip: NimNode) =
       while si < s.len and s[si] in cs:
         inc si
       inc ip
+    
+    template opNopFn() =
+      trace "nop"
+      inc ip
 
     template opAnyFn() =
       trace "any"
@@ -658,7 +670,7 @@ proc gencode(name: string, program: Patt): NimNode =
         else:
           call.add ident("nop")
         call.add newStrLitNode(i.fieldName)
-      of opReturn, opAny, opFail:
+      of opReturn, opAny, opNop, opFail:
         discard
     cases.add nnkOfBranch.newTree(newLit(n), call)
 

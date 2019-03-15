@@ -12,15 +12,17 @@ NPeg patterns can be composed from the following parts.
 ### Atoms
 
 ```nim
+  0            # matches always and consumes nothing
+  1            # matches any character
+  N            # matches exactly N characters
  'x'           # matches literal character 'x'
  "xyz"         # matches literal string "xyz"
 i"xyz"         # matches literal string, case insensitive
- _             # matches any character
  {'x'..'y'}    # matches any character in the range from 'x'..'y'
  {'x','y','z'} # matches any character from the set
 ```
 
-The set syntax `_` is flexible and can take multiple ranges and characters in
+The set syntax `..` is flexible and can take multiple ranges and characters in
 one expression, for example `{'0'..'9','a'..'f','A'..'F'}`.
 
 
@@ -97,11 +99,11 @@ a stream, a construct like this can be used:
 
 ```nim
 p <- "hello"
-search <- p | _ * search
+search <- p | 1 * search
 ```
 
 The above grammar first tries to match pattern `p`, or if that fails, matches
-any character `_` and recurses back to itself.
+any character `1` and recurses back to itself.
 
 
 #### Ordering of rules in a grammar
@@ -167,7 +169,7 @@ let s = peg "line":
   factorOp <- {'*', '/'} * ws
   open     <- '(' * ws
   close    <- ')' * ws
-  eol      <- !_
+  eol      <- !1
   exp      <- term * *(termOp * term)
   term     <- factor * *(factorOp * factor)
   factor   <- number | (open * exp * close)
@@ -197,7 +199,7 @@ let match = peg "DOC":
   ExpPart        <- ( 'e' | 'E' ) * ?( '+' | '-' ) * +{'0'..'9'}
   Number         <- ?Minus * IntPart * ?FractPart * ?ExpPart
 
-  DOC            <- JSON * -_
+  DOC            <- JSON * -1
   JSON           <- ?S * ( Number | Object | Array | String | True | False | Null ) * ?S
   Object         <- '{' * ( String * ":" * JSON * *( "," * String * ":" * JSON ) | ?S ) * "}"
   Array          <- "[" * ( JSON * *( "," * JSON ) | ?S ) * "]"
@@ -219,14 +221,14 @@ let s2 = peg "http":
   alpha       <- {'a'..'z','A'..'Z'}
   digit       <- {'0'..'9'}
   url         <- +(alpha | digit | '/' | '_' | '.')
-  eof         <- !_
+  eof         <- !1
   header_name <- +(alpha | '..')
-  header_val  <- +(_-{'\n'}-{'\r'})
+  header_val  <- +(1-{'\n'}-{'\r'})
 
   proto       <- Cf( "proto", +alpha )
   version     <- Cf( "version", +digit * '.' * +digit )
   code        <- Cf( "code", +digit )
-  msg         <- Cf( "msg", +(_ - '\r' - '\n') )
+  msg         <- Cf( "msg", +(1 - '\r' - '\n') )
   response    <- Co( proto * '/' * version * space * code * space * msg )
   header      <- Ca( C(header_name) * ": " * C(header_val) )
   headers     <- Ca( *(header * crlf) )
