@@ -222,7 +222,7 @@ let s2 = peg "http":
   digit       <- {'0'..'9'}
   url         <- +(alpha | digit | '/' | '_' | '.')
   eof         <- !1
-  header_name <- +(alpha | '..')
+  header_name <- +(alpha | '-')
   header_val  <- +(1-{'\n'}-{'\r'})
 
   proto       <- Cf( "proto", +alpha )
