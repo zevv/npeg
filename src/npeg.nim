@@ -294,7 +294,7 @@ proc buildPatt(patts: Patts, name: string, patt: NimNode): Patt =
         var min, max: BiggestInt
         if n[1].kind == nnkIntLit:
           min = n[1].intVal
-        elif n[1].kind == nnkInfix and n[1][0].eqIdent(".."):
+        elif n[1].kind == nnkInfix and (n[1][0].eqIdent("-") or n[1][0].eqIdent("..")):
           min = n[1][1].intVal
           max = n[1][2].intVal
         else:
@@ -312,9 +312,12 @@ proc buildPatt(patts: Patts, name: string, patt: NimNode): Patt =
         for nc in n:
           if nc.kind == nnkCharLit:
             cs.incl nc.intVal.char
-          elif nc.kind == nnkInfix and nc[0].kind == nnkIdent and nc[0].eqIdent("-"):
-            for c in nc[1].intVal..nc[2].intVal:
-              cs.incl c.char
+          elif nc.kind == nnkInfix:
+            if nc[0].kind == nnkIdent and (nc[0].eqIdent("-") or nc[0].eqIdent("..")):
+              for c in nc[1].intVal..nc[2].intVal:
+                cs.incl c.char
+            else:
+              krak n, "syntax error"
           else:
             krak n, "syntax error"
         if cs.card == 0:

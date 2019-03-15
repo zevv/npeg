@@ -18,7 +18,12 @@ suite "npeg":
     doAssert     patt(['a','b'])("a")
     doAssert     patt(['a','b'])("b")
     doAssert not patt(['a','b'])("c")
-  
+    doAssert     patt(['a'-'c'])("a")
+    doAssert     patt(['a'-'c'])("b")
+    doAssert     patt(['a'-'c'])("c")
+    doAssert not patt(['a'-'c'])("d")
+    doAssert     patt(['a'..'c'])("a")
+
   test "not":
     doAssert     patt('a' * !'b')("ac")
     doAssert not patt('a' * !'b')("ab")
@@ -32,6 +37,8 @@ suite "npeg":
     doAssert     patt('a'{2..4})("aaa")
     doAssert     patt('a'{2..4})("aaaa")
     doAssert     patt('a'{2..4})("aaaaa")
+    doAssert     patt('a'{2..4})("aaaab")
+    doAssert     patt('a'{2-4})("aaaab")
 
   test "repeat":
     doAssert     patt(*'a')("aaaa")

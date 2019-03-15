@@ -21,7 +21,8 @@ i"xyz"         # matches literal string, case insensitive
 ```
 
 The set syntax `[]` is flexible and can take multiple ranges and characters in
-one expression, for example `['0'-'9','a'-'f','A'-'F']`.
+one expression, for example `['0'-'9','a'-'f','A'-'F']`. For ranges the more
+Nim-like notation of `['x'..'y']` is also supported.
 
 ### Operators
 
@@ -37,6 +38,8 @@ one expression, for example `['0'-'9','a'-'f','A'-'F']`.
  P{n}          # matches P n times
  P{m..n}       # matches P m to n times
 ```
+
+For counts the more Nim-like notation of `{m..n}` is also supported.
 
 ### Captures
 
