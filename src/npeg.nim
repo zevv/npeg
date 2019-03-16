@@ -94,7 +94,6 @@ type
     ip: int
   
   CapFrame* = object
-    ip: int
     si: int
     ck: CapKind
 
@@ -514,11 +513,10 @@ template skel(cases: untyped, ip: NimNode) =
     var cp = 0
     var capStack = newSeq[CapFrame](8)
 
-    template cpush(ip2: int, si2: int, ck2: CapKind) =
+    template cpush(si2: int, ck2: CapKind) =
       if cp >= capStack.len:
         capStack.setLen capStack.len*2
       capStack[cp].si = si2
-      capStack[cp].ip = ip2
       capStack[cp].ck = ck2
       inc cp
 
@@ -629,7 +627,7 @@ template skel(cases: untyped, ip: NimNode) =
     template opCapFn(n: int) =
       let ck = CapKind(n)
       trace "cap " & $ck
-      cpush(ip, si, ck)
+      cpush(si, ck)
       inc ip
 
     template opReturnFn() =
