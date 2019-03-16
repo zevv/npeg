@@ -33,8 +33,8 @@ suite "npeg":
     doAssert not patt('a' * !'b')("ab")
 
   test "count":
-    doAssert     patt(_{3})("aaaa")
-    doAssert     patt(_{4})("aaaa")
+    doAssert     patt(1{3})("aaaa")
+    doAssert     patt(1{4})("aaaa")
     doAssert not patt('a'{5})("aaaa")
     doAssert not patt('a'{2..4})("a")
     doAssert     patt('a'{2..4})("aa")
@@ -111,7 +111,7 @@ content-length: 23
       req                   <- meth * space * url * space * proto * "/" * version
 
       header_content_length <- i"Content-Length: " * +digit
-      header_other          <- +(alpha | '-') * ": " * +(_-crlf)
+      header_other          <- +(alpha | '-') * ": " * +(1-crlf)
     
       header                <- header_content_length | header_other
       http                  <- req * crlf * *(header * crlf) * eof

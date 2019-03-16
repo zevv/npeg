@@ -356,14 +356,11 @@ proc buildPatt(patts: PattMap, name: string, patt: NimNode): Patt =
         for i in 1..min: add p
         for i in min..max: addMaybe p
       of nnkIdent:
-        if n.eqIdent "_":
-          add Inst(op: opAny)
+        let name = n.strVal
+        if name in patts:
+          add patts[name]
         else:
-          let name = n.strVal
-          if name in patts:
-            add patts[name]
-          else:
-            add Inst(op: opCall, name: n.strVal)
+          add Inst(op: opCall, name: n.strVal)
       of nnkCurly:
         var cs: CharSet
         for nc in n:
