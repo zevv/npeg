@@ -92,7 +92,7 @@ type
 
   Patt = seq[Inst]
 
-  Patts = Table[string, Patt]
+  PattMap = Table[string, Patt]
 
   RetFrame* = int
 
@@ -235,7 +235,7 @@ proc toSet(p: Patt): Option[CharSet] =
 
 # Recursively compile a peg pattern to a sequence of parser instructions
 
-proc buildPatt(patts: Patts, name: string, patt: NimNode): Patt =
+proc buildPatt(patts: PattMap, name: string, patt: NimNode): Patt =
 
   proc aux(n: NimNode): Patt =
 
@@ -396,7 +396,7 @@ proc buildPatt(patts: Patts, name: string, patt: NimNode): Patt =
 
 # Compile the PEG to a table of patterns
 
-proc compile(ns: NimNode): Patts =
+proc compile(ns: NimNode): PattMap =
   result = initTable[string, Patt]()
 
   for n in ns:
@@ -413,7 +413,7 @@ proc compile(ns: NimNode): Patts =
 # Start with the initial rule, add all other non terminals and fixup opCall
 # addresses
 
-proc link(patts: Patts, initial_name: string): Patt =
+proc link(patts: PattMap, initial_name: string): Patt =
 
   if initial_name notin patts:
     error "inital pattern '" & initial_name & "' not found"
