@@ -260,6 +260,12 @@ proc buildPatt(patts: PattMap, name: string, patt: NimNode): Patt =
       add p
       add Inst(op: opCommit, offset: 1)
 
+    template addNot(p: Patt) =
+      add Inst(op: opChoice, offset: p.len + 3)
+      add p
+      add Inst(op: opCommit, offset: 1)
+      add Inst(op: opFail)
+
     template addCap(n: NimNode, ck: CapKind) =
       add Inst(op: opCap, capKind: ck)
       add aux n
@@ -308,10 +314,7 @@ proc buildPatt(patts: PattMap, name: string, patt: NimNode): Patt =
         elif n[0].eqIdent("*"):
           addLoop p
         elif n[0].eqIdent("!"):
-          add Inst(op: opChoice, offset: p.len + 3)
-          add p
-          add Inst(op: opCommit, offset: 1)
-          add Inst(op: opFail)
+          addNot p
         else:
           krak n, "Unhandled prefix operator"
       of nnkInfix:
@@ -326,10 +329,7 @@ proc buildPatt(patts: PattMap, name: string, patt: NimNode): Patt =
           if cs1.isSome and cs2.isSome:
             add Inst(op: opSet, cs: cs1.get - cs2.get)
           else:
-            add Inst(op: opChoice, offset: p2.len + 3)
-            add p2
-            add Inst(op: opCommit, offset: 1)
-            add Inst(op: opFail)
+            addNot p2
             add p1
         elif n[0].eqIdent("|"):
           let cs1 = toSet(p1)
