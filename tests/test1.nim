@@ -42,7 +42,6 @@ suite "npeg":
     doAssert     patt('a'{2..4})("aaaa")
     doAssert     patt('a'{2..4})("aaaaa")
     doAssert     patt('a'{2..4})("aaaab")
-    doAssert     patt('a'{2-4})("aaaab")
 
   test "repeat":
     doAssert     patt(*'a')("aaaa")
