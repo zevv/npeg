@@ -44,10 +44,10 @@ one expression, for example `{'0'..'9','a'..'f','A'..'F'}`.
 ### Captures
 
 ```nim
-C(P)           # Stores the capture in the open JSON array
-Ca()           # Create a new capture JSON array
-Co()           # Create a new capture JSON object
-Cf("name", P)  # Stores the capture in the open JSON object
+C(P)           # Stores an anynomous capture in the open JSON array
+Cf("name", P)  # Stores a named in the open JSON object
+Ca()           # Opens a new capture JSON array
+Co()           # Opens a new capture JSON object
 Cp(proc, P)    # Passes the captured string to procedure `proc`
 ```
 
@@ -57,6 +57,26 @@ Captured data in patterns can be saved to a tree of Json nodes which can be
 accessed by the application after the parsing completes. Check the examples
 sectoin below to see captures in action.
 
+### Error handdling
+
+```nim
+E"msg"         # Throws an exception with the message "Expected E"
+```
+
+The `E"msg"` construct can be used to add error labels to a parser which will
+throw an exception when reached. This can be used to provide better error
+messages on parsing erors indicating what the expected element was. `E` is
+typically used as the last element in an ordered choice expression that will
+only be reached if all other choices failed:
+
+
+```nim
+s = peg "list":
+  number <- +{'0'..'9'} | E"number"
+  comma <- ',' | E"comma"
+  list <- number * +( comma * number)
+s "12,34,55"
+```
 
 ## NPeg vs PEG
 
@@ -163,7 +183,7 @@ will cause the parser to stall and go into an infinite loop.
 ```nim
 let s = peg "line":
   ws       <- *' '
-  digit    <- {'0'..'9'} * ws
+  digit    <- {'0'..'9'}
   number   <- +digit * ws
   termOp   <- {'+', '-'} * ws
   factorOp <- {'*', '/'} * ws

@@ -53,15 +53,15 @@ type
     opJump,         # Flow control: jump to target
     opReturn,       # Flow control: return from earlier call
     opFail,         # Fail: unwind stack until last frame
-    opCapStart,     # Capture: Start a capture
-    opCapEnd,       # Capture: End a capture
+    opCap,          # Capture
+    opErr,          # Error handler
 
   CapKind = enum
+    ckNone,         # Empty slot
     ckStr,          # String capture
     ckArray,        # Array
-    ckObject,       # Object
-    ckField,        # Object field
     ckProc,         # Proc call capture
+    ckClose,        # Closes capture
 
   CharSet = set[char]
 
@@ -77,10 +77,12 @@ type
         address: int
       of opSet, opSpan:
         cs: CharSet
-      of opCapStart, opCapEnd:
+      of opCap:
         capKind: CapKind
         capCallback: NimNode
         fieldName: string
+      of opErr:
+        msg: string
       of opFail, opReturn, opAny, opNop:
         discard
 
@@ -88,10 +90,21 @@ type
 
   MatchResult = bool
 
-  Frame* = object
+  RetFrame* = object
+    ip: int
+  
+  CapFrame* = object
+    ip: int
+    si: int
+    ck: CapKind
+
+  BackFrame* = object
     ip: int
     si: int
     cp: int
+    rp: int
+
+  CapStack = seq[CapFrame]
 
   Patt = seq[Inst]
 
@@ -169,7 +182,11 @@ proc `$`*(p: Patt): string =
         result &= " " & $(n+i.offset)
       of opCall, opJump:
         result &= " " & i.name & ":" & $i.address
-      of opFail, opReturn, opNop, opAny, opCapStart, opCapEnd:
+      of opErr:
+        result &= " " & i.msg
+      of opCap:
+        result &= " " & $i.capKind
+      of opFail, opReturn, opNop, opAny:
         discard
     result &= "\n"
 
@@ -221,9 +238,9 @@ proc buildPatt(patts: Patts, name: string, patt: NimNode): Patt =
       add Inst(op: opCommit, offset: 1)
 
     template addCap(n: NimNode, ck: CapKind) =
-      add Inst(op: opCapStart, capKind: ck)
+      add Inst(op: opCap, capKind: ck)
       add aux n
-      add Inst(op: opCapEnd, capKind: ck)
+      add Inst(op: opCap, capKind: ckClose)
 
     template krak(n: NimNode, msg: string) =
       error "NPeg: " & msg & ": " & n.repr & "\n" & n.astGenRepr, n
@@ -248,14 +265,14 @@ proc buildPatt(patts: Patts, name: string, patt: NimNode): Patt =
           addCap n[1], ckStr
         elif n[0].eqIdent "Ca":
           addCap n[1], ckArray
-        elif n[0].eqIdent "Co":
-          addCap n[1], ckObject
-        elif n[0].eqIdent "Cf":
-          addCap n[2], ckField
-          result[result.high].fieldName = n[1].strVal
-        elif n[0].eqIdent "Cp":
-          addCap n[2], ckProc
-          result[result.high].capCallback = n[1]
+        #elif n[0].eqIdent "Co":
+        #  addCap n[1], ckObject
+        #elif n[0].eqIdent "Cf":
+        #  addCap n[2], ckField
+        #  result[result.high].fieldName = n[1].strVal
+        #elif n[0].eqIdent "Cp":
+        #  addCap n[2], ckProc
+        #  result[result.high].capCallback = n[1]
         else:
           krak n, "Unhandled capture type"
       of nnkPrefix:
@@ -344,6 +361,8 @@ proc buildPatt(patts: Patts, name: string, patt: NimNode): Patt =
       of nnkCallStrLit:
         if n[0].eqIdent("i"):
           add Inst(op: opIStr, str: n[1].strVal)
+        elif n[0].eqIdent "E":
+          add Inst(op: opErr, msg: n[1].strVal)
         else:
           krak n, "unhandled string prefix"
       else:
@@ -408,6 +427,35 @@ proc link(patts: Patts, initial_name: string): Patt =
 
   return grammar
 
+
+proc collectCaptures(s: string, cs: CapStack, captures: JsonNode) =
+
+  when npegTrace:
+    for i, c in cs:
+      echo i, " " , c
+
+  proc aux(pStart: int, into: JsonNode): int =
+    var p = pStart
+    while p < cs.len:
+      case cs[p].ck:
+        of ckArray:
+          let a = newJArray()
+          into.add a
+          p += aux(p+1, a)
+        of ckStr:
+          let s1 = cs[p].si
+          p += aux(p+1, into)
+          let s2 = cs[p].si
+          into.add newJString(s[s1..<s2])
+        of ckClose:
+          return p - pstart + 1
+        else:
+          discard
+      inc p
+     
+  echo aux(0, captures)
+
+
 # Template for generating the parsing match proc.  A dummy 'ip' node is passed
 # into this template to prevent its name from getting mangled so that the code
 # in the `peg` macro can access it
@@ -422,51 +470,57 @@ template skel(cases: untyped, ip: NimNode) =
     var ip = 0
     var si = 0
 
-    var dataStack = newSeq[JSonNode]()
-    if captures != nil:
-      dataStack.add captures
+    # Return stack
 
-    # Stack management
+    var rp = 0
+    var retStack = newSeq[RetFrame](8)
+    
+    template rpush(ip2: int) =
+      if rp >= retStack.len:
+        retStack.setLen retStack.len*2
+      retStack[rp].ip = ip2
+      inc rp
+    template rpop(ip2: var int) =
+      assert rp > 0
+      dec rp
+      ip2 = retStack[rp].ip
 
-    var sp = 0
-    var stack = newSeq[Frame](64)
+    # Backtrace stack
 
-    template spush(ip2: int, si2: int = -1, cp2: int = -1) =
-      if sp >= stack.len:
-        stack.setLen stack.len*2
-      stack[sp].ip = ip2
-      stack[sp].si = si2
-      stack[sp].cp = cp2
-      inc sp
-    template spop() =
-      assert sp > 0
-      dec sp
-    template spop(ip2: var int) =
-      assert sp > 0
-      dec sp
-      ip2 = stack[sp].ip
-    template spop(ip2, si2, cp2: var int) =
-      assert sp > 0
-      dec sp
-      ip2 = stack[sp].ip
-      si2 = stack[sp].si
-      cp2 = stack[sp].cp
+    var bp = 0
+    var backStack = newSeq[BackFrame](8)
 
-    # Capture stack management
+    template bpush(ip2, si2, rp2, cp2: int) =
+      if bp >= backStack.len:
+        backStack.setLen backStack.len*2
+      backStack[bp].ip = ip2
+      backStack[bp].si = si2
+      backStack[bp].rp = rp2
+      backStack[bp].cp = cp2
+      inc bp
+    template bpop() =
+      assert bp > 0
+      dec bp
+    template bpop(ip2, si2, rp2, cp2: var int) =
+      assert bp > 0
+      dec bp
+      ip2 = backStack[bp].ip
+      si2 = backStack[bp].si
+      rp2 = backStack[bp].rp
+      cp2 = backStack[bp].cp
+
+    # Capture stack
 
     var cp = 0
-    var capstack = newSeq[int](2)
+    var capStack = newSeq[CapFrame](8)
 
-    template cpush(si: int) =
-      if cp >= capstack.len:
-        capstack.setLen capstack.len*2
-      capstack[cp] = si
+    template cpush(ip2: int, si2: int, ck2: CapKind) =
+      if cp >= capStack.len:
+        capStack.setLen capStack.len*2
+      capStack[cp].si = si2
+      capStack[cp].ip = ip2
+      capStack[cp].ck = ck2
       inc cp
-
-    template cpop(): int =
-      assert cp > 0
-      dec cp
-      capstack[cp]
 
     # Debug trace. Slow and expensive
 
@@ -475,9 +529,9 @@ template skel(cases: untyped, ip: NimNode) =
            " | " & align($si, 3) &
            " |" & alignLeft(dumpstring(s, si, 24), 24) &
            "| " & alignLeft(msg, 30) &
-           "| " & alignLeft(repeat("*", sp), 20)
-      if sp > 0:
-        l.add $stack[sp-1]
+           "| " & alignLeft(repeat("*", bp), 20)
+      if bp > 0:
+        l.add $backStack[bp-1]
       echo l
 
     template trace(msg: string) =
@@ -548,89 +602,64 @@ template skel(cases: untyped, ip: NimNode) =
 
     template opChoiceFn(n: int) =
       trace "choice -> " & $n
-      spush(n, si, cp)
+      bpush(n, si, rp, cp)
       inc ip
 
     template opCommitFn(n: int) =
       trace "commit -> " & $n
-      spop()
+      bpop()
       ip = n
 
     template opPartCommitFn(n: int) =
       trace "pcommit -> " & $n
-      assert sp > 0
-      #stack[sp].ip = ip
-      stack[sp-1].si = si
+      assert bp > 0
+      backStack[bp-1].si = si
+      backStack[bp-1].cp = cp
       ip = n
 
     template opCallFn(label: string, address: int) =
       trace "call -> " & label & ":" & $address
-      spush(ip+1)
+      rpush(ip+1)
       ip = address
 
     template opJumpFn(label: string, address: int) =
       trace "jump -> " & label & ":" & $address
       ip = address
 
-    template opCapStartFn(n: int) =
+    template opCapFn(n: int) =
       let ck = CapKind(n)
-      trace "capstart " & $ck
-      cpush(si)
-      case ck:
-        of ckArray:
-          if dataStack.len > 0:
-            let a = newJArray()
-            dataStack[datastack.high].add a
-            dataStack.add a
-        of ckObject:
-          if dataStack.len > 0:
-            let a = newJObject()
-            dataStack[datastack.high].add a
-            dataStack.add a
-        else:
-          discard
-      inc ip
-
-    template opCapEndFn(n: int, fn: untyped, fieldName: string) =
-      let ck = CapKind(n)
-      trace "capend " & $ck
-      let capStr = s[cpop()..<si]
-      case ck:
-        of ckStr:
-          if dataStack.len > 0:
-            dataStack[dataStack.high].add newJString(capStr)
-        of ckField:
-          if dataStack.len > 0:
-            dataStack[dataStack.high][fieldName] = newJString(capStr)
-        of ckProc:
-          fn(capStr)
-        of ckArray, ckObject:
-          if dataSTack.len > 0:
-            dataStack.del dataStack.high
+      trace "cap " & $ck
+      cpush(ip, si, ck)
       inc ip
 
     template opReturnFn() =
       trace "return"
-      if sp == 0:
+      if rp == 0:
         trace "done"
         ok = true
         break
-      spop(ip)
+      rpop(ip)
 
     template opFailFn() =
-      while sp > 0 and stack[sp-1].si == -1:
-        spop()
 
-      if sp == 0:
+      if bp == 0:
         trace "error"
         break
 
-      spop(ip, si, cp)
+      bpop(ip, si, rp, cp)
 
       trace "fail -> " & $ip
 
+    template opErrFn(msg: string) =
+      trace "err " & msg
+      raise newException(OSError, "Parsing error at #" & $si & ": expected " & msg)
+
     while true:
       cases
+
+    if ok and cp > 0 and captures != nil:
+      capStack.setLen cp
+      collectCaptures(s, capStack, captures)
 
     result = ok
 
@@ -661,15 +690,10 @@ proc gencode(name: string, program: Patt): NimNode =
       of opCall, opJump:
         call.add newStrLitNode(i.name)
         call.add newIntLitNode(i.address)
-      of opCapStart:
+      of opCap:
         call.add newIntLitNode(i.capKind.int)
-      of opCapEnd:
-        call.add newIntLitNode(i.capKind.int)
-        if i.capCallback.kind == nnkIdent:
-          call.add i.capCallback
-        else:
-          call.add ident("nop")
-        call.add newStrLitNode(i.fieldName)
+      of opErr:
+        call.add newStrLitNode(i.msg)
       of opReturn, opAny, opNop, opFail:
         discard
     cases.add nnkOfBranch.newTree(newLit(n), call)
