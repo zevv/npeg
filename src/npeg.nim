@@ -113,24 +113,25 @@ type
 
 # Stack generics
 
-proc push*[T](s: var Stack[T], frame: T) =
+template push*[T](s: var Stack[T], frame: T) =
   if s.top >= s.frames.len:
     s.frames.setLen if s.frames.len == 0: 8 else: s.frames.len * 2
   s.frames[s.top] = frame
   inc s.top
 
-proc pop*[T](s: var Stack[T]): T =
+template pop*[T](s: var Stack[T]): T =
   assert s.top > 0
   dec s.top
-  return s.frames[s.top]
+  s.frames[s.top]
 
-proc `[]`*[T](s: Stack[T], idx: int): T =
+template `[]`*[T](s: Stack[T], idx: int): T =
   assert idx < s.top
   s.frames[idx]
 
 template update*[T](s: Stack[T], field: untyped, val: untyped) =
   assert s.top > 0
   s.frames[s.top-1].field = val
+
 
 # Create a set containing all characters. This is used for optimizing
 # set unions and differences with opAny
