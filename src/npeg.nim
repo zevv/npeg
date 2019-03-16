@@ -90,24 +90,47 @@ type
 
   MatchResult = bool
 
-  RetFrame* = object
-    ip: int
-  
-  CapFrame* = object
-    si: int
-    ck: CapKind
-
-  BackFrame* = object
-    ip: int
-    si: int
-    cp: int
-    rp: int
-
-  CapStack = seq[CapFrame]
-
   Patt = seq[Inst]
 
   Patts = Table[string, Patt]
+
+  RetFrame* = int
+
+  CapFrame* = tuple
+    si: int
+    ck: CapKind
+
+  BackFrame* = tuple
+    ip: int
+    si: int
+    rp: int
+    cp: int
+
+  Stack[T] = object
+    top: int
+    frames: seq[T]
+
+
+# Stack generics
+
+proc push*[T](s: var Stack[T], frame: T) =
+  if s.top >= s.frames.len:
+    s.frames.setLen if s.frames.len == 0: 8 else: s.frames.len * 2
+  s.frames[s.top] = frame
+  inc s.top
+
+proc pop*[T](s: var Stack[T]): T =
+  assert s.top > 0
+  dec s.top
+  return s.frames[s.top]
+
+proc `[]`*[T](s: Stack[T], idx: int): T =
+  assert idx < s.top
+  s.frames[idx]
+
+template update*[T](s: Stack[T], field: untyped, val: untyped) =
+  assert s.top > 0
+  s.frames[s.top-1].field = val
 
 # Create a set containing all characters. This is used for optimizing
 # set unions and differences with opAny
@@ -219,7 +242,7 @@ proc buildPatt(patts: Patts, name: string, patt: NimNode): Patt =
       var pc = p
       pc.n = n
       result.add pc
-    
+
     template add(p: Patt) =
       result.add p
 
@@ -366,7 +389,7 @@ proc buildPatt(patts: Patts, name: string, patt: NimNode): Patt =
           krak n, "unhandled string prefix"
       else:
         krak n, "syntax error"
- 
+
   result = aux(patt)
 
 
@@ -427,15 +450,11 @@ proc link(patts: Patts, initial_name: string): Patt =
   return grammar
 
 
-proc collectCaptures(s: string, cs: CapStack, captures: JsonNode) =
-
-  when npegTrace:
-    for i, c in cs:
-      echo i, " " , c
+proc collectCaptures(s: string, cs: Stack[CapFrame], captures: JsonNode) =
 
   proc aux(pStart: int, into: JsonNode): int =
     var p = pStart
-    while p < cs.len:
+    while p < cs.top:
       case cs[p].ck:
         of ckArray:
           let a = newJArray()
@@ -451,7 +470,7 @@ proc collectCaptures(s: string, cs: CapStack, captures: JsonNode) =
         else:
           discard
       inc p
-     
+
   echo aux(0, captures)
 
 
@@ -465,60 +484,15 @@ template skel(cases: untyped, ip: NimNode) =
 
   let match = proc(s: string, captures: JsonNode=nil): MatchResult =
 
-    var ok = false
-    var ip = 0
-    var si = 0
+    # Match state
 
-    # Return stack
-
-    var rp = 0
-    var retStack = newSeq[RetFrame](8)
-    
-    template rpush(ip2: int) =
-      if rp >= retStack.len:
-        retStack.setLen retStack.len*2
-      retStack[rp].ip = ip2
-      inc rp
-    template rpop(ip2: var int) =
-      assert rp > 0
-      dec rp
-      ip2 = retStack[rp].ip
-
-    # Backtrace stack
-
-    var bp = 0
-    var backStack = newSeq[BackFrame](8)
-
-    template bpush(ip2, si2, rp2, cp2: int) =
-      if bp >= backStack.len:
-        backStack.setLen backStack.len*2
-      backStack[bp].ip = ip2
-      backStack[bp].si = si2
-      backStack[bp].rp = rp2
-      backStack[bp].cp = cp2
-      inc bp
-    template bpop() =
-      assert bp > 0
-      dec bp
-    template bpop(ip2, si2, rp2, cp2: var int) =
-      assert bp > 0
-      dec bp
-      ip2 = backStack[bp].ip
-      si2 = backStack[bp].si
-      rp2 = backStack[bp].rp
-      cp2 = backStack[bp].cp
-
-    # Capture stack
-
-    var cp = 0
-    var capStack = newSeq[CapFrame](8)
-
-    template cpush(si2: int, ck2: CapKind) =
-      if cp >= capStack.len:
-        capStack.setLen capStack.len*2
-      capStack[cp].si = si2
-      capStack[cp].ck = ck2
-      inc cp
+    var
+      complete: bool
+      ip: int
+      si: int
+      retStack: Stack[RetFrame]
+      capStack: Stack[CapFrame]
+      backStack: Stack[BackFrame]
 
     # Debug trace. Slow and expensive
 
@@ -527,9 +501,9 @@ template skel(cases: untyped, ip: NimNode) =
            " | " & align($si, 3) &
            " |" & alignLeft(dumpstring(s, si, 24), 24) &
            "| " & alignLeft(msg, 30) &
-           "| " & alignLeft(repeat("*", bp), 20)
-      if bp > 0:
-        l.add $backStack[bp-1]
+           "| " & alignLeft(repeat("*", backStack.top), 20)
+      if backStack.top > 0:
+        l.add $backStack[backStack.top-1]
       echo l
 
     template trace(msg: string) =
@@ -545,7 +519,7 @@ template skel(cases: untyped, ip: NimNode) =
         if s[si+i] != s2[i]:
           return false
       return true
-    
+
     proc subIStrCmp(s: string, si: int, s2: string): bool =
       if si > s.len - s2.len:
         return false
@@ -579,13 +553,13 @@ template skel(cases: untyped, ip: NimNode) =
         inc si
       else:
         ip = -1
-    
+
     template opSpanFn(cs: CharSet) =
       trace "span " & dumpset(cs)
       while si < s.len and s[si] in cs:
         inc si
       inc ip
-    
+
     template opNopFn() =
       trace "nop"
       inc ip
@@ -600,24 +574,23 @@ template skel(cases: untyped, ip: NimNode) =
 
     template opChoiceFn(n: int) =
       trace "choice -> " & $n
-      bpush(n, si, rp, cp)
+      backStack.push (ip:n, si:si, rp:retStack.top, cp:capStack.top)
       inc ip
 
     template opCommitFn(n: int) =
       trace "commit -> " & $n
-      bpop()
+      discard backStack.pop()
       ip = n
 
     template opPartCommitFn(n: int) =
       trace "pcommit -> " & $n
-      assert bp > 0
-      backStack[bp-1].si = si
-      backStack[bp-1].cp = cp
+      backStack.update(si, si)
+      backStack.update(cp, capStack.top)
       ip = n
 
     template opCallFn(label: string, address: int) =
       trace "call -> " & label & ":" & $address
-      rpush(ip+1)
+      retStack.push ip+1
       ip = address
 
     template opJumpFn(label: string, address: int) =
@@ -626,25 +599,25 @@ template skel(cases: untyped, ip: NimNode) =
 
     template opCapFn(n: int) =
       let ck = CapKind(n)
-      trace "cap " & $ck
-      cpush(si, ck)
+      trace "cap " & $ck & " -> " & $si
+      capStack.push (si: si, ck: ck)
       inc ip
 
     template opReturnFn() =
       trace "return"
-      if rp == 0:
+      if retStack.top == 0:
         trace "done"
-        ok = true
+        complete = true
         break
-      rpop(ip)
+      ip = retStack.pop()
 
     template opFailFn() =
 
-      if bp == 0:
+      if backStack.top == 0:
         trace "error"
         break
 
-      bpop(ip, si, rp, cp)
+      (ip, si, retStack.top, capStack.top) = backStack.pop()
 
       trace "fail -> " & $ip
 
@@ -655,11 +628,10 @@ template skel(cases: untyped, ip: NimNode) =
     while true:
       cases
 
-    if ok and cp > 0 and captures != nil:
-      capStack.setLen cp
+    if complete and capStack.top > 0 and captures != nil:
       collectCaptures(s, capStack, captures)
 
-    result = ok
+    result = complete
 
   {.pop.}
 
