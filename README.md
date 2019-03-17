@@ -4,6 +4,7 @@
 NPeg is an early stage pure Nim pattern-matching library. It provides macros to compile
 patterns and grammars to Nim procedures which will parse a string.
 
+
 ## Syntax
 
 NPeg patterns can be composed from the following parts.
@@ -41,13 +42,14 @@ one expression, for example `{'0'..'9','a'..'f','A'..'F'}`.
  P{m..n}       # matches P m to n times
 ```
 
+
 ### Captures
 
 ```nim
 C(P)           # Stores an anynomous capture in the open JSON array
-Cf("name", P)  # Stores a named in the open JSON object
-Ca()           # Opens a new capture JSON array
-Co()           # Opens a new capture JSON object
+Cn("name", P)  # Stores a named capture in the open JSON object
+Ca()           # Opens a new capture JSON array []
+Co()           # Opens a new capture JSON object {}
 Cp(proc, P)    # Passes the captured string to procedure `proc`
 ```
 
@@ -55,7 +57,8 @@ Warning: Captures are stil in development, the interface is likely to change.
 
 Captured data in patterns can be saved to a tree of Json nodes which can be
 accessed by the application after the parsing completes. Check the examples
-sectoin below to see captures in action.
+section below to see captures in action.
+
 
 ### Error handdling
 
@@ -90,6 +93,7 @@ to allow the grammar to be properly parsed by the Nim compiler:
 
 ## Usage
 
+
 ### Simple patterns
 
 A simple pattern can be compiled with the `patt` macro:
@@ -111,6 +115,7 @@ let p = peg "ident":
   ident <- *lower
 doAssert p("lowercaseword")
 ```
+
 
 #### Searching
 
@@ -173,7 +178,6 @@ expected behaviour. For example, the rule
 ```
 
 will cause the parser to stall and go into an infinite loop.
-
 
 
 ## Examples
@@ -245,14 +249,21 @@ let s2 = peg "http":
   header_name <- +(alpha | '-')
   header_val  <- +(1-{'\n'}-{'\r'})
 
-  proto       <- Cf( "proto", +alpha )
-  version     <- Cf( "version", +digit * '.' * +digit )
-  code        <- Cf( "code", +digit )
-  msg         <- Cf( "msg", +(1 - '\r' - '\n') )
+  proto       <- Cn( "proto", +alpha )
+  version     <- Cn( "version", +digit * '.' * +digit )
+  code        <- Cn( "code", +digit )
+  msg         <- Cn( "msg", +(1 - '\r' - '\n') )
   response    <- Co( proto * '/' * version * space * code * space * msg )
   header      <- Ca( C(header_name) * ": " * C(header_val) )
   headers     <- Ca( *(header * crlf) )
   http        <- response * crlf * headers * eof
+
+let data = """
+HTTP/1.1 301 Moved Permanently
+Content-Length: 162
+Content-Type: text/html
+Location: https://nim.org/
+"""
 
 var captures = newJArray()
 doAssert s2(data, captures)
@@ -264,14 +275,19 @@ The resulting JSON data:
 [
   {
     "proto": "HTTP",
-    "version": "2.0",
-    "code": "304",
-    "msg": "Not Modified"
-  },
-  [
-    [ "date",          "Thu, 14 Mar 2019 19:55:21 GMT" ],
-    [ "cache-control", "no-cache" ],
-    [ "server",        "cloudflare" ],
+    "version": "1.1",
+    "code": "301",
+    "msg": "Moved Permanently"
+  }, [
+    [
+      "Content-Length", "162"
+    ], [
+      "Content-Type", "text/html"
+    ], [
+      "Date", "Sun, 17 Mar 2019 10:24:35 GMT"
+    ], [
+      "Location", "https://nim.org/"
+    ]
   ]
 ]
 ```

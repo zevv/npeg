@@ -39,6 +39,8 @@ const npegTrace = defined(npegTrace)
 
 type
 
+  NPegException = object of Exception
+
   Opcode = enum
     opStr,          # Matching: Literal string or character
     opIStr,         # Matching: Literal string or character, case insensitive
@@ -57,9 +59,10 @@ type
     opErr,          # Error handler
 
   CapKind = enum
-    ckNone,         # Empty slot
-    ckStr,          # String capture
-    ckArray,        # Array
+    ckSimple,       # Simple capture
+    ckNamed,        # Named capture
+    ckArray,        # JSON Array
+    ckObject,       # JSON Object
     ckProc,         # Proc call capture
     ckClose,        # Closes capture
 
@@ -80,7 +83,7 @@ type
       of opCap:
         capKind: CapKind
         capCallback: NimNode
-        fieldName: string
+        capName: string
       of opErr:
         msg: string
       of opFail, opReturn, opAny, opNop:
@@ -97,11 +100,13 @@ type
   CapFrame* = tuple
     si: int
     ck: CapKind
+    name: string
 
   Capture = object
     ck: CapKind
     open: bool
     si1, si2: int
+    name: string
 
   BackFrame* = tuple
     ip: int
@@ -302,14 +307,15 @@ proc buildPatt(patts: PattMap, name: string, patt: NimNode): Patt =
         add Inst(op: opStr, str: $n.intVal.char)
       of nnkCall:
         if n[0].eqIdent "C":
-          addCap n[1], ckStr
+          addCap n[1], ckSimple
         elif n[0].eqIdent "Ca":
           addCap n[1], ckArray
-        #elif n[0].eqIdent "Co":
-        #  addCap n[1], ckObject
-        #elif n[0].eqIdent "Cf":
-        #  addCap n[2], ckField
-        #  result[result.high].fieldName = n[1].strVal
+        elif n[0].eqIdent "Co":
+          addCap n[1], ckObject
+        elif n[0].eqIdent "Cn":
+          let i = result.high
+          addCap n[2], ckNamed
+          result[i+1].capName = n[1].strVal
         #elif n[0].eqIdent "Cp":
         #  addCap n[2], ckProc
         #  result[result.high].capCallback = n[1]
@@ -467,7 +473,7 @@ proc fixCaptures(capStack: Stack[CapFrame]): seq[Capture] =
     let c = capStack[i]
     if c.ck != ckClose:
       stack.push result.len
-      result.add Capture(ck: c.ck, si1: c.si, open: true)
+      result.add Capture(ck: c.ck, si1: c.si, open: true, name: c.name)
     else:
       let i2 = stack.pop()
       result[i2].si2 = c.si
@@ -483,10 +489,18 @@ proc collectCaptures(s: string, capStack: Stack[CapFrame], into: JsonNode) =
   stack.push into
 
   for cap in captures:
+    let parent = stack.peek()
     case cap.ck:
-      of ckStr:
+      of ckSimple:
         if cap.open:
-          stack.peek().add newJString s[cap.si1..<cap.si2]
+          if parent.kind != JArray:
+              raise newException(NPegException, "Can not store a string capture in a " & $parent.kind)
+          parent.add newJString s[cap.si1..<cap.si2]
+      of ckNamed:
+        if cap.open:
+          if parent.kind != JObject:
+              raise newException(Exception, "Can not store named capture '" & cap.name & "' in a " & $parent.kind)
+          parent[cap.name] = newJString s[cap.si1..<cap.si2]
       of ckArray:
         if cap.open:
           let a = newJArray()
@@ -494,7 +508,14 @@ proc collectCaptures(s: string, capStack: Stack[CapFrame], into: JsonNode) =
           stack.push a
         else:
           discard stack.pop
-      else:
+      of ckObject:
+        if cap.open:
+          let a = newJObject()
+          stack.peek().add a
+          stack.push a
+        else:
+          discard stack.pop
+      of ckProc, ckClose:
         discard
 
 
@@ -621,10 +642,10 @@ template skel(cases: untyped, ip: NimNode) =
       trace "jump -> " & label & ":" & $address
       ip = address
 
-    template opCapFn(n: int) =
+    template opCapFn(n: int, name2: string) =
       let ck = CapKind(n)
       trace "cap " & $ck & " -> " & $si
-      capStack.push (si: si, ck: ck)
+      capStack.push (si: si, ck: ck, name: name2)
       inc ip
 
     template opReturnFn() =
@@ -647,7 +668,7 @@ template skel(cases: untyped, ip: NimNode) =
 
     template opErrFn(msg: string) =
       trace "err " & msg
-      raise newException(OSError, "Parsing error at #" & $si & ": expected " & msg)
+      raise newException(NpegException, "Parsing error at #" & $si & ": expected " & msg)
 
     while true:
       cases
@@ -686,6 +707,7 @@ proc gencode(name: string, program: Patt): NimNode =
         call.add newIntLitNode(i.address)
       of opCap:
         call.add newIntLitNode(i.capKind.int)
+        call.add newStrLitNode(i.capName)
       of opErr:
         call.add newStrLitNode(i.msg)
       of opReturn, opAny, opNop, opFail:
