@@ -86,8 +86,6 @@ type
       of opFail, opReturn, opAny, opNop:
         discard
 
-  Capture = string
-
   MatchResult = bool
 
   Patt = seq[Inst]
@@ -99,6 +97,11 @@ type
   CapFrame* = tuple
     si: int
     ck: CapKind
+
+  Capture = object
+    ck: CapKind
+    open: bool
+    si1, si2: int
 
   BackFrame* = tuple
     ip: int
@@ -113,6 +116,10 @@ type
 
 # Stack generics
 
+proc `$`*[T](s: Stack[T]): string =
+  for i in 0..<s.top:
+    result.add $i & ": " & $s.frames[i] & "\n"
+
 template push*[T](s: var Stack[T], frame: T) =
   if s.top >= s.frames.len:
     s.frames.setLen if s.frames.len == 0: 8 else: s.frames.len * 2
@@ -123,6 +130,10 @@ template pop*[T](s: var Stack[T]): T =
   assert s.top > 0
   dec s.top
   s.frames[s.top]
+
+template peek*[T](s: var Stack[T]): T =
+  assert s.top > 0
+  s.frames[s.top-1]
 
 template `[]`*[T](s: Stack[T], idx: int): T =
   assert idx < s.top
@@ -448,28 +459,43 @@ proc link(patts: PattMap, initial_name: string): Patt =
   return grammar
 
 
-proc collectCaptures(s: string, cs: Stack[CapFrame], captures: JsonNode) =
+# Convert captures stack into list of matched open/close pairs
 
-  proc aux(pStart: int, into: JsonNode): int =
-    var p = pStart
-    while p < cs.top:
-      case cs[p].ck:
-        of ckArray:
+proc fixCaptures(capStack: Stack[CapFrame]): seq[Capture] =
+  var stack: Stack[int]
+  for i in 0..<capStack.top:
+    let c = capStack[i]
+    if c.ck != ckClose:
+      stack.push result.len
+      result.add Capture(ck: c.ck, si1: c.si, open: true)
+    else:
+      let i2 = stack.pop()
+      result[i2].si2 = c.si
+      result.add Capture(ck: result[i2].ck, open: false)
+  assert stack.top == 0
+
+
+proc collectCaptures(s: string, capStack: Stack[CapFrame], into: JsonNode) =
+
+  let captures = fixCaptures(capStack)
+
+  var stack: Stack[JsonNode]
+  stack.push into
+
+  for cap in captures:
+    case cap.ck:
+      of ckStr:
+        if cap.open:
+          stack.peek().add newJString s[cap.si1..<cap.si2]
+      of ckArray:
+        if cap.open:
           let a = newJArray()
-          into.add a
-          p += aux(p+1, a)
-        of ckStr:
-          let s1 = cs[p].si
-          p += aux(p+1, into)
-          let s2 = cs[p].si
-          into.add newJString(s[s1..<s2])
-        of ckClose:
-          return p - pstart + 1
+          stack.peek().add a
+          stack.push a
         else:
-          discard
-      inc p
-
-  echo aux(0, captures)
+          discard stack.pop
+      else:
+        discard
 
 
 # Template for generating the parsing match proc.  A dummy 'ip' node is passed
@@ -480,7 +506,7 @@ template skel(cases: untyped, ip: NimNode) =
 
   {.push hint[XDeclaredButNotUsed]: off.}
 
-  let match = proc(s: string, captures: JsonNode=nil): MatchResult =
+  let match = proc(s: string, into: JsonNode=nil): MatchResult =
 
     # Match state
 
@@ -626,8 +652,8 @@ template skel(cases: untyped, ip: NimNode) =
     while true:
       cases
 
-    if complete and capStack.top > 0 and captures != nil:
-      collectCaptures(s, capStack, captures)
+    if complete and capStack.top > 0 and into != nil:
+      collectCaptures(s, capStack, into)
 
     result = complete
 
