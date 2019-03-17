@@ -176,16 +176,16 @@ proc toCapKind*(j: JsonNode): CapKind =
 
 # Create a short and friendly text representation of a character set.
 
+proc escapeChar(c: char): string =
+  const escapes = { '\n': "\\n", '\r': "\\r", '\t': "\\t" }.toTable()
+  if c in escapes:
+    result = escapes[c]
+  elif c >= ' ' and c <= '~':
+    result = $c
+  else:
+    result = "\\x" & tohex(c.int, 2).toLowerAscii
+
 proc dumpSet(cs: CharSet): string =
-  proc esc(c: char): string =
-    case c:
-      of '\n': result = "'\\n'"
-      of '\r': result = "'\\r'"
-      of '\t': result = "'\\t'"
-      elif c >= ' ' and c <= '~':
-        result = "'" & $c & "'"
-      else:
-        result = "\\x" & tohex(c.int, 2).toLowerAscii
   result.add "{"
   var c = 0
   while c <= 255:
@@ -193,9 +193,9 @@ proc dumpSet(cs: CharSet): string =
     while c <= 255 and c.char in cs:
       inc c
     if (c - 1 == first):
-      result.add esc(first.char) & ","
+      result.add "'" & escapeChar(first.char) & "',"
     elif c - 1 > first:
-      result.add esc(first.char) & "-" & esc((c-1).char) & ","
+      result.add "'" & escapeChar(first.char) & "'-'" & escapeChar((c-1).char) & "',"
     inc c
   if result[result.len-1] == ',': result.setLen(result.len-1)
   result.add "}"
@@ -207,14 +207,10 @@ proc dumpSet(cs: CharSet): string =
 proc dumpString*(s: string, o:int=0, l:int=1024): string =
   var i = o
   while i < s.len:
-    if s[i] >= ' ' and s[i] <= 127.char:
-      if result.len >= l-1:
-        return
-      result.add s[i]
-    else:
-      if result.len >= l-3:
-        return
-      result.add "\\x" & toHex(s[i].int, 2)
+    let a = escapeChar s[i]
+    if result.len >= l-a.len:
+      return
+    result.add a
     inc i
 
 
