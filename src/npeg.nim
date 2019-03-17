@@ -316,9 +316,6 @@ proc buildPatt(patts: PattMap, name: string, patt: NimNode): Patt =
           let i = result.high
           addCap n[2], ckNamed
           result[i+1].capName = n[1].strVal
-        #elif n[0].eqIdent "Cp":
-        #  addCap n[2], ckProc
-        #  result[result.high].capCallback = n[1]
         else:
           krak n, "Unhandled capture type"
       of nnkPrefix:
