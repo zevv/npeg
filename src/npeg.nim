@@ -107,6 +107,7 @@ type
     open: bool
     si1, si2: int
     name: string
+    other: int
 
   BackFrame* = tuple
     ip: int
@@ -469,54 +470,37 @@ proc link(patts: PattMap, initial_name: string): Patt =
 
 proc fixCaptures(capStack: Stack[CapFrame]): seq[Capture] =
   var stack: Stack[int]
+      
   for i in 0..<capStack.top:
     let c = capStack[i]
     if c.ck != ckClose:
       stack.push result.len
-      result.add Capture(ck: c.ck, si1: c.si, open: true, name: c.name)
+      result.add Capture(ck: c.ck, open: true,  si1: c.si, name: c.name)
     else:
       let i2 = stack.pop()
       result[i2].si2 = c.si
-      result.add Capture(ck: result[i2].ck, open: false)
+      result[i2].other = i
+      result.add Capture(ck: result[i2].ck, open: false, other: i2)
   assert stack.top == 0
 
 
 proc collectCaptures(s: string, capStack: Stack[CapFrame], into: JsonNode) =
 
-  let captures = fixCaptures(capStack)
+  let cs = fixCaptures(capStack)
 
-  var stack: Stack[JsonNode]
-  stack.push into
+  proc aux(i1, i2: int, parent: JsonNode, d: int) =
+    let cap = cs[i1]
+    when npegTrace:
+      echo repeat("  ", d), i1, "-", i2, ": ", cap.ck, " (", cap.name, ")"
+    var i = i1 + 1
+    while i < i2:
+      aux(i, cs[i].other, parent, d+1)
+      i += cs[i].other - i + 1
+      case cap.ck:
+        else:
+          discard
 
-  for cap in captures:
-    let parent = stack.peek()
-    case cap.ck:
-      of ckStr:
-        if cap.open:
-          if parent.kind != JArray:
-              raise newException(NPegException, "Can not store a string capture in a " & $parent.kind)
-          parent.add newJString s[cap.si1..<cap.si2]
-      of ckNamed:
-        if cap.open:
-          if parent.kind != JObject:
-              raise newException(Exception, "Can not store named capture '" & cap.name & "' in a " & $parent.kind)
-          parent[cap.name] = newJString s[cap.si1..<cap.si2]
-      of ckArray:
-        if cap.open:
-          let a = newJArray()
-          stack.peek().add a
-          stack.push a
-        else:
-          discard stack.pop
-      of ckObject:
-        if cap.open:
-          let a = newJObject()
-          stack.peek().add a
-          stack.push a
-        else:
-          discard stack.pop
-      of ckProc, ckClose:
-        discard
+  aux(0, cs[0].other, into, 0)
 
 
 # Template for generating the parsing match proc.  A dummy 'ip' node is passed
@@ -669,9 +653,23 @@ template skel(cases: untyped, ip: NimNode) =
     template opErrFn(msg: string) =
       trace "err " & msg
       raise newException(NpegException, "Parsing error at #" & $si & ": expected " & msg)
+  
+    let outerKind = case into.kind:
+      of JArray: ckArray
+      of JObject: ckObject
+      else: 
+        raise newException(NpegException, "Can not capture into a " & $into.kind)
+
+    capStack.push (si: 0, ck: outerKind, name: "")
 
     while true:
+
+      # These cases will be filled in by genCode() which uses this template
+      # as the match lambda boilerplate:
+
       cases
+    
+    capStack.push (si: 0, ck: ckClose, name: "")
 
     if complete and capStack.top > 0 and into != nil:
       collectCaptures(s, capStack, into)
