@@ -488,10 +488,14 @@ proc collectCaptures(s: string, capStack: Stack[CapFrame], into: JsonNode) =
 
   let cs = fixCaptures(capStack)
 
-  proc aux(i1, i2: int, parent: JsonNode, d: int) =
+  proc aux(i1, i2: int, parent: JsonNode, d: int): JsonNode =
     let cap = cs[i1]
     when npegTrace:
       echo repeat("  ", d), i1, "-", i2, ": ", cap.ck, " (", cap.name, ")"
+
+    case cap.ck:
+      case ckStr:
+        result = newJString s[cap.s1 ..< cap.s2]
     var i = i1 + 1
     while i < i2:
       aux(i, cs[i].other, parent, d+1)
