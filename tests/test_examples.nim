@@ -94,7 +94,6 @@ suite "npeg":
     doAssert s(json)
 
   test "HTTP with captures":
-
     let s = peg "http":
       space       <- ' '
       crlf        <- '\n' * ?'\r'
@@ -104,14 +103,15 @@ suite "npeg":
       eof         <- !1
       header_name <- +(alpha | '-')
       header_val  <- +(1-{'\n'}-{'\r'})
-      proto       <- Cn( "proto", +alpha )
-      version     <- Cn( "version", +digit * '.' * +digit )
-      code        <- Cn( "code", +digit )
-      msg         <- Cn( "msg", +(1 - '\r' - '\n') )
-      response    <- Co( proto * '/' * version * space * code * space * msg )
+      proto       <- Cn("proto", C(+alpha) )
+      version     <- Cn("version", C(+digit * '.' * +digit) )
+      code        <- Cn("code", C(+digit) )
+      msg         <- Cn("msg", C(+(1 - '\r' - '\n')) )
       header      <- Ca( C(header_name) * ": " * C(header_val) )
-      headers     <- Ca( *(header * crlf) )
-      http        <- response * crlf * headers * eof
+
+      response    <- Cn("response", Co( proto * '/' * version * space * code * space * msg ))
+      headers     <- Cn("headers", Ca( *(header * crlf) ))
+      http        <- Co(response * crlf * headers * eof)
 
     let data = """
 HTTP/1.1 301 Moved Permanently
@@ -122,21 +122,5 @@ Location: https://nim.org/
 
     var captures = newJArray()
     doAssert s(data, captures)
-    doAssert captures == parseJson(""" [
-				{
-					"proto": "HTTP",
-					"version": "1.1",
-					"code": "301",
-					"msg": "Moved Permanently"
-				}, [
-					[
-						"Content-Length", "162"
-					], [
-						"Content-Type", "text/html"
-					], [
-						"Location", "https://nim.org/"
-					]
-				]
-			]
-			""")
+    doAssert captures == parseJson("""[[{"response":{"proto":"HTTP","version":"1.1","code":"301","msg":"Moved Permanently"},"headers":[["Content-Length","162"],["Content-Type","text/html"],["Location","https://nim.org/"]]}],[{"response":{"proto":"HTTP","version":"1.1","code":"301","msg":"Moved Permanently"},"headers":[["Content-Length","162"],["Content-Type","text/html"],["Location","https://nim.org/"]]}]]""")
 

@@ -163,6 +163,16 @@ const anySet = mkAnySet()
 
 proc nop*(s: string) = discard
 
+# Misc
+
+proc toCapKind*(j: JsonNode): CapKind =
+  result = ckObject
+  if j != nil:
+    result = case j.kind:
+      of JArray: ckArray
+      of JObject: ckObject
+      else: 
+        raise newException(NpegException, "Can not capture into a " & $j.kind)
 
 # Create a short and friendly text representation of a character set.
 
@@ -488,23 +498,46 @@ proc collectCaptures(s: string, capStack: Stack[CapFrame], into: JsonNode) =
 
   let cs = fixCaptures(capStack)
 
-  proc aux(i1, i2: int, parent: JsonNode, d: int): JsonNode =
+  proc aux(i1, i2: int, parentNode: JsonNode, d: int): JsonNode =
     let cap = cs[i1]
     when npegTrace:
-      echo repeat("  ", d), i1, "-", i2, ": ", cap.ck, " (", cap.name, ")"
+      echo repeat("  ", d), cap.ck, " ", cap.si1, "-", cap.si2, " '", cap.name, "'"
+
+    var myNode = parentNode
+    var nextParentNode = parentNode
 
     case cap.ck:
-      case ckStr:
-        result = newJString s[cap.s1 ..< cap.s2]
+      of ckStr:
+        myNode = newJString s[cap.si1 ..< cap.si2]
+      of ckObject:
+        myNode = newJObject()
+        nextParentNode = myNode
+      of ckArray:
+        myNode = newJArray()
+        nextParentNode = myNode
+      of ckNamed:
+        if parentNode.kind != JObject:
+          raise newException(NpegException,
+            "Can not add named capture '" & cap.name & "' to a " & $parentNode.kind)
+      else:
+        discard
+
+    case parentNode.kind:
+      of JArray:
+        parentNode.add myNode
+      else:
+        discard
+
     var i = i1 + 1
     while i < i2:
-      aux(i, cs[i].other, parent, d+1)
+      let childNode = aux(i, cs[i].other, nextParentNode, d+1)
+      if cap.ck == ckNamed:
+        parentNode[cap.name] = childNode
       i += cs[i].other - i + 1
-      case cap.ck:
-        else:
-          discard
+    return myNode
 
-  aux(0, cs[0].other, into, 0)
+  let r = aux(0, cs[0].other, into, 0)
+  into.add r
 
 
 # Template for generating the parsing match proc.  A dummy 'ip' node is passed
@@ -657,13 +690,8 @@ template skel(cases: untyped, ip: NimNode) =
     template opErrFn(msg: string) =
       trace "err " & msg
       raise newException(NpegException, "Parsing error at #" & $si & ": expected " & msg)
-  
-    let outerKind = case into.kind:
-      of JArray: ckArray
-      of JObject: ckObject
-      else: 
-        raise newException(NpegException, "Can not capture into a " & $into.kind)
 
+    let outerKind = into.toCapKind
     capStack.push (si: 0, ck: outerKind, name: "")
 
     while true:
