@@ -180,6 +180,42 @@ expected behaviour. For example, the rule
 will cause the parser to stall and go into an infinite loop.
 
 
+## Tracing and debugging
+
+When compiled with `-d:npegTrace`, NPeg will dump its immediate representation
+of the compiled PEG, and will dump a trace of the execution during matching.
+These traces can be used for debugging purposes or for performance tuning of
+the parser. This is considered advanced use, and the exact interpretation of
+the trace is not discussed here.
+
+For example, the following program:
+
+```nim
+let s2 = peg "line":
+  line <- ("one" | "two") * "three"
+discard s2("twothree")
+```
+
+will output the following output:
+
+```
+0: opChoice 3
+1: opStr one
+2: opCommit 4
+3: opStr two
+4: opStr three
+5: opReturn
+
+  0 |   0 |twothree  | choice -> 3  |
+  1 |   0 |twothree  | str one      | *   (ip: 3, si: 0, rp: 0, cp: 0)
+  3 |   0 |twothree  | fail -> 3    |
+  3 |   0 |twothree  | str two      |
+  4 |   3 |three     | str three    |
+  5 |   8 |          | return       |
+  5 |   8 |          | done         |
+```
+
+
 ## Examples
 
 ### Parsing mathematical expressions
