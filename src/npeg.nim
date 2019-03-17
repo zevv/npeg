@@ -59,7 +59,7 @@ type
     opErr,          # Error handler
 
   CapKind = enum
-    ckSimple,       # Simple capture
+    ckStr,          # Plain string capture
     ckNamed,        # Named capture
     ckArray,        # JSON Array
     ckObject,       # JSON Object
@@ -307,7 +307,7 @@ proc buildPatt(patts: PattMap, name: string, patt: NimNode): Patt =
         add Inst(op: opStr, str: $n.intVal.char)
       of nnkCall:
         if n[0].eqIdent "C":
-          addCap n[1], ckSimple
+          addCap n[1], ckStr
         elif n[0].eqIdent "Ca":
           addCap n[1], ckArray
         elif n[0].eqIdent "Co":
@@ -488,7 +488,7 @@ proc collectCaptures(s: string, capStack: Stack[CapFrame], into: JsonNode) =
   for cap in captures:
     let parent = stack.peek()
     case cap.ck:
-      of ckSimple:
+      of ckStr:
         if cap.open:
           if parent.kind != JArray:
               raise newException(NPegException, "Can not store a string capture in a " & $parent.kind)
