@@ -282,6 +282,12 @@ proc buildPatt(patts: PattMap, name: string, patt: NimNode): Patt =
       add Inst(op: opCommit, offset: 1)
       add Inst(op: opFail)
 
+    template addOr(p1, p2: Patt) =
+      add Inst(op: opChoice, offset: p1.len+2)
+      add p1
+      add Inst(op: opCommit, offset: p2.len+1)
+      add p2
+
     template addCap(n: NimNode, ck: CapKind) =
       add Inst(op: opCap, capKind: ck)
       add aux n
@@ -351,10 +357,7 @@ proc buildPatt(patts: PattMap, name: string, patt: NimNode): Patt =
           if cs1.isSome and cs2.isSome:
             add Inst(op: opSet, cs: cs1.get + cs2.get)
           else:
-            add Inst(op: opChoice, offset: p1.len+2)
-            add p1
-            add Inst(op: opCommit, offset: p2.len+1)
-            add p2
+            addOr p1, p2
         else:
           krak n, "Unhandled infix operator"
       of nnkCurlyExpr:
