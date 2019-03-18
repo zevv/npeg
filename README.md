@@ -57,9 +57,6 @@ Co()           # Opens a new capture JSON object {}
 Cp(proc, P)    # Passes the captured string to procedure `proc`
 ```
 
-Captured data in patterns can be saved to a tree of Json nodes which can be
-accessed by the application after the parsing completes.
-
 Captures are saved in an option JsonNode argument passed to the parsing function.
 This passed Json node kind depends on the types of the most outer captures:
 
