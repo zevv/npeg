@@ -83,7 +83,9 @@ echo caps.pretty
 Check the examples section below to see more captures in action.
 
 
-### Error handdling
+### Error handling
+
+*Warning: experimental feature, this needs some rework to be usable.*
 
 ```nim
 E"msg"         # Throws an exception with the message "Expected E"
