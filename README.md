@@ -99,7 +99,7 @@ only be reached if all other choices failed:
 
 
 ```nim
-s = peg "list":
+let s = peg "list":
   number <- +{'0'..'9'} | E"number"
   comma <- ',' | E"comma"
   list <- number * +( comma * number)
