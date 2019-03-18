@@ -275,7 +275,7 @@ The following example shows captures in action. This PEG parses a HTTP
 request into a nested JSON tree:
 
 ```nim
-let s2 = peg "http":
+let s = peg "http":
   space       <- ' '
   crlf        <- '\n' * ?'\r'
   alpha       <- {'a'..'z','A'..'Z'}
@@ -284,14 +284,14 @@ let s2 = peg "http":
   eof         <- !1
   header_name <- +(alpha | '-')
   header_val  <- +(1-{'\n'}-{'\r'})
-
-  proto       <- Cn( "proto", +alpha )
-  version     <- Cn( "version", +digit * '.' * +digit )
-  code        <- Cn( "code", +digit )
-  msg         <- Cn( "msg", +(1 - '\r' - '\n') )
-  response    <- Co( proto * '/' * version * space * code * space * msg )
+  proto       <- Cn("proto", C(+alpha) )
+  version     <- Cn("version", C(+digit * '.' * +digit) )
+  code        <- Cn("code", C(+digit) )
+  msg         <- Cn("msg", C(+(1 - '\r' - '\n')) )
   header      <- Ca( C(header_name) * ": " * C(header_val) )
-  headers     <- Ca( *(header * crlf) )
+
+  response    <- Cn("response", Co( proto * '/' * version * space * code * space * msg ))
+  headers     <- Cn("headers", Ca( *(header * crlf) ))
   http        <- response * crlf * headers * eof
 
 let data = """
@@ -301,30 +301,32 @@ Content-Type: text/html
 Location: https://nim.org/
 """
 
-var captures = newJArray()
+var captures = newJObject()
 doAssert s2(data, captures)
 echo captures.pretty
 ```
 
 The resulting JSON data:
 ```json
-[
-  {
+{
+  "response": {
     "proto": "HTTP",
     "version": "1.1",
     "code": "301",
     "msg": "Moved Permanently"
-  }, [
+  },
+  "headers": [
     [
-      "Content-Length", "162"
+      "Content-Length",
+      "162"
     ], [
-      "Content-Type", "text/html"
+      "Content-Type",
+      "text/html"
     ], [
-      "Date", "Sun, 17 Mar 2019 10:24:35 GMT"
-    ], [
-      "Location", "https://nim.org/"
+      "Location",
+      "https://nim.org/"
     ]
   ]
-]
+}
 ```
 

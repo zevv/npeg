@@ -111,7 +111,7 @@ suite "npeg":
 
       response    <- Cn("response", Co( proto * '/' * version * space * code * space * msg ))
       headers     <- Cn("headers", Ca( *(header * crlf) ))
-      http        <- Co(response * crlf * headers * eof)
+      http        <- response * crlf * headers * eof
 
     let data = """
 HTTP/1.1 301 Moved Permanently
@@ -120,7 +120,7 @@ Content-Type: text/html
 Location: https://nim.org/
 """
 
-    var captures = newJArray()
+    var captures = newJObject()
     doAssert s(data, captures)
-    doAssert captures == parseJson("""[[{"response":{"proto":"HTTP","version":"1.1","code":"301","msg":"Moved Permanently"},"headers":[["Content-Length","162"],["Content-Type","text/html"],["Location","https://nim.org/"]]}],[{"response":{"proto":"HTTP","version":"1.1","code":"301","msg":"Moved Permanently"},"headers":[["Content-Length","162"],["Content-Type","text/html"],["Location","https://nim.org/"]]}]]""")
+    doAssert captures == parseJson("""{"response":{"proto":"HTTP","version":"1.1","code":"301","msg":"Moved Permanently"},"headers":[["Content-Length","162"],["Content-Type","text/html"],["Location","https://nim.org/"]]}""")
 

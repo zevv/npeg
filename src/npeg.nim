@@ -89,8 +89,6 @@ type
       of opFail, opReturn, opAny, opNop:
         discard
 
-  MatchResult = bool
-
   Patt = seq[Inst]
 
   PattMap = Table[string, Patt]
@@ -158,21 +156,6 @@ proc mkAnySet(): CharSet {.compileTime.} =
     result.incl c
 const anySet = mkAnySet()
 
-
-# I don't know how to get rid of this on yet
-
-proc nop*(s: string) = discard
-
-# Misc
-
-proc toCapKind*(j: JsonNode): CapKind =
-  result = ckObject
-  if j != nil:
-    result = case j.kind:
-      of JArray: ckArray
-      of JObject: ckObject
-      else: 
-        raise newException(NpegException, "Can not capture into a " & $j.kind)
 
 # Create a short and friendly text representation of a character set.
 
@@ -472,7 +455,7 @@ proc link(patts: PattMap, initial_name: string): Patt =
 
 proc fixCaptures(capStack: Stack[CapFrame]): seq[Capture] =
   var stack: Stack[int]
-      
+
   for i in 0..<capStack.top:
     let c = capStack[i]
     if c.ck != ckClose:
@@ -491,45 +474,45 @@ proc collectCaptures(s: string, capStack: Stack[CapFrame], into: JsonNode) =
   let cs = fixCaptures(capStack)
 
   proc aux(i1, i2: int, parentNode: JsonNode, d: int): JsonNode =
-    let cap = cs[i1]
-    when npegTrace:
-      echo repeat("  ", d), cap.ck, " ", cap.si1, "-", cap.si2, " '", cap.name, "'"
 
-    var myNode = parentNode
-    var nextParentNode = parentNode
+    var myNode: JsonNode
 
-    case cap.ck:
-      of ckStr:
-        myNode = newJString s[cap.si1 ..< cap.si2]
-      of ckObject:
-        myNode = newJObject()
-        nextParentNode = myNode
-      of ckArray:
-        myNode = newJArray()
-        nextParentNode = myNode
-      of ckNamed:
-        if parentNode.kind != JObject:
-          raise newException(NpegException,
-            "Can not add named capture '" & cap.name & "' to a " & $parentNode.kind)
-      else:
-        discard
-
-    case parentNode.kind:
-      of JArray:
-        parentNode.add myNode
-      else:
-        discard
-
-    var i = i1 + 1
+    var i = i1
     while i < i2:
-      let childNode = aux(i, cs[i].other, nextParentNode, d+1)
-      if cap.ck == ckNamed:
-        parentNode[cap.name] = childNode
-      i += cs[i].other - i + 1
-    return myNode
 
-  let r = aux(0, cs[0].other, into, 0)
-  into.add r
+      let cap = cs[i]
+      when npegTrace:
+        echo i, " ", repeat("  ", d), cap.ck, " ", cap.si1, "-", cap.si2, " '", cap.name, "'"
+
+      case cap.ck:
+        of ckStr:
+          myNode = newJString s[cap.si1 ..< cap.si2]
+        of ckArray:
+          myNode = newJArray()
+        of ckObject:
+          myNode = newJObject()
+        of ckNamed:
+          if parentNode.kind != JObject:
+            raise newException(NpegException, "Can not add named capture '" & cap.name & "' to a " & $parentNode.kind)
+        else:
+          discard
+
+      if parentNode.kind == JArray:
+        parentNode.add myNode
+
+      let l = cs[i].other - i
+      if l > 1:
+        let childNode = aux(i+1, cs[i].other-1, if myNode != nil: myNode else: parentNode, d+1)
+        if cap.ck == ckNamed:
+          parentNode[cap.name] = childNode
+        i += l
+      else:
+        i += 2
+      while i < cs.len and not cs[i].open:
+        inc i
+    result = myNode
+
+  let r = aux(0, capStack.top-1, into, 0)
 
 
 # Template for generating the parsing match proc.  A dummy 'ip' node is passed
@@ -540,7 +523,7 @@ template skel(cases: untyped, ip: NimNode) =
 
   {.push hint[XDeclaredButNotUsed]: off.}
 
-  let match = proc(s: string, into: JsonNode=nil): MatchResult =
+  let match = proc(s: string, into: JsonNode=nil): bool =
 
     # Match state
 
@@ -683,17 +666,12 @@ template skel(cases: untyped, ip: NimNode) =
       trace "err " & msg
       raise newException(NpegException, "Parsing error at #" & $si & ": expected " & msg)
 
-    let outerKind = into.toCapKind
-    capStack.push (si: 0, ck: outerKind, name: "")
-
     while true:
 
       # These cases will be filled in by genCode() which uses this template
       # as the match lambda boilerplate:
 
       cases
-    
-    capStack.push (si: 0, ck: ckClose, name: "")
 
     if complete and capStack.top > 0 and into != nil:
       collectCaptures(s, capStack, into)
