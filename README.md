@@ -23,7 +23,7 @@ i"xyz"         # matches literal string, case insensitive
  {'x','y','z'} # matches any character from the set
 ```
 
-The set syntax `..` is flexible and can take multiple ranges and characters in
+The set syntax `{}` is flexible and can take multiple ranges and characters in
 one expression, for example `{'0'..'9','a'..'f','A'..'F'}`.
 
 
