@@ -53,8 +53,8 @@ Co()           # Opens a new capture JSON object {}
 Cp(proc, P)    # Passes the captured string to procedure `proc`
 ```
 
-Warning: Captures are stil in development, the interface might still still
-change. I am not sure of using JSon nodes is the best choice and I am open to
+Warning: Captures are stil in development, the interface might change in the
+future. I am not sure if using JSon nodes is the best choice and I am open to
 any ideas to improve the way captures are returned from the parser.
 
 Captured data in patterns can be saved to a tree of Json nodes which can be
