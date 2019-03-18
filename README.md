@@ -7,7 +7,7 @@ patterns and grammars to Nim procedures which will parse a string.
 
 ## Syntax
 
-NPeg patterns can be composed from the following parts.
+NPeg patterns and grammars can be composed from the following parts:
 
 
 ### Atoms
@@ -66,7 +66,7 @@ This passed Json node kind depends on the types of the most outer captures:
 - Named captures (`Cn`) can only have a JObject as parent node
 - All other captures can only have a JArray as parent node.
 
-For example, the following PEG splits a string by commas:
+For example, the following PEG splits a string by commas.
 
 ```nim
 let a = peg "words":
