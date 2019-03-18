@@ -470,44 +470,37 @@ proc fixCaptures(capStack: Stack[CapFrame]): seq[Capture] =
     for i, c in result:
       echo i, " ", c
 
+
 proc collectCaptures(s: string, capStack: Stack[CapFrame], into: JsonNode) =
 
   let cs = fixCaptures(capStack)
 
-  proc aux(iStart, iEnd: int, parentNode: JsonNode, d: int): JsonNode =
-    var myNode: JsonNode
-    let prefix = repeat("  ", d)
+  proc aux(iStart, iEnd: int, parentNode: JsonNode): JsonNode =
+
     var i = iStart
     while i <= iEnd:
       let cap = cs[i]
 
-      var nextParentNode = parentNode
-
-      case cap.ck
-      of ckStr:
-        myNode = newJString s[cap.si1 ..< cap.si2]
-      of ckArray:
-        myNode = newJArray()
-        nextParentNode = myNode
-      of ckObjecT:
-        myNode = newJObject()
-        nextParentNode = myNode
-      else:
-        discard
+      case cap.ck:
+        of ckStr: result = newJString s[cap.si1 ..< cap.si2]
+        of ckArray: result = newJArray()
+        of ckObject: result = newJObject()
+        else: discard
+      
+      let nextParentNode = 
+        if result != nil and result.kind in { Jarray, Jobject }: result
+        else: parentNode
 
       if parentNode.kind == JArray:
-        parentNode.add myNode
+        parentNode.add result
 
       inc i
-      let childNode = aux(i, i+cap.len-1, nextParentNode, d+1)
+      let childNode = aux(i, i+cap.len-1, nextParentNode)
       if cap.ck == ckNamed:
         parentNode[cap.name] = childNode
       i += cap.len 
 
-    result = myNode
-
-
-  let r = aux(0, cs.len-1, into, 0)
+  discard aux(0, cs.len-1, into)
 
 
 # Template for generating the parsing match proc.  A dummy 'ip' node is passed
