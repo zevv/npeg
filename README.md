@@ -1,8 +1,12 @@
 
 # NPeg
 
-NPeg is an early stage pure Nim pattern-matching library. It provides macros to compile
-patterns and grammars to Nim procedures which will parse a string.
+NPeg is a pure Nim pattern-matching library. It provides macros to compile
+patterns and grammars (PEGs) to Nim procedures which will parse a string and
+capture selected parts of the input string to a complex data strucure.
+
+Npeg can generate parsers that run at compile time.
+
 
 
 ## Syntax

@@ -677,7 +677,6 @@ proc gencode(name: string, program: Patt): NimNode =
 
   let ipNode = ident("ip")
   var cases = nnkCaseStmt.newTree(ipNode)
-  cases.add nnkElse.newTree(parseStmt("opFailFn()"))
 
   for n, i in program.pairs:
     let call = nnkCall.newTree(ident($i.op & "Fn"))
@@ -701,6 +700,8 @@ proc gencode(name: string, program: Patt): NimNode =
       of opReturn, opAny, opNop, opFail:
         discard
     cases.add nnkOfBranch.newTree(newLit(n), call)
+
+  cases.add nnkElse.newTree(parseStmt("opFailFn()"))
 
   result = getAst skel(cases, ipNode)
 

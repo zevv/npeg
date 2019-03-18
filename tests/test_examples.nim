@@ -124,3 +124,33 @@ Location: https://nim.org/
     doAssert s(data, captures)
     doAssert captures == parseJson("""{"response":{"proto":"HTTP","version":"1.1","code":"301","msg":"Moved Permanently"},"headers":[["Content-Length","162"],["Content-Type","text/html"],["Location","https://nim.org/"]]}""")
 
+
+  test "CSV" parser:
+
+    # A field is either a quoted field (which may contain any character except
+    # an individual quote, which may be written as two quotes that are replaced
+    # by one) or an unquoted field (which cannot contain commas, newlines, or
+    # quotes). A record is a list of fields separated by commas, ending with a
+    # newline or the string end (-1).
+
+    let a = peg "csv":
+      quote <- '"'
+      comma <- ','
+      lf <- '\n' | '\r'
+      field <- C(quote * *((1 - '"') | quote * quote | quote) * quote | *(1 - comma - lf))
+      line <- Ca(field * *(',' * field)) * lf 
+      csv <- +line * !1
+
+
+    let data = """
+Year,Make,Model,Description,Price
+1997,Ford,E350,"ac, abs, moon",3000.00
+1999,Chevy,"Venture ""Extended Edition""\","",4900.00
+1999,Chevy,"Venture ""Extended Edition, Very Large""\",,5000.00
+1996,Jeep,Grand Cherokee,"MUST SELL!
+air, moon roof, loaded",4799.00
+"""
+
+    var captures = newJArray()
+    doAssert a(data, captures)
+    doAssert captures == parseJson("""[["Year","Make","Model","Description","Price"],["1997","Ford","E350","\"ac"," abs"," moon\"","3000.00"],["1999","Chevy","\"Venture \"\"Extended Edition\"\"\\\"","\"\"","4900.00"],["1999","Chevy","\"Venture \"\"Extended Edition"," Very Large\"\"\\\"","","5000.00"],["1996","Jeep","Grand Cherokee","\"MUST SELL!"],["air"," moon roof"," loaded\"","4799.00"]]""")
