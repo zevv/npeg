@@ -56,8 +56,15 @@ Cp(proc, P)    # Passes the captured string to procedure `proc`
 Warning: Captures are stil in development, the interface is likely to change.
 
 Captured data in patterns can be saved to a tree of Json nodes which can be
-accessed by the application after the parsing completes. Check the examples
-section below to see captures in action.
+accessed by the application after the parsing completes.
+
+Captures are saved in an option JsonNode argument passed to the parsing function.
+This passed Json node kind depends on the types of the most outer captures:
+
+- Named captures (`Cn`) can only have a JObject as parent node
+- All other captures can only have a JArray as parent node.
+
+Check the examples section below to see captures in action.
 
 
 ### Error handdling
@@ -137,16 +144,17 @@ The order in which the grammar patterns are defined affects the generated parser
 Although NPeg could aways reorder, this is a design choice to give the user
 more control over the generated parser:
 
-* when a pattern refers to another pattern that has been defined earlier, the
-  referred pattern will be inlined. This increases the code size, but generally
-  improves performance.
+* when a pattern `P1` refers to pattern `P2` which is defined *before* `P1`,
+  `P2` will be inlined in `P1`.  This increases the generated code size, but
+  generally improves performance.
 
-* when a pattern refers to another pattern that has not yet been defined, the
-  pattern will create a call to the referred pattern. This reduces code size, but
-  might also result in a slower parser.
+* when a pattern `P1` refers to pattern `P2` which is defined *after* `P1`,
+  `P2` will be generated as a subroutine which gets called from `P1`. This will
+  reduce code size, but might also result in a slower parser.
 
-The exact parser size and performance behavior depends on many factors; it pays
-to experiment with different orderings and measure the results.
+The exact parser size and performance behavior depends on many factors; when
+performance and/or code size matters, it pays to experiment with different
+orderings and measure the results.
 
 
 ### Limitations
