@@ -102,10 +102,9 @@ type
 
   Capture = object
     ck: CapKind
-    open: bool
     si1, si2: int
     name: string
-    other: int
+    len: int
 
   BackFrame* = tuple
     ip: int
@@ -451,7 +450,7 @@ proc link(patts: PattMap, initial_name: string): Patt =
   return grammar
 
 
-# Convert captures stack into list of matched open/close pairs
+# Convert captures stack to closed list of captures
 
 proc fixCaptures(capStack: Stack[CapFrame]): seq[Capture] =
   var stack: Stack[int]
@@ -460,59 +459,55 @@ proc fixCaptures(capStack: Stack[CapFrame]): seq[Capture] =
     let c = capStack[i]
     if c.ck != ckClose:
       stack.push result.len
-      result.add Capture(ck: c.ck, open: true,  si1: c.si, name: c.name)
+      result.add Capture(ck: c.ck, si1: c.si, name: c.name)
     else:
       let i2 = stack.pop()
       result[i2].si2 = c.si
-      result[i2].other = i
-      result.add Capture(ck: result[i2].ck, open: false, other: i2)
+      result[i2].len = result.len - i2 - 1
   assert stack.top == 0
 
+  when npegTrace:
+    for i, c in result:
+      echo i, " ", c
 
 proc collectCaptures(s: string, capStack: Stack[CapFrame], into: JsonNode) =
 
   let cs = fixCaptures(capStack)
 
-  proc aux(i1, i2: int, parentNode: JsonNode, d: int): JsonNode =
-
+  proc aux(iStart, iEnd: int, parentNode: JsonNode, d: int): JsonNode =
     var myNode: JsonNode
-
-    var i = i1
-    while i < i2:
-
+    let prefix = repeat("  ", d)
+    var i = iStart
+    while i <= iEnd:
       let cap = cs[i]
-      when npegTrace:
-        echo i, " ", repeat("  ", d), cap.ck, " ", cap.si1, "-", cap.si2, " '", cap.name, "'"
 
-      case cap.ck:
-        of ckStr:
-          myNode = newJString s[cap.si1 ..< cap.si2]
-        of ckArray:
-          myNode = newJArray()
-        of ckObject:
-          myNode = newJObject()
-        of ckNamed:
-          if parentNode.kind != JObject:
-            raise newException(NpegException, "Can not add named capture '" & cap.name & "' to a " & $parentNode.kind)
-        else:
-          discard
+      var nextParentNode = parentNode
+
+      case cap.ck
+      of ckStr:
+        myNode = newJString s[cap.si1 ..< cap.si2]
+      of ckArray:
+        myNode = newJArray()
+        nextParentNode = myNode
+      of ckObjecT:
+        myNode = newJObject()
+        nextParentNode = myNode
+      else:
+        discard
 
       if parentNode.kind == JArray:
         parentNode.add myNode
 
-      let l = cs[i].other - i
-      if l > 1:
-        let childNode = aux(i+1, cs[i].other-1, if myNode != nil: myNode else: parentNode, d+1)
-        if cap.ck == ckNamed:
-          parentNode[cap.name] = childNode
-        i += l
-      else:
-        i += 2
-      while i < cs.len and not cs[i].open:
-        inc i
+      inc i
+      let childNode = aux(i, i+cap.len-1, nextParentNode, d+1)
+      if cap.ck == ckNamed:
+        parentNode[cap.name] = childNode
+      i += cap.len 
+
     result = myNode
 
-  let r = aux(0, capStack.top-1, into, 0)
+
+  let r = aux(0, cs.len-1, into, 0)
 
 
 # Template for generating the parsing match proc.  A dummy 'ip' node is passed
