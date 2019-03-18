@@ -66,7 +66,21 @@ This passed Json node kind depends on the types of the most outer captures:
 - Named captures (`Cn`) can only have a JObject as parent node
 - All other captures can only have a JArray as parent node.
 
-Check the examples section below to see captures in action.
+For example, the following PEG splits a string by commas:
+
+```nim
+let a = peg "words":
+  word <- C( +(1-',') )
+  words <- word * +(',' * word)
+
+var caps = newJArray()
+echo a("one,two,three,four,five", caps)
+echo caps.pretty
+
+["one","two","three","four","five"]
+```nim
+
+Check the examples section below to see more captures in action.
 
 
 ### Error handdling
