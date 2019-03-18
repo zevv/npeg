@@ -78,7 +78,7 @@ echo a("one,two,three,four,five", caps)
 echo caps.pretty
 
 ["one","two","three","four","five"]
-```nim
+```
 
 Check the examples section below to see more captures in action.
 
