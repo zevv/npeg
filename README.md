@@ -45,6 +45,10 @@ one expression, for example `{'0'..'9','a'..'f','A'..'F'}`.
 
 ### Captures
 
+*Note: Captures are stil in development, the interface might change in the
+future. I am not sure if using `JsonNode` is the best choice and I am open to
+any ideas to improve the way captures are returned from the parser.*
+
 ```nim
 C(P)           # Stores an anynomous capture in the open JSON array
 Cn("name", P)  # Stores a named capture in the open JSON object
@@ -52,10 +56,6 @@ Ca()           # Opens a new capture JSON array []
 Co()           # Opens a new capture JSON object {}
 Cp(proc, P)    # Passes the captured string to procedure `proc`
 ```
-
-*Warning: Captures are stil in development, the interface might change in the
-future. I am not sure if using `JsonNode` is the best choice and I am open to
-any ideas to improve the way captures are returned from the parser.*
 
 Captured data in patterns can be saved to a tree of Json nodes which can be
 accessed by the application after the parsing completes.
@@ -85,7 +85,7 @@ Check the examples section below to see more captures in action.
 
 ### Error handling
 
-*Warning: experimental feature, this needs some rework to be usable.*
+*Note: experimental feature, this needs some rework to be usable.*
 
 ```nim
 E"msg"         # Throws an exception with the message "Expected E"
