@@ -60,8 +60,8 @@ Cp(proc, P)    # Passes the captured string to procedure `proc`
 Captures are saved in an option JsonNode argument passed to the parsing function.
 This passed Json node kind depends on the types of the most outer captures:
 
-- Named captures (`Cn`) can only have a JObject as parent node
-- All other captures can only have a JArray as parent node.
+- Named captures (`Cn`) can only have a `JObject` as parent node
+- All other captures can only have a `JArray` as parent node.
 
 For example, the following PEG splits a string by commas.
 
