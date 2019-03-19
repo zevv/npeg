@@ -405,6 +405,9 @@ proc compile(ns: NimNode): PattMap =
     if not n[0].eqIdent("<-"):
       error("Expected <-")
     let pname = n[1].strVal
+    if pname in result:
+      error "Redefinition of rule '" & pname & "', which was defined in " &
+            result[pname][0].n.lineInfo
     result[pname] = buildPatt(result, pname, n[2])
 
 
