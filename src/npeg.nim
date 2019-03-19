@@ -66,9 +66,11 @@ type
 
   CapKind = enum
     ckStr,          # Plain string capture
-    ckNamed,        # Named capture
+    ckInt,          # JSON Int capture
+    ckFloat,        # JSON Float capture
     ckArray,        # JSON Array
     ckObject,       # JSON Object
+    ckNamed,        # JSON Object named capture
     ckProc,         # Proc call capture
     ckClose,        # Closes capture
 
@@ -307,12 +309,11 @@ proc buildPatt(patts: PattMap, name: string, patt: NimNode): Patt =
       of nnkCharLit:
         add Inst(op: opStr, str: $n.intVal.char)
       of nnkCall:
-        if n[0].eqIdent "C":
-          addCap n[1], ckStr
-        elif n[0].eqIdent "Ca":
-          addCap n[1], ckArray
-        elif n[0].eqIdent "Co":
-          addCap n[1], ckObject
+        if n[0].eqIdent "C":    addCap n[1], ckStr
+        elif n[0].eqIdent "Ci": addCap n[1], ckInt
+        elif n[0].eqIdent "Cf": addCap n[1], ckFloat
+        elif n[0].eqIdent "Ca": addCap n[1], ckArray
+        elif n[0].eqIdent "Co": addCap n[1], ckObject
         elif n[0].eqIdent "Cn":
           let i = result.high
           addCap n[2], ckNamed
@@ -492,9 +493,11 @@ proc collectCaptures(s: string, capStack: Stack[CapFrame], res: var MatchResult)
 
       case cap.ck:
         of ckStr:
-          let capStr = s[cap.si1 ..< cap.si2]
-          res.captures.add capStr
-          result = newJString capStr
+          let str = s[cap.si1 ..< cap.si2]
+          res.captures.add str
+          result = newJString str
+        of ckInt: result = newJInt parseInt(s[cap.si1 ..< cap.si2])
+        of ckFloat: result = newJFloat parseFloat(s[cap.si1 ..< cap.si2])
         of ckArray: result = newJArray()
         of ckObject: result = newJObject()
         else: discard
