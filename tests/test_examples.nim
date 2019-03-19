@@ -11,12 +11,12 @@ suite "npeg":
   test "simple examples":
 
     let p1 = patt +{'a'..'z'}
-    doAssert p1("lowercaseword")
+    doAssert p1("lowercaseword").ok
 
     let p2 = peg "ident":
       lower <- {'a'..'z'}
       ident <- +lower
-    doAssert p2("lowercaseword")
+    doAssert p2("lowercaseword").ok
 
 
   test "expression parser":
@@ -35,11 +35,11 @@ suite "npeg":
       factor   <- number | (open * exp * close)
       line     <- ws * exp * eol
 
-    doAssert s "1"
-    doAssert s "1+1"
-    doAssert s "1+1*1"
-    doAssert s "(1+1)*1"
-    doAssert s "13 + 5 * (2+1)"
+    doAssert s("1").ok
+    doAssert s("1+1").ok
+    doAssert s("1+1*1").ok
+    doAssert s("(1+1)*1").ok
+    doAssert s("13 + 5 * (2+1)").ok
 
 
   test "JSON parser":
@@ -91,7 +91,7 @@ suite "npeg":
       Object         <- '{' * ( String * ":" * JSON * *( "," * String * ":" * JSON ) | ?S ) * "}"
       Array          <- "[" * ( JSON * *( "," * JSON ) | ?S ) * "]"
 
-    doAssert s(json)
+    doAssert s(json).ok
 
   test "HTTP with captures":
     let s = peg "http":
@@ -111,7 +111,7 @@ suite "npeg":
 
       response    <- Cn("response", Co( proto * '/' * version * space * code * space * msg ))
       headers     <- Cn("headers", Ca( *(header * crlf) ))
-      http        <- response * crlf * headers * eof
+      http        <- Co(response * crlf * headers * eof)
 
     let data = """
 HTTP/1.1 301 Moved Permanently
@@ -120,37 +120,8 @@ Content-Type: text/html
 Location: https://nim.org/
 """
 
-    var captures = newJObject()
-    doAssert s(data, captures)
-    doAssert captures == parseJson("""{"response":{"proto":"HTTP","version":"1.1","code":"301","msg":"Moved Permanently"},"headers":[["Content-Length","162"],["Content-Type","text/html"],["Location","https://nim.org/"]]}""")
+    let res = s(data)
+    doAssert res.ok
+    doAssert res.capturesJson == parseJson("""{"response":{"proto":"HTTP","version":"1.1","code":"301","msg":"Moved Permanently"},"headers":[["Content-Length","162"],["Content-Type","text/html"],["Location","https://nim.org/"]]}""")
 
 
-  test "CSV" parser:
-
-    # A field is either a quoted field (which may contain any character except
-    # an individual quote, which may be written as two quotes that are replaced
-    # by one) or an unquoted field (which cannot contain commas, newlines, or
-    # quotes). A record is a list of fields separated by commas, ending with a
-    # newline or the string end (-1).
-
-    let a = peg "csv":
-      quote <- '"'
-      comma <- ','
-      lf <- '\n' | '\r'
-      field <- C(quote * *((1 - '"') | quote * quote | quote) * quote | *(1 - comma - lf))
-      line <- Ca(field * *(',' * field)) * lf 
-      csv <- +line * !1
-
-
-    let data = """
-Year,Make,Model,Description,Price
-1997,Ford,E350,"ac, abs, moon",3000.00
-1999,Chevy,"Venture ""Extended Edition""\","",4900.00
-1999,Chevy,"Venture ""Extended Edition, Very Large""\",,5000.00
-1996,Jeep,Grand Cherokee,"MUST SELL!
-air, moon roof, loaded",4799.00
-"""
-
-    var captures = newJArray()
-    doAssert a(data, captures)
-    doAssert captures == parseJson("""[["Year","Make","Model","Description","Price"],["1997","Ford","E350","\"ac"," abs"," moon\"","3000.00"],["1999","Chevy","\"Venture \"\"Extended Edition\"\"\\\"","\"\"","4900.00"],["1999","Chevy","\"Venture \"\"Extended Edition"," Very Large\"\"\\\"","","5000.00"],["1996","Jeep","Grand Cherokee","\"MUST SELL!"],["air"," moon roof"," loaded\"","4799.00"]]""")

@@ -8,6 +8,67 @@ capture selected parts of the input string to a complex data strucure.
 Npeg can generate parsers that run at compile time.
 
 
+## Usage
+
+The `patt()` and `peg()` macros can be used to compile parser functions.
+
+`patt()` can create a parser from a single anonymouse pattern, while `peg()`
+allows the definion of a set of (potentially recursive) rules making up a
+complete grammar.
+
+The result of these macros is a parser function that can be called to parse a
+subject string. The parser function returns an object of the type `MatchResult`:
+
+```nim
+MatchResult = object
+  ok: bool                   # Set to 'true' if the string parsed without errors
+  matchLen: int              # The length up to where the string was parsed.
+  captures: seq[string]      # All captures in a single seq
+  capturesJson: JsonNode     # JSON tree of parsed strings, arrays and objects
+```
+
+### Simple patterns
+
+A simple pattern can be compiled with the `patt` macro:
+
+```nim
+let p = patt *{'a'..'z'}
+doAssert p("lowercaseword").ok
+```
+
+### Grammars
+
+The `peg` macro provides a method to define (recursive) grammars. The first
+argument is the name of initial patterns, followed by a list of named patterns.
+Patterns can now refer to other patterns by name, allowing for recursion:
+
+```nim
+let p = peg "ident":
+  lower <- {'a'..'z'}
+  ident <- *lower
+doAssert p("lowercaseword").ok
+```
+
+
+#### Ordering of rules in a grammar
+
+The order in which the grammar patterns are defined affects the generated parser.
+Although NPeg could aways reorder, this is a design choice to give the user
+more control over the generated parser:
+
+* when a pattern `P1` refers to pattern `P2` which is defined *before* `P1`,
+  `P2` will be inlined in `P1`.  This increases the generated code size, but
+  generally improves performance.
+
+* when a pattern `P1` refers to pattern `P2` which is defined *after* `P1`,
+  `P2` will be generated as a subroutine which gets called from `P1`. This will
+  reduce code size, but might also result in a slower parser.
+
+The exact parser size and performance behavior depends on many factors; when
+performance and/or code size matters, it pays to experiment with different
+orderings and measure the results.
+
+
 
 ## Syntax
 
@@ -46,12 +107,7 @@ one expression, for example `{'0'..'9','a'..'f','A'..'F'}`.
  P{m..n}       # matches P m to n times
 ```
 
-
 ### Captures
-
-*Note: Captures are stil in development, the interface might change in the
-future. I am not sure if using `JsonNode` is the best choice and I am open to
-any ideas to improve the way captures are returned from the parser.*
 
 ```nim
 C(P)           # Stores an anynomous capture in the open JSON array
@@ -61,11 +117,33 @@ Co()           # Opens a new capture JSON object {}
 Cp(proc, P)    # Passes the captured string to procedure `proc`
 ```
 
-Captures are saved in an option JsonNode argument passed to the parsing function.
-This passed Json node kind depends on the types of the most outer captures:
+## Searching
 
-- Named captures (`Cn`) can only have a `JObject` as parent node
-- All other captures can only have a `JArray` as parent node.
+Patterns are always matched in anchored mode only. To search for a pattern in
+a stream, a construct like this can be used:
+
+```nim
+p <- "hello"
+search <- p | 1 * search
+```
+
+The above grammar first tries to match pattern `p`, or if that fails, matches
+any character `1` and recurses back to itself.
+
+
+
+## Captures
+
+*Note: Captures are stil in development, the interface might change in the
+future. I am not sure if using `JsonNode` is the best choice and I am open to
+any ideas to improve the way captures are returned from the parser.*
+
+NPeg has two modes for capturing matches
+
+### Simple captures
+
+The simple mode returns all matched strings in the `captures` field of the
+returned `MatchResult` object.
 
 For example, the following PEG splits a string by commas.
 
@@ -74,19 +152,28 @@ let a = peg "words":
   word <- C( +(1-',') )
   words <- word * +(',' * word)
 
-var caps = newJArray()
-echo a("one,two,three,four,five", caps)
-echo caps.pretty
+let r = a("one,two,three,four,five")
+echo r.captures
 
 ["one","two","three","four","five"]
 ```
 
-Check the examples section below to see more captures in action.
+### Complex captures
+
+The complex mode builds a tree of `JsonNode` objects from the captured data,
+depending on the capture types used in the PEG definition.
+
+Check the examples section below to see complex captures in action.
 
 
-### Error handling
+## Error handling
 
 *Note: experimental feature, this needs some rework to be usable.*
+
+The `ok` field in the `MatchResult` indicates if the parser was successful. The
+`matchLen` field indicates how to which offset the matcher was able to parse
+the subject string. If matching fails, `matchLen` is usually a good indication
+of where in the subject string the error occured.
 
 ```nim
 E"msg"         # Throws an exception with the message "Expected E"
@@ -115,65 +202,6 @@ to allow the grammar to be properly parsed by the Nim compiler:
 - NPeg uses prefixes instead of suffixes for `*`, `+`, `-` and `?`
 - Ordered choice uses `|` instead of `/` because of operator precedence
 - The explict `*` infix operator is used for sequences
-
-
-## Usage
-
-
-### Simple patterns
-
-A simple pattern can be compiled with the `patt` macro:
-
-```nim
-let p = patt *{'a'..'z'}
-doAssert p("lowercaseword")
-```
-
-### Grammars
-
-The `peg` macro provides a method to define (recursive) grammars. The first
-argument is the name of initial patterns, followed by a list of named patterns.
-Patterns can now refer to other patterns by name, allowing for recursion:
-
-```nim
-let p = peg "ident":
-  lower <- {'a'..'z'}
-  ident <- *lower
-doAssert p("lowercaseword")
-```
-
-
-#### Searching
-
-Patterns are always matched in anchored mode only. To search for a pattern in
-a stream, a construct like this can be used:
-
-```nim
-p <- "hello"
-search <- p | 1 * search
-```
-
-The above grammar first tries to match pattern `p`, or if that fails, matches
-any character `1` and recurses back to itself.
-
-
-#### Ordering of rules in a grammar
-
-The order in which the grammar patterns are defined affects the generated parser.
-Although NPeg could aways reorder, this is a design choice to give the user
-more control over the generated parser:
-
-* when a pattern `P1` refers to pattern `P2` which is defined *before* `P1`,
-  `P2` will be inlined in `P1`.  This increases the generated code size, but
-  generally improves performance.
-
-* when a pattern `P1` refers to pattern `P2` which is defined *after* `P1`,
-  `P2` will be generated as a subroutine which gets called from `P1`. This will
-  reduce code size, but might also result in a slower parser.
-
-The exact parser size and performance behavior depends on many factors; when
-performance and/or code size matters, it pays to experiment with different
-orderings and measure the results.
 
 
 ### Limitations
@@ -254,9 +282,7 @@ let s = peg "line":
   factor   <- +{'0'..'9'} | ('(' * exp * ')')
   line     <- exp * !1
 
-doAssert s "3*(4+15)+2"
-
-doAssert s "3 * (4+5) + 2"
+doAssert s("3*(4+15)+2").ok
 ```
 
 
@@ -280,13 +306,13 @@ let match = peg "DOC":
   ExpPart        <- ( 'e' | 'E' ) * ?( '+' | '-' ) * +{'0'..'9'}
   Number         <- ?Minus * IntPart * ?FractPart * ?ExpPart
 
-  DOC            <- JSON * -1
+  DOC            <- JSON * !1
   JSON           <- ?S * ( Number | Object | Array | String | True | False | Null ) * ?S
   Object         <- '{' * ( String * ":" * JSON * *( "," * String * ":" * JSON ) | ?S ) * "}"
   Array          <- "[" * ( JSON * *( "," * JSON ) | ?S ) * "]"
 
 let doc = """ {"jsonrpc": "2.0", "method": "subtract", "params": [42, 23], "id": 1} """
-doAssert match(doc)
+doAssert match(doc).ok
 ```
 
 
@@ -313,7 +339,7 @@ let s = peg "http":
 
   response    <- Cn("response", Co( proto * '/' * version * space * code * space * msg ))
   headers     <- Cn("headers", Ca( *(header * crlf) ))
-  http        <- response * crlf * headers * eof
+  http        <- Co(response * crlf * headers * eof)
 
 let data = """
 HTTP/1.1 301 Moved Permanently
@@ -322,10 +348,10 @@ Content-Type: text/html
 Location: https://nim.org/
 """
 
-var captures = newJObject()
-doAssert s2(data, captures)
-echo captures.pretty
+let r = s(data)
+echo r.capturesJson.pretty
 ```
+
 
 The resulting JSON data:
 ```json

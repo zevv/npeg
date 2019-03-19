@@ -9,51 +9,51 @@ abortOnError = true
 suite "npeg":
 
   test "atoms":
-    doAssert     patt(0 * "a")("a")
-    doAssert     patt(1)("a")
-    doAssert     patt(1)("a")
-    doAssert not patt(2)("a")
-    doAssert     patt("a")("a")
-    doAssert not patt("a")("b")
-    doAssert     patt("abc")("abc")
-    doAssert     patt({'a'})("a")
-    doAssert not patt({'a'})("b")
-    doAssert     patt({'a','b'})("a")
-    doAssert     patt({'a','b'})("b")
-    doAssert not patt({'a','b'})("c")
-    doAssert     patt({'a'..'c'})("a")
-    doAssert     patt({'a'..'c'})("b")
-    doAssert     patt({'a'..'c'})("c")
-    doAssert not patt({'a'..'c'})("d")
-    doAssert     patt({'a'..'c'})("a")
+    doAssert     patt(0 * "a")("a").ok
+    doAssert     patt(1)("a").ok
+    doAssert     patt(1)("a").ok
+    doAssert not patt(2)("a").ok
+    doAssert     patt("a")("a").ok
+    doAssert not patt("a")("b").ok
+    doAssert     patt("abc")("abc").ok
+    doAssert     patt({'a'})("a").ok
+    doAssert not patt({'a'})("b").ok
+    doAssert     patt({'a','b'})("a").ok
+    doAssert     patt({'a','b'})("b").ok
+    doAssert not patt({'a','b'})("c").ok
+    doAssert     patt({'a'..'c'})("a").ok
+    doAssert     patt({'a'..'c'})("b").ok
+    doAssert     patt({'a'..'c'})("c").ok
+    doAssert not patt({'a'..'c'})("d").ok
+    doAssert     patt({'a'..'c'})("a").ok
 
   test "not":
-    doAssert     patt('a' * !'b')("ac")
-    doAssert not patt('a' * !'b')("ab")
+    doAssert     patt('a' * !'b')("ac").ok
+    doAssert not patt('a' * !'b')("ab").ok
 
   test "count":
-    doAssert     patt(1{3})("aaaa")
-    doAssert     patt(1{4})("aaaa")
-    doAssert not patt('a'{5})("aaaa")
-    doAssert not patt('a'{2..4})("a")
-    doAssert     patt('a'{2..4})("aa")
-    doAssert     patt('a'{2..4})("aaa")
-    doAssert     patt('a'{2..4})("aaaa")
-    doAssert     patt('a'{2..4})("aaaaa")
-    doAssert     patt('a'{2..4})("aaaab")
+    doAssert     patt(1{3})("aaaa").ok
+    doAssert     patt(1{4})("aaaa").ok
+    doAssert not patt('a'{5})("aaaa").ok
+    doAssert not patt('a'{2..4})("a").ok
+    doAssert     patt('a'{2..4})("aa").ok
+    doAssert     patt('a'{2..4})("aaa").ok
+    doAssert     patt('a'{2..4})("aaaa").ok
+    doAssert     patt('a'{2..4})("aaaaa").ok
+    doAssert     patt('a'{2..4})("aaaab").ok
 
   test "repeat":
-    doAssert     patt(*'a')("aaaa")
-    doAssert     patt(*'a' * 'b')("aaaab")
-    doAssert     patt(*'a' * 'b')("bbbbb")
-    doAssert not patt(*'a' * 'b')("caaab")
-    doAssert     patt(+'a' * 'b')("aaaab")
-    doAssert     patt(+'a' * 'b')("ab")
-    doAssert not patt(+'a' * 'b')("b")
+    doAssert     patt(*'a')("aaaa").ok
+    doAssert     patt(*'a' * 'b')("aaaab").ok
+    doAssert     patt(*'a' * 'b')("bbbbb").ok
+    doAssert not patt(*'a' * 'b')("caaab").ok
+    doAssert     patt(+'a' * 'b')("aaaab").ok
+    doAssert     patt(+'a' * 'b')("ab").ok
+    doAssert not patt(+'a' * 'b')("b").ok
 
   test "choice":
-    doAssert     patt("ab" | "cd")("ab")
-    doAssert     patt("ab" | "cd")("cd")
-    doAssert not patt("ab" | "cd")("ef")
+    doAssert     patt("ab" | "cd")("ab").ok
+    doAssert     patt("ab" | "cd")("cd").ok
+    doAssert not patt("ab" | "cd")("ef").ok
 
 

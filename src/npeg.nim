@@ -41,6 +41,12 @@ type
 
   NPegException = object of Exception
 
+  MatchResult* = object
+    ok*: bool
+    matchLen*: int
+    captures*: seq[string]
+    capturesJson*: JsonNode
+
   Opcode = enum
     opStr,          # Matching: Literal string or character
     opIStr,         # Matching: Literal string or character, case insensitive
@@ -474,18 +480,21 @@ proc fixCaptures(capStack: Stack[CapFrame]): seq[Capture] =
       echo i, " ", c
 
 
-proc collectCaptures(s: string, capStack: Stack[CapFrame], into: JsonNode) =
+proc collectCaptures(s: string, capStack: Stack[CapFrame], res: var MatchResult) =
 
   let cs = fixCaptures(capStack)
 
-  proc aux(iStart, iEnd: int, parentNode: JsonNode): JsonNode =
+  proc aux(iStart, iEnd: int, parentNode: JsonNode, res: var MatchResult): JsonNode =
 
     var i = iStart
     while i <= iEnd:
       let cap = cs[i]
 
       case cap.ck:
-        of ckStr: result = newJString s[cap.si1 ..< cap.si2]
+        of ckStr:
+          let capStr = s[cap.si1 ..< cap.si2]
+          res.captures.add capStr
+          result = newJString capStr
         of ckArray: result = newJArray()
         of ckObject: result = newJObject()
         else: discard
@@ -494,16 +503,16 @@ proc collectCaptures(s: string, capStack: Stack[CapFrame], into: JsonNode) =
         if result != nil and result.kind in { Jarray, Jobject }: result
         else: parentNode
 
-      if parentNode.kind == JArray:
+      if parentNode != nil and parentNode.kind == JArray:
         parentNode.add result
 
       inc i
-      let childNode = aux(i, i+cap.len-1, nextParentNode)
-      if cap.ck == ckNamed:
+      let childNode = aux(i, i+cap.len-1, nextParentNode, res)
+      if parentNode != nil and cap.ck == ckNamed:
         parentNode[cap.name] = childNode
       i += cap.len 
 
-  discard aux(0, cs.len-1, into)
+  res.capturesJson = aux(0, cs.len-1, nil, res)
 
 
 # Template for generating the parsing match proc.  A dummy 'ip' node is passed
@@ -514,12 +523,9 @@ template skel(cases: untyped, ip: NimNode) =
 
   {.push hint[XDeclaredButNotUsed]: off.}
 
-  let match = proc(s: string, into: JsonNode=nil): bool =
-
-    # Match state
+  let match = proc(s: string): MatchResult =
 
     var
-      complete: bool
       ip: int
       si: int
       retStack: Stack[RetFrame]
@@ -639,7 +645,7 @@ template skel(cases: untyped, ip: NimNode) =
       trace "return"
       if retStack.top == 0:
         trace "done"
-        complete = true
+        result.ok = true
         break
       ip = retStack.pop()
 
@@ -664,10 +670,10 @@ template skel(cases: untyped, ip: NimNode) =
 
       cases
 
-    if complete and capStack.top > 0 and into != nil:
-      collectCaptures(s, capStack, into)
+      result.matchLen = max(result.matchLen, si)
 
-    result = complete
+    if result.ok and capStack.top > 0:
+      collectCaptures(s, capStack, result)
 
   {.pop.}
 
