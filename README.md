@@ -114,7 +114,7 @@ C(P)           # Stores an anynomous capture in the open JSON array
 Cn("name", P)  # Stores a named capture in the open JSON object
 Ca()           # Opens a new capture JSON array []
 Co()           # Opens a new capture JSON object {}
-Cp(proc, P)    # Passes the captured string to procedure `proc`
+Cp(P, code)    # Passes all captures from P to nim code block `code`
 ```
 
 ## Searching
@@ -158,12 +158,44 @@ echo r.captures
 ["one","two","three","four","five"]
 ```
 
+
 ### Complex captures
 
 The complex mode builds a tree of `JsonNode` objects from the captured data,
 depending on the capture types used in the PEG definition.
 
 Check the examples section below to see complex captures in action.
+
+
+### Action captures
+
+*Note: Action captures are fully functional, but I'm not sure if I like the current
+syntax. This will likely change*
+
+Action captures can be used to run blocks of Nim code on the captured data
+during at parse time. The `Cp(P, code)` construct will collect all captures
+from pattern `P`, and pass these to the block `code` in a variable called `c`
+of the type `seq[string]`.
+
+The example below has a simple PEG to split a comma separated list of
+word pairs. Each `word` in a `pair` is captured with `C()`, and both
+word captures are captured in an outer action capture `Cp()`, which runs
+the Nim snippet `words.add(c[0], c[1])` for each matched pair:
+
+
+```nim
+const data = "one=uno,two=dos,three=tres,four=cuatro,five=cinco,six=seis"
+
+var words = initTable[string, string]()
+
+let s = peg "pairs":
+  pairs <- pair * *(',' * pair) * !1
+  word <- C(+{'a'..'z'})
+  pair <- Cp(C(word) * '=' * C(word), words.add(c[0], c[1]))
+
+echo s(data)
+echo words
+```
 
 
 ## Error handling

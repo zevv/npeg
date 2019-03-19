@@ -61,7 +61,8 @@ type
     opJump,         # Flow control: jump to target
     opReturn,       # Flow control: return from earlier call
     opFail,         # Fail: unwind stack until last frame
-    opCap,          # Capture
+    opCapOpen,      # Capture open
+    opCapClose,     # Capture close
     opErr,          # Error handler
 
   CapKind = enum
@@ -71,7 +72,7 @@ type
     ckArray,        # JSON Array
     ckObject,       # JSON Object
     ckNamed,        # JSON Object named capture
-    ckProc,         # Proc call capture
+    ckAction,       # Action capture, executes Nim code at match time
     ckClose,        # Closes capture
 
   CharSet = set[char]
@@ -88,9 +89,9 @@ type
         callAddr: int
       of opSet, opSpan:
         cs: CharSet
-      of opCap:
+      of opCapOpen, opCapClose:
         capKind: CapKind
-        capCallback: NimNode
+        capAction: NimNode
         capName: string
       of opErr:
         msg: string
@@ -103,7 +104,10 @@ type
 
   RetFrame* = int
 
+  CapFrameType = enum cftOpen, cftClose
+
   CapFrame* = tuple
+    cft: CapFrameType
     si: int
     ck: CapKind
     name: string
@@ -142,7 +146,7 @@ template pop*[T](s: var Stack[T]): T =
   dec s.top
   s.frames[s.top]
 
-template peek*[T](s: var Stack[T]): T =
+template peek*[T](s: Stack[T]): T =
   assert s.top > 0
   s.frames[s.top-1]
 
@@ -220,7 +224,7 @@ proc `$`*(p: Patt): string =
         args = " " & i.callLabel & ":" & $i.callAddr
       of opErr:
         args = " " & i.msg
-      of opCap:
+      of opCapOpen, opCapClose:
         args = " " & $i.capKind
       of opFail, opReturn, opNop, opAny:
         discard
@@ -286,9 +290,9 @@ proc buildPatt(patts: PattMap, name: string, patt: NimNode): Patt =
       add p2
 
     template addCap(n: NimNode, ck: CapKind) =
-      add Inst(op: opCap, capKind: ck)
+      add Inst(op: opCapOpen, capKind: ck)
       add aux n
-      add Inst(op: opCap, capKind: ckClose)
+      add Inst(op: opCapClose, capKind: ck)
 
     template krak(n: NimNode, msg: string) =
       error "NPeg: " & msg & ": " & n.repr & "\n" & n.astGenRepr, n
@@ -314,6 +318,9 @@ proc buildPatt(patts: PattMap, name: string, patt: NimNode): Patt =
         elif n[0].eqIdent "Cf": addCap n[1], ckFloat
         elif n[0].eqIdent "Ca": addCap n[1], ckArray
         elif n[0].eqIdent "Co": addCap n[1], ckObject
+        elif n[0].eqIdent "Cp":
+          addCap n[1], ckAction
+          result[result.high].capAction = n[2]
         elif n[0].eqIdent "Cn":
           let i = result.high
           addCap n[2], ckNamed
@@ -331,6 +338,8 @@ proc buildPatt(patts: PattMap, name: string, patt: NimNode): Patt =
           addLoop p
         elif n[0].eqIdent("!"):
           addNot p
+        elif n[0].eqIdent(">"):
+          addCap n[1], ckStr
         else:
           krak n, "Unhandled prefix operator"
       of nnkInfix:
@@ -460,14 +469,34 @@ proc link(patts: PattMap, initial_name: string): Patt =
   return grammar
 
 
-# Convert captures stack to closed list of captures
+# Convert all closed CapFrames on the capture stack to a list
+# of Captures
 
-proc fixCaptures(capStack: Stack[CapFrame]): seq[Capture] =
+proc fixCaptures(capStack: var Stack[CapFrame], onlyOpen: bool): seq[Capture] =
+
+  assert capStack.top > 0
+  assert capStack.top mod 2 == 0
+  assert capStack.peek.cft == cftCLose
+
+  # Search the capStack for cftOpen matching the cftClose on top
+
+  var iFrom = 0
+
+  if onlyOpen:
+    var i = capStack.top - 1
+    var depth = 0
+    while true:
+      if capStack[i].cft == cftClose: inc depth else: dec depth
+      if depth == 0: break
+      dec i
+    iFrom = i
+
+  # Convert the closed frames to a seq[Capture]
+
   var stack: Stack[int]
-
-  for i in 0..<capStack.top:
+  for i in iFrom..<capStack.top:
     let c = capStack[i]
-    if c.ck != ckClose:
+    if c.cft == cftOpen:
       stack.push result.len
       result.add Capture(ck: c.ck, si1: c.si, name: c.name)
     else:
@@ -476,14 +505,18 @@ proc fixCaptures(capStack: Stack[CapFrame]): seq[Capture] =
       result[i2].len = result.len - i2 - 1
   assert stack.top == 0
 
-  when npegTrace:
+  # Remove closed captures from the cap stack
+
+  capStack.top = iFrom
+
+  when false:
     for i, c in result:
       echo i, " ", c
 
 
-proc collectCaptures(s: string, capStack: Stack[CapFrame], res: var MatchResult) =
+proc collectCaptures(s: string, onlyOpen: bool, capStack: var Stack[CapFrame], res: var MatchResult) =
 
-  let cs = fixCaptures(capStack)
+  let cs = fixCaptures(capStack, onlyOpen)
 
   proc aux(iStart, iEnd: int, parentNode: JsonNode, res: var MatchResult): JsonNode =
 
@@ -522,7 +555,7 @@ proc collectCaptures(s: string, capStack: Stack[CapFrame], res: var MatchResult)
 # into this template to prevent its name from getting mangled so that the code
 # in the `peg` macro can access it
 
-template skel(cases: untyped, ip: NimNode) =
+template skel(cases: untyped, ip: NimNode, c: NimNode) =
 
   {.push hint[XDeclaredButNotUsed]: off.}
 
@@ -638,10 +671,22 @@ template skel(cases: untyped, ip: NimNode) =
       trace "jump -> " & label & ":" & $address
       ip = address
 
-    template opCapFn(n: int, name2: string) =
+    template opCapOpenFn(n: int, name2: string) =
       let ck = CapKind(n)
-      trace "cap " & $ck & " -> " & $si
-      capStack.push (si: si, ck: ck, name: name2)
+      trace "capopen " & $ck & " -> " & $si
+      capStack.push (cft: cftOpen, si: si, ck: ck, name: name2)
+      inc ip
+    
+    template opCapCloseFn(n: int, name2: string, actionCode: untyped) =
+      let ck = CapKind(n)
+      trace "capclose " & $ck & " -> " & $si
+      capStack.push (cft: cftClose, si: si, ck: ck, name: name2)
+      if ck == ckAction:
+        var mr: MatchResult
+        collectCaptures(s, true, capStack, mr)
+        block:
+          let c {.inject.} = mr.captures
+          actionCode
       inc ip
 
     template opReturnFn() =
@@ -653,13 +698,10 @@ template skel(cases: untyped, ip: NimNode) =
       ip = retStack.pop()
 
     template opFailFn() =
-
       if backStack.top == 0:
         trace "error"
         break
-
       (ip, si, retStack.top, capStack.top) = backStack.pop()
-
       trace "fail -> " & $ip
 
     template opErrFn(msg: string) =
@@ -673,10 +715,16 @@ template skel(cases: untyped, ip: NimNode) =
 
       cases
 
+      # Keep track of the highest string index we ever reached, this is a good
+      # indication of the location of errors when parsing fails
+
       result.matchLen = max(result.matchLen, si)
 
+    # When the parsing machine is done, close the capture stack and collect all
+    # the captures in the match result
+
     if result.ok and capStack.top > 0:
-      collectCaptures(s, capStack, result)
+      collectCaptures(s, false, capStack, result)
 
   {.pop.}
 
@@ -688,6 +736,7 @@ template skel(cases: untyped, ip: NimNode) =
 proc gencode(name: string, program: Patt): NimNode =
 
   let ipNode = ident("ip")
+  let nopStmt = nnkStmtList.newTree(nnkDiscardStmt.newTree(newEmptyNode()))
   var cases = nnkCaseStmt.newTree(ipNode)
 
   for n, i in program.pairs:
@@ -704,9 +753,16 @@ proc gencode(name: string, program: Patt): NimNode =
       of opCall, opJump:
         call.add newStrLitNode(i.callLabel)
         call.add newIntLitNode(i.callAddr)
-      of opCap:
+      of opCapOpen:
         call.add newIntLitNode(i.capKind.int)
         call.add newStrLitNode(i.capName)
+      of opCapClose:
+        call.add newIntLitNode(i.capKind.int)
+        call.add newStrLitNode(i.capName)
+        if i.capAction != nil:
+          call.add nnkStmtList.newTree(i.capAction)
+        else:
+          call.add nopStmt
       of opErr:
         call.add newStrLitNode(i.msg)
       of opReturn, opAny, opNop, opFail:
@@ -715,7 +771,9 @@ proc gencode(name: string, program: Patt): NimNode =
 
   cases.add nnkElse.newTree(parseStmt("opFailFn()"))
 
-  result = getAst skel(cases, ipNode)
+  result = getAst skel(cases, ipNode, ident "c")
+  when false:
+    echo result.repr
 
 
 # Convert a pattern to a Nim proc implementing the parser state machine
