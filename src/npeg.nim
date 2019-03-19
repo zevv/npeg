@@ -76,8 +76,8 @@ type
       of opStr, opIStr:
         str: string
       of opCall, opJump:
-        name: string
-        address: int
+        callLabel: string
+        callAddr: int
       of opSet, opSpan:
         cs: CharSet
       of opCap:
@@ -200,24 +200,24 @@ proc dumpString*(s: string, o:int=0, l:int=1024): string =
 
 proc `$`*(p: Patt): string =
   for n, i in p.pairs:
-    result &= $n & ": " & $i.op
+    var args: string
     case i.op:
       of opStr, opIStr:
-        result &= " " & dumpstring(i.str)
+        args = " " & dumpstring(i.str)
       of opSet, opSpan:
-        result &= " '" & dumpset(i.cs) & "'"
+        args = " '" & dumpset(i.cs) & "'"
       of opChoice, opCommit, opPartCommit:
-        result &= " " & $(n+i.offset)
+        args = " " & $(n+i.offset)
       of opCall, opJump:
-        result &= " " & i.name & ":" & $i.address
+        args = " " & i.callLabel & ":" & $i.callAddr
       of opErr:
-        result &= " " & i.msg
+        args = " " & i.msg
       of opCap:
-        result &= " " & $i.capKind
+        args = " " & $i.capKind
       of opFail, opReturn, opNop, opAny:
         discard
-    result &= "\n"
-
+    result &= align($n, 3) & ": " & alignLeft($i.op, 14) &
+              alignLeft(args, 30) & "\n"
 
 # Some tests on patterns
 
@@ -362,7 +362,7 @@ proc buildPatt(patts: PattMap, name: string, patt: NimNode): Patt =
         if name in patts:
           add patts[name]
         else:
-          add Inst(op: opCall, name: n.strVal)
+          add Inst(op: opCall, callLabel: n.strVal)
       of nnkCurly:
         var cs: CharSet
         for nc in n:
@@ -432,10 +432,10 @@ proc link(patts: PattMap, initial_name: string): Patt =
     grammar.add Inst(op: opReturn)
 
     for i in patt:
-      if i.op == opCall and i.name notin symTab:
-        if i.name notin patts:
-          error "Undefined pattern \"" & i.name & "\"", i.n
-        emit i.name
+      if i.op == opCall and i.callLabel notin symTab:
+        if i.callLabel notin patts:
+          error "Undefined pattern \"" & i.callLabel & "\"", i.n
+        emit i.callLabel
 
   emit initial_name
 
@@ -443,7 +443,7 @@ proc link(patts: PattMap, initial_name: string): Patt =
 
   for n, i in grammar.mpairs:
     if i.op == opCall:
-      i.address = symtab[i.name]
+      i.callAddr = symtab[i.callLabel]
     if i.op == opCall and grammar[n+1].op == opReturn:
       i.op = opJump
 
@@ -560,7 +560,7 @@ template skel(cases: untyped, ip: NimNode) =
     # State machine instruction handlers
 
     template opStrFn(s2: string) =
-      trace "str " & s2.dumpstring
+      trace "str \"" & s2.dumpstring & "\""
       if subStrCmp(s, si, s2):
         inc ip
         inc si, s2.len
@@ -690,8 +690,8 @@ proc gencode(name: string, program: Patt): NimNode =
       of opChoice, opCommit, opPartCommit:
         call.add newIntLitNode(n + i.offset)
       of opCall, opJump:
-        call.add newStrLitNode(i.name)
-        call.add newIntLitNode(i.address)
+        call.add newStrLitNode(i.callLabel)
+        call.add newIntLitNode(i.callAddr)
       of opCap:
         call.add newIntLitNode(i.capKind.int)
         call.add newStrLitNode(i.capName)

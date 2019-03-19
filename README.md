@@ -19,7 +19,7 @@ NPeg patterns and grammars can be composed from the following parts:
 ```nim
   0            # matches always and consumes nothing
   1            # matches any character
-  N            # matches exactly N characters
+  n            # matches exactly n characters
  'x'           # matches literal character 'x'
  "xyz"         # matches literal string "xyz"
 i"xyz"         # matches literal string, case insensitive
@@ -39,9 +39,9 @@ one expression, for example `{'0'..'9','a'..'f','A'..'F'}`.
  P1 * P2       # concatenation
  P1 | P2       # ordered choice
  P1 - P2       # matches P1 if P2 does not match
-?P             # matches P 0 or 1 times
-*P             # matches P 0 or more times
-+P             # matches P 1 or more times
+?P             # matches P zero or one times
+*P             # matches P zero or more times
++P             # matches P one or more times
  P{n}          # matches P n times
  P{m..n}       # matches P m to n times
 ```
