@@ -249,18 +249,12 @@ will output the following output:
 
 ```nim
 let s = peg "line":
-  ws       <- *' '
-  digit    <- {'0'..'9'}
-  number   <- +digit * ws
-  termOp   <- {'+', '-'} * ws
-  factorOp <- {'*', '/'} * ws
-  open     <- '(' * ws
-  close    <- ')' * ws
-  eol      <- !1
-  exp      <- term * *(termOp * term)
-  term     <- factor * *(factorOp * factor)
-  factor   <- number | (open * exp * close)
-  line     <- ws * exp * eol
+  exp      <- term   * *( ('+'|'-') * term)
+  term     <- factor * *( ('*'|'/') * factor)
+  factor   <- +{'0'..'9'} | ('(' * exp * ')')
+  line     <- exp * !1
+
+doAssert s "3*(4+15)+2"
 
 doAssert s "3 * (4+5) + 2"
 ```
