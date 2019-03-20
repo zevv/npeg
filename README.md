@@ -125,7 +125,7 @@ Ja()           # Produces a new JArray
 Jo()           # Produces a new JObject
 Jt("tag", P)   # Stores capture P in the field "tag" of the outer JObject
 Jt(P)          # Stores the second Json capture of P in the outer JObject,
-                 using the first Json capure of P as the tag. 
+               # using the first Json capure of P as the tag. 
 ```
 
 Action capture:
