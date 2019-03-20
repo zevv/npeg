@@ -1,12 +1,16 @@
 import unittest
 import npeg
 import json
-  
+import strutils
+import tables
+
 {.push warning[Spacing]: off.}
 abortOnError = true
 
 
 suite "npeg":
+
+  ######################################################################
 
   test "simple examples":
 
@@ -18,6 +22,7 @@ suite "npeg":
       ident <- +lower
     doAssert p2("lowercaseword").ok
 
+  ######################################################################
 
   test "expression parser":
 
@@ -41,6 +46,7 @@ suite "npeg":
     doAssert s("(1+1)*1").ok
     doAssert s("13 + 5 * (2+1)").ok
 
+  ######################################################################
 
   test "JSON parser":
 
@@ -93,7 +99,60 @@ suite "npeg":
 
     doAssert s(json).ok
 
-  test "HTTP with captures":
+  ######################################################################
+
+  test "HTTP with action captures to Nim object":
+
+    type
+      Request = object
+        proto: string
+        version: string
+        code: int
+        message: string
+        headers: Table[string, string]
+
+    var req: Request
+    req.headers = initTable[string, string]()
+
+    let s = peg "http":
+      space       <- ' '
+      crlf        <- '\n' * ?'\r'
+      alpha       <- {'a'..'z','A'..'Z'}
+      digit       <- {'0'..'9'}
+      url         <- +(alpha | digit | '/' | '_' | '.')
+      eof         <- !1
+      header_name <- +(alpha | '-')
+      header_val  <- +(1-{'\n'}-{'\r'})
+      proto       <- >(+alpha) % (req.proto = c[0])
+      version     <- >(+digit * '.' * +digit) % (req.version = c[0])
+      code        <- >(+digit) % (req.code = c[0].parseInt)
+      msg         <- >(+(1 - '\r' - '\n')) % (req.message = c[0])
+      header      <- (>header_name * ": " * >header_val) % (req.headers[c[0]] = c[1])
+
+      response    <- proto * '/' * version * space * code * space * msg 
+      headers     <- *(header * crlf)
+      http        <- response * crlf * headers * eof
+
+    let data = """
+    HTTP/1.1 301 Moved Permanently
+    Content-Length: 162
+    Content-Type: text/html
+    Location: https://nim.org/
+    """
+
+    let res = s(data)
+    doAssert res.ok
+    doAssert req.proto == "HTTP"
+    doAssert req.version == "1.1"
+    doAssert req.code == 301
+    doAssert req.message == "Moved Permanently"
+    doAssert req.headers["Content-Length"] == "162"
+    doAssert req.headers["Content-Type"] == "text/html"
+    doAssert req.headers["Location"] == "https://nim.org/"
+
+  ######################################################################
+
+  test "HTTP capture to Json":
     let s = peg "http":
       space       <- ' '
       crlf        <- '\n' * ?'\r'
@@ -124,4 +183,5 @@ Location: https://nim.org/
     doAssert res.ok
     doAssert res.capturesJson == parseJson("""{"response":{"proto":"HTTP","version":"1.1","code":"301","msg":"Moved Permanently"},"headers":[["Content-Length","162"],["Content-Type","text/html"],["Location","https://nim.org/"]]}""")
 
+  ######################################################################
 
