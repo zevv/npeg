@@ -8,8 +8,6 @@ selected parts of the input.
 ```nim
 import npeg, strutils, tables
 
-import npeg, strutils, tables
-
 var words = initTable[string, int]()
 
 let match = peg "pairs":
