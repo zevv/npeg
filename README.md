@@ -5,6 +5,25 @@ NPeg is a pure Nim pattern-matching library. It provides macros to compile
 patterns and grammars (PEGs) to Nim procedures which will parse a string and collect
 selected parts of the input.
 
+```nim
+import npeg, strutils, tables
+
+import npeg, strutils, tables
+
+var words = initTable[string, int]()
+
+let match = peg "pairs":
+  pairs <- pair * *(',' * pair) * !1
+  word <- +{'a'..'z'}
+  number <- +{'0'..'9'}
+  pair <- (>word * '=' * >number) % (words[c[0]] = parseInt(c[1]))
+
+doAssert match("one=1,two=2,three=3,four=4").ok
+echo words
+
+{"two": 2, "three": 3, "one": 1, "four": 4}
+```
+
 Npeg can generate parsers that run at compile time.
 
 
