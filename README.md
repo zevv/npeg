@@ -23,7 +23,7 @@ subject string. The parser function returns an object of the type `MatchResult`:
 MatchResult = object
   ok: bool                   # Set to 'true' if the string parsed without errors
   matchLen: int              # The length up to where the string was parsed.
-  captures: seq[string]      # All captures in a single seq
+  captures: seq[string]      # All captures made by the pattern
   capturesJson: JsonNode     # JSON tree of parsed strings, arrays and objects
 ```
 
@@ -109,13 +109,32 @@ one expression, for example `{'0'..'9','a'..'f','A'..'F'}`.
 
 ### Captures
 
+String capture:
+
 ```nim
-C(P)           # Stores an anynomous capture in the open JSON array
-Cn("name", P)  # Stores a named capture in the open JSON object
-Ca()           # Opens a new capture JSON array []
-Co()           # Opens a new capture JSON object {}
-Cp(P, code)    # Passes all captures from P to nim code block `code`
+>P             # Captures the string matching P
 ```
+
+Json captures:
+
+```nim
+Js(P)          # Produces a JString from the string matching P
+Ji(P)          # Produces a JInteger from the string matching P
+Jf(P)          # Produces a JFloat from the string matching P
+Ja()           # Produces a new JArray
+Jo()           # Produces a new JObject
+Jt("tag", P)   # Stores capture P in the field "tag" of the outer JObject
+Jt(P)          # Stores the second Json capture of P in the outer JObject,
+                 using the first Json capure of P as the tag. 
+```
+
+Action capture:
+
+```nim
+P % code       # Passes all matches made in P to the code fragment
+               # in the variable c: seq[string]
+```
+
 
 ## Searching
 
@@ -134,67 +153,113 @@ any character `1` and recurses back to itself.
 
 ## Captures
 
-*Note: Captures are stil in development, the interface might change in the
-future. I am not sure if using `JsonNode` is the best choice and I am open to
-any ideas to improve the way captures are returned from the parser.*
+NPeg supports a number of ways to capture data when parsing a string. The various
+capture methods are described here, including a concise example.
 
-NPeg has two modes for capturing matches
-
-### Simple captures
-
-The simple mode returns all matched strings in the `captures` field of the
-returned `MatchResult` object.
-
-For example, the following PEG splits a string by commas.
+The capture examples below build on the following small PEG, which parses
+a comma separated list of key-value pairs:
 
 ```nim
-let a = peg "words":
-  word <- C( +(1-',') )
-  words <- word * +(',' * word)
+const data = "one=1,two=2,three=3,four=4"
 
-let r = a("one,two,three,four,five")
-echo r.captures
+let s = peg "pairs":
+  pairs <- pair * *(',' * pair) * !1
+  word <- +{'a'..'z'}
+  pair <- word * '=' * word
+```
 
-["one","two","three","four","five"]
+### String captures
+
+The basic method for capturing is marking parts of the peg
+with the capture prefix `>`. During parsing NPeg keeps track of all matches,
+properly discarting any matches which were invalidated by backtracking. Only
+when parsing has fully succeeded it creates a `seq[string]` of all matched
+parts, which is then returned in the `MatchData.captures` field.
+
+In the example, we add the `>` capture prefix to the `word` rule, causing all
+the matched words to be added to the result capture `seq[string]`
+
+```nim
+let s = peg "pairs":
+  pairs <- pair * *(',' * pair) * !1
+  word <- +{'a'..'z'}
+  pair <- >word * '=' * >word
+```
+
+The resultings list of captures ia now:
+
+```nim
+@["one", "1", "two", "2", "three", "3", "four", "4"]
 ```
 
 
-### Complex captures
+### JSON captures
 
-The complex mode builds a tree of `JsonNode` objects from the captured data,
-depending on the capture types used in the PEG definition.
+In order capture more complex data it is possible to mark the PEG with
+operators which will build a tree of JsonNodes from the matched data.
 
-Check the examples section below to see complex captures in action.
+In the example below: 
+
+- The outermost rule `pairs` gets encapsulated by the `Jo` operator, which
+  produces a javascript object (`JObject`).
+
+- The `pair` rule is encapsulated in `Jt` which will produce a tagged pair
+  which will be stored in its outer JObject. 
+
+- The matched `word` is captured with `Js` to produce a JString. This will
+  be consumed by its outer `Jt` capure which will used it for the field name
+
+- The matched `number` is captured with a `Ji` to produce a JInteger, which
+  will be consumed by its outer `Jt` capture which will use it for the field
+  value.
+
+```nim
+let s = peg "pairs":
+  pairs <- Jo(pair * *(',' * pair) * !1)
+  word <- +{'a'..'z'}
+  number <- +{'0'..'9'}
+  pair <- Jt(Js(word) * '=' * Ji(number))
+```
+
+The resulting Json data is now:
+
+```json
+{
+  "one": 1,
+  "two": 2,
+  "three": 3,
+  "four": 4
+}
+```
 
 
 ### Action captures
 
-*Note: Action captures are fully functional, but I'm not sure if I like the current
-syntax. This will likely change*
+The `%` operator can be used to execute arbritary Nim code during parsing. The
+Nim code can access all captures made within the the capture through the
+implicit declared variable `c: seq[string]`. Note that the Nim code gets
+excuted during parsing, *even if the match is part of a pattern that fails and
+is later backtracked*
 
-Action captures can be used to run blocks of Nim code on the captured data
-during at parse time. The `Cp(P, code)` construct will collect all captures
-from pattern `P`, and pass these to the block `code` in a variable called `c`
-of the type `seq[string]`.
-
-The example below has a simple PEG to split a comma separated list of
-word pairs. Each `word` in a `pair` is captured with `C()`, and both
-word captures are captured in an outer action capture `Cp()`, which runs
-the Nim snippet `words.add(c[0], c[1])` for each matched pair:
-
+The example has been extended to capture each word and number with the regular `>` capture
+prefix. Then the complete pair is passed to a snippet of Nim code by the `%` operator,
+where the data is added to a Nim table:
 
 ```nim
-const data = "one=uno,two=dos,three=tres,four=cuatro,five=cinco,six=seis"
-
-var words = initTable[string, string]()
+from strutils import parseInt
+var words = initTable[string, int]()
 
 let s = peg "pairs":
   pairs <- pair * *(',' * pair) * !1
-  word <- C(+{'a'..'z'})
-  pair <- Cp(C(word) * '=' * C(word), words.add(c[0], c[1]))
+  word <- +{'a'..'z'}
+  number <- +{'0'..'9'}
+  pair <- (>word * '=' * >number) % (words[c[0]] = parseInt(c[1])) 
+```
 
-echo s(data)
-echo words
+After the parsing finished, the `words` table will now contain
+
+```nim
+{"two": 2, "three": 3, "one": 1, "four": 4}
 ```
 
 

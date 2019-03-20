@@ -67,11 +67,13 @@ type
 
   CapKind = enum
     ckStr,          # Plain string capture
-    ckInt,          # JSON Int capture
-    ckFloat,        # JSON Float capture
-    ckArray,        # JSON Array
-    ckObject,       # JSON Object
-    ckNamed,        # JSON Object named capture
+    ckJString,         # JSON string capture
+    ckJInt,         # JSON Int capture
+    ckJFloat,       # JSON Float capture
+    ckJArray,       # JSON Array
+    ckJObject,      # JSON Object
+    ckJFieldFixed,  # JSON Object field with fixed tag
+    ckJFieldDynamic,# JSON Object field with dynamic tag
     ckAction,       # Action capture, executes Nim code at match time
     ckClose,        # Closes capture
 
@@ -300,7 +302,13 @@ proc buildPatt(patts: PattMap, name: string, patt: NimNode): Patt =
     case n.kind:
 
       of nnKPar, nnkStmtList:
-        add aux(n[0])
+        if n.len == 1:
+          add aux n[0]
+        elif n.len == 2:
+          addCap n[0], ckAction
+          result[result.high].capAction = n[1]
+        else:
+          krak n, "Too many expressions in parenthesis"
       of nnkIntLit:
         let c = n.intVal
         if c > 0:
@@ -313,18 +321,20 @@ proc buildPatt(patts: PattMap, name: string, patt: NimNode): Patt =
       of nnkCharLit:
         add Inst(op: opStr, str: $n.intVal.char)
       of nnkCall:
-        if n[0].eqIdent "C":    addCap n[1], ckStr
-        elif n[0].eqIdent "Ci": addCap n[1], ckInt
-        elif n[0].eqIdent "Cf": addCap n[1], ckFloat
-        elif n[0].eqIdent "Ca": addCap n[1], ckArray
-        elif n[0].eqIdent "Co": addCap n[1], ckObject
-        elif n[0].eqIdent "Cp":
-          addCap n[1], ckAction
-          result[result.high].capAction = n[2]
-        elif n[0].eqIdent "Cn":
-          let i = result.high
-          addCap n[2], ckNamed
-          result[i+1].capName = n[1].strVal
+        if n[0].eqIdent "Js":   addCap n[1], ckJString
+        elif n[0].eqIdent "Ji": addCap n[1], ckJInt
+        elif n[0].eqIdent "Jf": addCap n[1], ckJFloat
+        elif n[0].eqIdent "Ja": addCap n[1], ckJArray
+        elif n[0].eqIdent "Jo": addCap n[1], ckJObject
+        elif n[0].eqIdent "Jt":
+          if n.len == 2:
+            addCap n[1], ckJFieldDynamic
+          elif n.len == 3:
+            let i = result.high
+            addCap n[2], ckJFieldFixed
+            result[i+1].capName = n[1].strVal
+          else:
+            krak n, "Too many arguments for 'Jt' capture"
         else:
           krak n, "Unhandled capture type"
       of nnkPrefix:
@@ -343,25 +353,29 @@ proc buildPatt(patts: PattMap, name: string, patt: NimNode): Patt =
         else:
           krak n, "Unhandled prefix operator"
       of nnkInfix:
-        let (p1, p2) = (aux n[1], aux n[2])
-        if n[0].eqIdent("*"):
-          add p1
-          add p2
-        elif n[0].eqIdent("-"):
-          let (cs1, cs2) = (p1.toSet, p2.toSet)
-          if cs1.isSome and cs2.isSome:
-            add Inst(op: opSet, cs: cs1.get - cs2.get)
-          else:
-            addNot p2
-            add p1
-        elif n[0].eqIdent("|"):
-          let (cs1, cs2) = (p1.toSet, p2.toSet)
-          if cs1.isSome and cs2.isSome:
-            add Inst(op: opSet, cs: cs1.get + cs2.get)
-          else:
-            addOr p1, p2
+        if n[0].eqIdent("%"):
+          addCap n[1], ckAction
+          result[result.high].capAction = n[2]
         else:
-          krak n, "Unhandled infix operator"
+          let (p1, p2) = (aux n[1], aux n[2])
+          if n[0].eqIdent("*"):
+            add p1
+            add p2
+          elif n[0].eqIdent("-"):
+            let (cs1, cs2) = (p1.toSet, p2.toSet)
+            if cs1.isSome and cs2.isSome:
+              add Inst(op: opSet, cs: cs1.get - cs2.get)
+            else:
+              addNot p2
+              add p1
+          elif n[0].eqIdent("|"):
+            let (cs1, cs2) = (p1.toSet, p2.toSet)
+            if cs1.isSome and cs2.isSome:
+              add Inst(op: opSet, cs: cs1.get + cs2.get)
+            else:
+              addOr p1, p2
+          else:
+            krak n, "Unhandled infix operator"
       of nnkCurlyExpr:
         let p = aux(n[0])
         var min, max: BiggestInt
@@ -475,7 +489,6 @@ proc link(patts: PattMap, initial_name: string): Patt =
 proc fixCaptures(capStack: var Stack[CapFrame], onlyOpen: bool): seq[Capture] =
 
   assert capStack.top > 0
-  assert capStack.top mod 2 == 0
   assert capStack.peek.cft == cftCLose
 
   # Search the capStack for cftOpen matching the cftClose on top
@@ -525,18 +538,17 @@ proc collectCaptures(s: string, onlyOpen: bool, capStack: var Stack[CapFrame], r
       let cap = cs[i]
 
       case cap.ck:
-        of ckStr:
-          let str = s[cap.si1 ..< cap.si2]
-          res.captures.add str
-          result = newJString str
-        of ckInt: result = newJInt parseInt(s[cap.si1 ..< cap.si2])
-        of ckFloat: result = newJFloat parseFloat(s[cap.si1 ..< cap.si2])
-        of ckArray: result = newJArray()
-        of ckObject: result = newJObject()
-        else: discard
+        of ckStr: res.captures.add s[cap.si1 ..< cap.si2]
+        of ckJString: result = newJString s[cap.si1 ..< cap.si2]
+        of ckJInt: result = newJInt parseInt(s[cap.si1 ..< cap.si2])
+        of ckJFloat: result = newJFloat parseFloat(s[cap.si1 ..< cap.si2])
+        of ckJArray: result = newJArray()
+        of ckJFieldDynamic: result = newJArray()
+        of ckJObject: result = newJObject()
+        of ckJFieldFixed, ckAction, ckClose: discard
       
       let nextParentNode = 
-        if result != nil and result.kind in { Jarray, Jobject }: result
+        if result != nil and result.kind in { JArray, JObject }: result
         else: parentNode
 
       if parentNode != nil and parentNode.kind == JArray:
@@ -544,8 +556,15 @@ proc collectCaptures(s: string, onlyOpen: bool, capStack: var Stack[CapFrame], r
 
       inc i
       let childNode = aux(i, i+cap.len-1, nextParentNode, res)
-      if parentNode != nil and cap.ck == ckNamed:
-        parentNode[cap.name] = childNode
+
+      if parentNode != nil and parentNode.kind == JObject:
+        if cap.ck == ckJFieldFixed:
+          parentNode[cap.name] = childNode
+        if cap.ck == ckJFieldDynamic:
+          let tag = result[0].getStr()
+          parentNode[tag] = result[1]
+          result = nil
+
       i += cap.len 
 
   res.capturesJson = aux(0, cs.len-1, nil, res)

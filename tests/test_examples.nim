@@ -103,15 +103,15 @@ suite "npeg":
       eof         <- !1
       header_name <- +(alpha | '-')
       header_val  <- +(1-{'\n'}-{'\r'})
-      proto       <- Cn("proto", C(+alpha) )
-      version     <- Cn("version", C(+digit * '.' * +digit) )
-      code        <- Cn("code", C(+digit) )
-      msg         <- Cn("msg", C(+(1 - '\r' - '\n')) )
-      header      <- Ca( C(header_name) * ": " * C(header_val) )
+      proto       <- Jf("proto", Js(+alpha) )
+      version     <- Jf("version", Js(+digit * '.' * +digit) )
+      code        <- Jf("code", Ji(+digit) )
+      msg         <- Jf("msg", Js(+(1 - '\r' - '\n')) )
+      header      <- Ja( Js(header_name) * ": " * Js(header_val) )
 
-      response    <- Cn("response", Co( proto * '/' * version * space * code * space * msg ))
-      headers     <- Cn("headers", Ca( *(header * crlf) ))
-      http        <- Co(response * crlf * headers * eof)
+      response    <- Jf("response", Jo( proto * '/' * version * space * code * space * msg ))
+      headers     <- Jf("headers", Ja( *(header * crlf) ))
+      http        <- Jo(response * crlf * headers * eof)
 
     let data = """
 HTTP/1.1 301 Moved Permanently
