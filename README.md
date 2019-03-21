@@ -386,6 +386,9 @@ doAssert s("3*(4+15)+2").ok
 
 ### A complete JSON parser
 
+The following PEG defines a complete parser for the JSON language - it will not produce
+any captures, but simple traverse and validate the document:
+
 ```nim
 let match = peg "DOC":
   S              <- *{' ','\t','\r','\n'}
