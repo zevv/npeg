@@ -321,7 +321,7 @@ non-terminal `A`. Similarly, the grammar
 
 ```nim
 A <- B / 'a' A
-B <- A is
+B <- A
 ```
 
 is problematic because it is mutually left-recursive through the non-terminal
