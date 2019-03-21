@@ -285,6 +285,10 @@ After the parsing finished, the `words` table will now contain
 {"two": 2, "three": 3, "one": 1, "four": 4}
 ```
 
+Note: Due to ambiguities in the PEG syntax, the code on the right hand of the `%`
+might not be parsed right at compile time, especially when this is an assignment
+statement - simple enclose the statement in brackets to mitigate.
+
 
 ## Error handling
 
