@@ -80,7 +80,6 @@ type
   CharSet = set[char]
 
   Inst = object
-    n: NimNode
     case op: Opcode
       of opChoice, opCommit, opPartCommit:
         offset: int
@@ -251,6 +250,95 @@ proc toSet(p: Patt): Option[CharSet] =
     if i.op == opAny:
       return some anySet
 
+### Atoms
+
+proc newStrLitPatt(s: string): Patt =
+  result.add Inst(op: opStr, str: s)
+
+proc newIStrLitPatt(s: string): Patt =
+  result.add Inst(op: opIStr, str: s)
+
+proc newCapPatt(p: Patt, ck: CapKind): Patt =
+  result.add Inst(op: opCapOpen, capKind: ck)
+  result.add p
+  result.add Inst(op: opCapClose, capKind: ck)
+
+proc newCallPatt(label: string): Patt =
+  result.add Inst(op: opCall, callLabel: label)
+
+proc newIntLitPatt(n: BiggestInt): Patt =
+  if n > 0:
+    for i in 1..n:
+      result.add Inst(op: opAny)
+  else:
+    result.add Inst(op: opNop)
+
+proc newSetPatt(cs: CharSet): Patt =
+  result.add Inst(op: opSet, cs: cs)
+
+### Prefixes
+
+proc `?`(p: Patt): Patt =
+  result.add Inst(op: opChoice, offset: p.len + 2)
+  result.add p
+  result.add Inst(op: opCommit, offset: 1)
+
+proc `*`(p: Patt): Patt =
+  if p.isSet:
+    result.add Inst(op: opSpan, cs: p[0].cs)
+  else:
+    result.add Inst(op: opChoice, offset: p.len+2)
+    result.add p
+    result.add Inst(op: opPartCommit, offset: -p.len)
+
+proc `+`(p: Patt): Patt =
+  result.add p
+  result.add *p
+
+proc `>`(p: Patt): Patt =
+  return newCapPatt(p, ckStr)
+
+proc `!`(p: Patt): Patt =
+  result.add Inst(op: opChoice, offset: p.len + 3)
+  result.add p
+  result.add Inst(op: opCommit, offset: 1)
+  result.add Inst(op: opFail)
+
+### Infixes
+
+proc `*`(p1, p2: Patt): Patt =
+  result.add p1
+  result.add p2
+
+proc `|`(p1, p2: Patt): Patt =
+  let (cs1, cs2) = (p1.toSet, p2.toSet)
+  if cs1.isSome and cs2.isSome:
+    result.add Inst(op: opSet, cs: cs1.get + cs2.get)
+  else:
+    result.add Inst(op: opChoice, offset: p1.len+2)
+    result.add p1
+    result.add Inst(op: opCommit, offset: p2.len+1)
+    result.add p2
+
+proc `-`(p1, p2: Patt): Patt =
+  let (cs1, cs2) = (p1.toSet, p2.toSet)
+  if cs1.isSome and cs2.isSome:
+    result.add Inst(op: opSet, cs: cs1.get - cs2.get)
+  else:
+    result.add !p2
+    result.add p1
+
+### Others
+
+proc `{}`(p: Patt, n: BiggestInt): Patt = 
+  for i in 1..n:
+    result.add p
+
+proc `{}`(p: Patt, range: HSlice[system.BiggestInt, system.BiggestInt]): Patt = 
+  result.add p{range.a}
+  for i in range.a..range.b:
+    result.add ?p
+
 
 # Recursively compile a peg pattern to a sequence of parser instructions
 
@@ -258,141 +346,64 @@ proc buildPatt(patts: PattMap, name: string, patt: NimNode): Patt =
 
   proc aux(n: NimNode): Patt =
 
-    template add(p: Inst) =
-      var pc = p
-      pc.n = n
-      result.add pc
-
-    template add(p: Patt) =
-      result.add p
-
-    template addLoop(p: Patt) =
-      if p.isSet:
-        add Inst(op: opSpan, cs: p[0].cs)
-      else:
-        add Inst(op: opChoice, offset: p.len+2)
-        add p
-        add Inst(op: opPartCommit, offset: -p.len)
-
-    template addMaybe(p: Patt) =
-      add Inst(op: opChoice, offset: p.len + 2)
-      add p
-      add Inst(op: opCommit, offset: 1)
-
-    template addNot(p: Patt) =
-      add Inst(op: opChoice, offset: p.len + 3)
-      add p
-      add Inst(op: opCommit, offset: 1)
-      add Inst(op: opFail)
-
-    template addOr(p1, p2: Patt) =
-      add Inst(op: opChoice, offset: p1.len+2)
-      add p1
-      add Inst(op: opCommit, offset: p2.len+1)
-      add p2
-
-    template addCap(n: NimNode, ck: CapKind) =
-      add Inst(op: opCapOpen, capKind: ck)
-      add aux n
-      add Inst(op: opCapClose, capKind: ck)
-
     template krak(n: NimNode, msg: string) =
       error "NPeg: " & msg & ": " & n.repr & "\n" & n.astGenRepr, n
 
     case n.kind:
 
       of nnKPar, nnkStmtList:
-        if n.len == 1:
-          add aux n[0]
+        if n.len == 1: return aux n[0]
         elif n.len == 2:
-          addCap n[0], ckAction
+          result = newCapPatt(aux n[0], ckAction)
           result[result.high].capAction = n[1]
-        else:
-          krak n, "Too many expressions in parenthesis"
-      of nnkIntLit:
-        let c = n.intVal
-        if c > 0:
-          for i in 1..c:
-            add Inst(op: opAny)
-        else:
-          add Inst(op: opNop)
-      of nnkStrLit:
-        add Inst(op: opStr, str: n.strVal)
-      of nnkCharLit:
-        add Inst(op: opStr, str: $n.intVal.char)
+          echo result.repr
+        else: krak n, "Too many expressions in parenthesis"
+      of nnkIntLit: return newIntLitPatt(n.intVal)
+      of nnkStrLit: return newStrLitPatt(n.strval)
+      of nnkCharLit: return newStrLitPatt($n.intVal.char)
       of nnkCall:
-        if n[0].eqIdent "Js":   addCap n[1], ckJString
-        elif n[0].eqIdent "Ji": addCap n[1], ckJInt
-        elif n[0].eqIdent "Jf": addCap n[1], ckJFloat
-        elif n[0].eqIdent "Ja": addCap n[1], ckJArray
-        elif n[0].eqIdent "Jo": addCap n[1], ckJObject
-        elif n[0].eqIdent "Jt":
-          if n.len == 2:
-            addCap n[1], ckJFieldDynamic
-          elif n.len == 3:
-            let i = result.high
-            addCap n[2], ckJFieldFixed
-            result[i+1].capName = n[1].strVal
-          else:
-            krak n, "Too many arguments for 'Jt' capture"
-        else:
-          krak n, "Unhandled capture type"
+        if n.len == 2:
+          let p = aux n[1]
+          if n[0].eqIdent "Js":   return newCapPatt(p, ckJString)
+          elif n[0].eqIdent "Ji": return newCapPatt(p, ckJInt)
+          elif n[0].eqIdent "Jf": return newCapPatt(p, ckJFloat)
+          elif n[0].eqIdent "Ja": return newCapPatt(p, ckJArray)
+          elif n[0].eqIdent "Jo": return newCapPatt(p, ckJObject)
+          elif n[0].eqIdent "Jt": return newCapPatt(p, ckJFieldDynamic)
+          else: krak n, "Unhandled capture type"
+        elif n.len == 3:
+          if n[0].eqIdent "Jf":
+            result = newCapPatt(aux n[2], ckJFieldFixed)
+            result[0].capName = n[1].strVal
+          else: krak n, "Unhandled capture type"
       of nnkPrefix:
         let p = aux n[1]
-        if n[0].eqIdent("?"):
-          addMaybe p
-        elif n[0].eqIdent("+"):
-          add p
-          addLoop p
-        elif n[0].eqIdent("*"):
-          addLoop p
-        elif n[0].eqIdent("!"):
-          addNot p
-        elif n[0].eqIdent(">"):
-          addCap n[1], ckStr
-        else:
-          krak n, "Unhandled prefix operator"
+        if n[0].eqIdent("?"): return ?p
+        elif n[0].eqIdent("+"): return +p
+        elif n[0].eqIdent("*"): return *p
+        elif n[0].eqIdent("!"): return !p
+        elif n[0].eqIdent(">"): return >p
+        else: krak n, "Unhandled prefix operator"
       of nnkInfix:
         if n[0].eqIdent("%"):
-          addCap n[1], ckAction
+          result = newCapPatt(aux n[1], ckAction)
           result[result.high].capAction = n[2]
         else:
           let (p1, p2) = (aux n[1], aux n[2])
-          if n[0].eqIdent("*"):
-            add p1
-            add p2
-          elif n[0].eqIdent("-"):
-            let (cs1, cs2) = (p1.toSet, p2.toSet)
-            if cs1.isSome and cs2.isSome:
-              add Inst(op: opSet, cs: cs1.get - cs2.get)
-            else:
-              addNot p2
-              add p1
-          elif n[0].eqIdent("|"):
-            let (cs1, cs2) = (p1.toSet, p2.toSet)
-            if cs1.isSome and cs2.isSome:
-              add Inst(op: opSet, cs: cs1.get + cs2.get)
-            else:
-              addOr p1, p2
-          else:
-            krak n, "Unhandled infix operator"
+          if n[0].eqIdent("*"): return p1 * p2
+          elif n[0].eqIdent("-"): return p1 - p2
+          elif n[0].eqIdent("|"): return p1 | p2
+          else: krak n, "Unhandled infix operator"
       of nnkCurlyExpr:
         let p = aux(n[0])
-        var min, max: BiggestInt
         if n[1].kind == nnkIntLit:
-          min = n[1].intVal
+          return p{n[1].intVal}
         elif n[1].kind == nnkInfix and n[1][0].eqIdent(".."):
-          (min, max) = (n[1][1].intVal, n[1][2].intVal)
-        else:
-          krak n, "syntax error"
-        for i in 1..min: add p
-        for i in min..max: addMaybe p
+          return p{n[1][1].intVal..n[1][2].intVal}
+        else: krak n, "syntax error"
       of nnkIdent:
         let name = n.strVal
-        if name in patts:
-          add patts[name]
-        else:
-          add Inst(op: opCall, callLabel: n.strVal)
+        return if name in patts: patts[name] else: newCallPatt(name)
       of nnkCurly:
         var cs: CharSet
         for nc in n:
@@ -407,16 +418,12 @@ proc buildPatt(patts: PattMap, name: string, patt: NimNode): Patt =
           else:
             krak n, "syntax error"
         if cs.card == 0:
-          add Inst(op: opAny)
+          return newIntLitPatt(1)
         else:
-          add Inst(op: opSet, cs: cs)
+          return newSetPatt(cs)
       of nnkCallStrLit:
-        if n[0].eqIdent("i"):
-          add Inst(op: opIStr, str: n[1].strVal)
-        elif n[0].eqIdent "E":
-          add Inst(op: opErr, msg: n[1].strVal)
-        else:
-          krak n, "unhandled string prefix"
+        if n[0].eqIdent("i"): return newStrLitPatt(n.strval)
+        else: krak n, "unhandled string prefix"
       else:
         krak n, "syntax error"
 
@@ -436,8 +443,7 @@ proc compile(ns: NimNode): PattMap =
       error("Expected <-")
     let pname = n[1].strVal
     if pname in result:
-      error "Redefinition of rule '" & pname & "', which was defined in " &
-            result[pname][0].n.lineInfo
+      error "Redefinition of rule '" & pname & "'"
     result[pname] = buildPatt(result, pname, n[2])
 
 
@@ -467,7 +473,7 @@ proc link(patts: PattMap, initial_name: string): Patt =
     for i in patt:
       if i.op == opCall and i.callLabel notin symTab:
         if i.callLabel notin patts:
-          error "Undefined pattern \"" & i.callLabel & "\"", i.n
+          error "Npeg: rule \"" & name & "\" is referencing undefined rule \"" & i.callLabel & "\""
         emit i.callLabel
 
   emit initial_name

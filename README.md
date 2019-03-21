@@ -282,8 +282,6 @@ After the parsing finished, the `words` table will now contain
 
 ## Error handling
 
-*Note: experimental feature, this needs some rework to be usable.*
-
 The `ok` field in the `MatchResult` indicates if the parser was successful. The
 `matchLen` field indicates how to which offset the matcher was able to parse
 the subject string. If matching fails, `matchLen` is usually a good indication
@@ -293,20 +291,6 @@ of where in the subject string the error occured.
 E"msg"         # Throws an exception with the message "Expected E"
 ```
 
-The `E"msg"` construct can be used to add error labels to a parser which will
-throw an exception when reached. This can be used to provide better error
-messages on parsing erors indicating what the expected element was. `E` is
-typically used as the last element in an ordered choice expression that will
-only be reached if all other choices failed:
-
-
-```nim
-let s = peg "list":
-  number <- +{'0'..'9'} | E"number"
-  comma <- ',' | E"comma"
-  list <- number * +( comma * number)
-s "12,34,55"
-```
 
 ## NPeg vs PEG
 

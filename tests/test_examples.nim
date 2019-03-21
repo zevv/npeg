@@ -134,11 +134,11 @@ suite "npeg":
       http        <- response * crlf * headers * eof
 
     let data = """
-    HTTP/1.1 301 Moved Permanently
-    Content-Length: 162
-    Content-Type: text/html
-    Location: https://nim.org/
-    """
+HTTP/1.1 301 Moved Permanently
+Content-Length: 162
+Content-Type: text/html
+Location: https://nim.org/
+"""
 
     let res = s(data)
     doAssert res.ok
@@ -181,7 +181,7 @@ Location: https://nim.org/
 
     let res = s(data)
     doAssert res.ok
-    doAssert res.capturesJson == parseJson("""{"response":{"proto":"HTTP","version":"1.1","code":"301","msg":"Moved Permanently"},"headers":[["Content-Length","162"],["Content-Type","text/html"],["Location","https://nim.org/"]]}""")
+    doAssert res.capturesJson == parseJson("""{"response":{"proto":"HTTP","version":"1.1","code":301,"msg":"Moved Permanently"},"headers":[["Content-Length","162"],["Content-Type","text/html"],["Location","https://nim.org/"]]}""")
 
   ######################################################################
 
