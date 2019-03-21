@@ -38,7 +38,7 @@ proc fixCaptures*(capStack: var Stack[CapFrame], onlyOpen: bool): Captures =
 
   # Convert the closed frames to a seq[Capture]
 
-  var stack: Stack[int]
+  var stack = initStack[int]("captures", 8)
   for i in iFrom..<capStack.top:
     let c = capStack[i]
     if c.cft == cftOpen:

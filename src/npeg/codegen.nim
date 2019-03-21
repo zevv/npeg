@@ -11,7 +11,6 @@ import npeg/capture
 const
   RETSTACK_MAX = 1024
   BACKSTACK_MAX = 1024
-  CAPSTACK_MAX = 10 * 1024 * 1024
 
 type
 
@@ -45,7 +44,7 @@ template skel(cases: untyped, ip: NimNode, c: NimNode) =
       ip: int
       si: int
       retStack = initStack[RetFrame]("return", 8, RETSTACK_MAX)
-      capStack = initStack[CapFrame]("capture", 8, CAPSTACK_MAX)
+      capStack = initStack[CapFrame]("capture", 8)
       backStack = initStack[BackFrame]("backtrace", 8, BACKSTACK_MAX)
 
     # Debug trace. Slow and expensive
