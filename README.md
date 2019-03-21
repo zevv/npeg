@@ -95,6 +95,14 @@ orderings and measure the results.
 
 ## Syntax
 
+The NPeg syntax is similar to normal PEG notation, but some changes were made
+to allow the grammar to be properly parsed by the Nim compiler:
+
+- NPeg uses prefixes instead of suffixes for `*`, `+`, `-` and `?`
+- Ordered choice uses `|` instead of `/` because of operator precedence
+- The explict `*` infix operator is used for sequences
+
+
 NPeg patterns and grammars can be composed from the following parts:
 
 
@@ -298,17 +306,8 @@ the subject string. If matching fails, `matchLen` is usually a good indication
 of where in the subject string the error occured.
 
 
-## NPeg vs PEG
 
-The NPeg syntax is similar to normal PEG notation, but some changes were made
-to allow the grammar to be properly parsed by the Nim compiler:
-
-- NPeg uses prefixes instead of suffixes for `*`, `+`, `-` and `?`
-- Ordered choice uses `|` instead of `/` because of operator precedence
-- The explict `*` infix operator is used for sequences
-
-
-### Limitations
+## Limitations
 
 NPeg does not support left recursion (this applies to PEGs in general). For
 example, the rule 
