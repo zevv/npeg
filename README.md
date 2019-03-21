@@ -297,10 +297,6 @@ The `ok` field in the `MatchResult` indicates if the parser was successful. The
 the subject string. If matching fails, `matchLen` is usually a good indication
 of where in the subject string the error occured.
 
-```nim
-E"msg"         # Throws an exception with the message "Expected E"
-```
-
 
 ## NPeg vs PEG
 
