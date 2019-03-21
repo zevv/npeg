@@ -6,6 +6,35 @@ import common
 import codegen
 import patt
 
+#
+# The complete PEG syntax parsed by buildPatt(). In PEG. How meta.
+#
+#  name        <- +(alphanum | '_' | '-')
+#  S           <- *{' ','\t'}
+#  nl          <- +{'\r','\n'}
+#  alpha       <- {'A'..'Z','a'..'z'}
+#  digit       <- {'0'..'9'}
+#  hex         <- digit | {'A'..'F','a'..'f'}
+#  alphanum    <- alpha | digit
+#  number      <- +digit
+#  string      <- '"' * +(1-'"') * '"' * S
+#  set         <- '{' * S * setbody * *( ',' * S * setbody) * '}' * S
+#  setbody     <- (setrange | char) * S
+#  setrange    <- char * ".." * char * S
+#  char        <- "'" * charbody * "'" * S
+#  charbody    <- ("\\" * {'t','r','n','\\'}) | ("\\x" * hex{2}) | 1
+#  atom        <- (number | string | set | char | name)
+#  infix       <- ('*' | '|' | '-' | '%') * S
+#  postfix     <- '{' * number * ?( ".." * number) * "}"
+#  prefix      <- '!' | '*' | '+' | '?' | capture
+#  capture     <- '>' | "Js" | "Jo" | "Ja" | "Jf" | "Ji"
+#  fieldcap    <- "Jf(" * S * string * S * "," * S * patt * ")"
+#  rule        <- S * name * S * "<-" * S * patt * nl
+#  patt        <- exp * *(infix * exp)
+#  exp         <- (fieldcap | ?prefix * term * ?postfix) * S
+#  term        <- atom | ('(' * S * patt * S * ')') * S
+#  grammar     <- *rule * !1
+#
 
 type Grammar* = TableRef[string, Patt]
 
