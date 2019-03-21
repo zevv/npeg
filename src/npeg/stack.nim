@@ -1,7 +1,11 @@
 
+import common
+
 type
   Stack*[T] = object
+    name: string
     top*: int
+    max: int
     frames: seq[T]
 
 
@@ -9,9 +13,16 @@ proc `$`*[T](s: Stack[T]): string =
   for i in 0..<s.top:
     result.add $i & ": " & $s.frames[i] & "\n"
 
+proc initStack*[T](name: string, len, max: int): Stack[T] =
+  result.name = name
+  result.frames.setLen len
+  result.max = max
+
 template push*[T](s: var Stack[T], frame: T) =
   if s.top >= s.frames.len:
-    s.frames.setLen if s.frames.len == 0: 8 else: s.frames.len * 2
+    s.frames.setLen s.frames.len * 2
+    if s.top > s.max:
+      raise newException(NPegException, s.name & " stack overflow, depth>" & $s.max)
   s.frames[s.top] = frame
   inc s.top
 
