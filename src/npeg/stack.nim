@@ -32,6 +32,3 @@ template update*[T](s: Stack[T], field: untyped, val: untyped) =
   assert s.top > 0
   s.frames[s.top-1].field = val
 
-
-export push
-

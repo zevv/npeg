@@ -207,22 +207,29 @@ proc genCode*(name: string, program: Patt): NimNode =
   var cases = nnkCaseStmt.newTree(ipNode)
 
   for n, i in program.pairs:
+
     let call = nnkCall.newTree(ident($i.op & "Fn"))
+
     case i.op:
       of opStr, opIStr:
         call.add newStrLitNode(i.str)
+
       of opSet, opSpan:
         let setNode = nnkCurly.newTree()
         for c in i.cs: setNode.add newLit(c)
         call.add setNode
+
       of opChoice, opCommit, opPartCommit:
         call.add newIntLitNode(n + i.offset)
+
       of opCall, opJump:
         call.add newStrLitNode(i.callLabel)
         call.add newIntLitNode(i.callAddr)
+
       of opCapOpen:
         call.add newIntLitNode(i.capKind.int)
         call.add newStrLitNode(i.capName)
+
       of opCapClose:
         call.add newIntLitNode(i.capKind.int)
         call.add newStrLitNode(i.capName)
@@ -230,14 +237,16 @@ proc genCode*(name: string, program: Patt): NimNode =
           call.add nnkStmtList.newTree(i.capAction)
         else:
           call.add nopStmt
+
       of opErr:
         call.add newStrLitNode(i.msg)
+
       of opReturn, opAny, opNop, opFail:
         discard
+
     cases.add nnkOfBranch.newTree(newLit(n), call)
 
   cases.add nnkElse.newTree(parseStmt("opFailFn()"))
-
   result = getAst skel(cases, ipNode, ident "c")
   when false:
     echo result.repr

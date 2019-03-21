@@ -41,7 +41,7 @@ import npeg/capture
 import npeg/buildpatt
 import npeg/grammar
 
-export push, update, collectCaptures
+export push, pop, update, collectCaptures
 
 
 # Create a parser for a single PEG pattern
