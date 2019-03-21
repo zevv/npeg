@@ -26,7 +26,6 @@ proc buildPatt*(nn: NimNode, symTab: Grammar = nil): Patt =
         elif n.len == 2:
           result = newCapPatt(aux n[0], ckAction)
           result[result.high].capAction = n[1]
-          echo result.repr
         else: krak n, "Too many expressions in parenthesis"
 
       of nnkIntLit:

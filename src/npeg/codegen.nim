@@ -200,7 +200,6 @@ template skel(cases: untyped, ip: NimNode, c: NimNode) =
     if result.ok and capStack.top > 0:
       result.s = s
       result.cs = fixCaptures(capStack, false)
-      echo result
 
   {.pop.}
 

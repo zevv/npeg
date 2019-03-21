@@ -65,8 +65,13 @@ macro peg*(name: string, ns: untyped): untyped =
   genCode(patt)
 
 
+# Return all plain string captures from the match result
+
 proc captures*(mr: MatchResult): seq[string] =
   collectCaptures(mr.s, mr.cs)
+
+
+# Return a tree with Json captures from the match result
 
 proc capturesJson*(mr: MatchResult): JsonNode =
   collectCapturesJson(mr.s, mr.cs)
