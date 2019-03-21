@@ -10,7 +10,6 @@ import buildpatt
 
 proc parseGrammar*(ns: NimNode): Grammar =
   result = newTable[string, Patt]()
-
   for n in ns:
     n.expectKind nnkInfix
     n[0].expectKind nnkIdent

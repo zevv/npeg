@@ -12,11 +12,13 @@ type
     name: string
     len: int
 
+  Captures* = seq[Capture]
+
 
 # Convert all closed CapFrames on the capture stack to a list
-# of Captures
+# of Captures, all consumed frames are removed from the CapStack
 
-proc fixCaptures(capStack: var Stack[CapFrame], onlyOpen: bool): seq[Capture] =
+proc fixCaptures*(capStack: var Stack[CapFrame], onlyOpen: bool): Captures =
 
   assert capStack.top > 0
   assert capStack.peek.cft == cftCLose
@@ -52,31 +54,29 @@ proc fixCaptures(capStack: var Stack[CapFrame], onlyOpen: bool): seq[Capture] =
 
   capStack.top = iFrom
 
-  when false:
-    for i, c in result:
-      echo i, " ", c
+
+proc collectCaptures*(s: string, cs: Captures): seq[string] =
+  for c in cs:
+    if c.ck == ckStr:
+      result.add s[c.si1 ..< c.si2]
 
 
+proc collectCapturesJson*(s: string, cs: Captures): JsonNode =
 
-proc collectCaptures*(s: string, onlyOpen: bool, capStack: var Stack[CapFrame], res: var MatchResult) =
-
-  let cs = fixCaptures(capStack, onlyOpen)
-
-  proc aux(iStart, iEnd: int, parentNode: JsonNode, res: var MatchResult): JsonNode =
+  proc aux(iStart, iEnd: int, parentNode: JsonNode): JsonNode =
 
     var i = iStart
     while i <= iEnd:
       let cap = cs[i]
 
       case cap.ck:
-        of ckStr: res.captures.add s[cap.si1 ..< cap.si2]
         of ckJString: result = newJString s[cap.si1 ..< cap.si2]
         of ckJInt: result = newJInt parseInt(s[cap.si1 ..< cap.si2])
         of ckJFloat: result = newJFloat parseFloat(s[cap.si1 ..< cap.si2])
         of ckJArray: result = newJArray()
         of ckJFieldDynamic: result = newJArray()
         of ckJObject: result = newJObject()
-        of ckJFieldFixed, ckAction, ckClose: discard
+        of ckStr, ckJFieldFixed, ckAction, ckClose: discard
       
       let nextParentNode = 
         if result != nil and result.kind in { JArray, JObject }: result
@@ -86,7 +86,7 @@ proc collectCaptures*(s: string, onlyOpen: bool, capStack: var Stack[CapFrame], 
         parentNode.add result
 
       inc i
-      let childNode = aux(i, i+cap.len-1, nextParentNode, res)
+      let childNode = aux(i, i+cap.len-1, nextParentNode)
 
       if parentNode != nil and parentNode.kind == JObject:
         if cap.ck == ckJFieldFixed:
@@ -98,5 +98,7 @@ proc collectCaptures*(s: string, onlyOpen: bool, capStack: var Stack[CapFrame], 
 
       i += cap.len 
 
-  res.capturesJson = aux(0, cs.len-1, nil, res)
+  result = aux(0, cs.len-1, nil)
+  if result == nil:
+    result = newJNull()
 

@@ -1,11 +1,12 @@
 
 import macros
+import json
 import strutils
 
 import npeg/common
 import npeg/patt
 import npeg/stack
-
+import npeg/capture
 
 type
 
@@ -16,6 +17,13 @@ type
     si: int
     rp: int
     cp: int
+
+  MatchResult* = object
+    s*: string
+    ok*: bool
+    matchLen*: int
+    cs*: Captures
+
 
 
 # Template for generating the parsing match proc.  A dummy 'ip' node is passed
@@ -149,10 +157,9 @@ template skel(cases: untyped, ip: NimNode, c: NimNode) =
       trace "capclose " & $ck & " -> " & $si
       capStack.push (cft: cftClose, si: si, ck: ck, name: name2)
       if ck == ckAction:
-        var mr: MatchResult
-        collectCaptures(s, true, capStack, mr)
+        let cs = fixCaptures(capStack, true)
+        let c {.inject.} = collectCaptures(s, cs)
         block:
-          let c {.inject.} = mr.captures
           actionCode
       inc ip
 
@@ -191,7 +198,9 @@ template skel(cases: untyped, ip: NimNode, c: NimNode) =
     # the captures in the match result
 
     if result.ok and capStack.top > 0:
-      collectCaptures(s, false, capStack, result)
+      result.s = s
+      result.cs = fixCaptures(capStack, false)
+      echo result
 
   {.pop.}
 
@@ -200,7 +209,7 @@ template skel(cases: untyped, ip: NimNode, c: NimNode) =
 
 # Convert the list of parser instructions into a Nim finite state machine
 
-proc genCode*(name: string, program: Patt): NimNode =
+proc genCode*(program: Patt): NimNode =
 
   let ipNode = ident("ip")
   let nopStmt = nnkStmtList.newTree(nnkDiscardStmt.newTree(newEmptyNode()))
@@ -248,6 +257,7 @@ proc genCode*(name: string, program: Patt): NimNode =
 
   cases.add nnkElse.newTree(parseStmt("opFailFn()"))
   result = getAst skel(cases, ipNode, ident "c")
+
   when false:
     echo result.repr
 

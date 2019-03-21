@@ -32,6 +32,7 @@
 
 import tables
 import macros
+import json
 
 import npeg/common
 import npeg/patt
@@ -41,18 +42,17 @@ import npeg/capture
 import npeg/buildpatt
 import npeg/grammar
 
-export push, pop, update, collectCaptures
+export push, pop, update
 
 
 # Create a parser for a single PEG pattern
 
 macro patt*(ns: untyped): untyped =
-  var symtab = newTable[string, Patt]()
-  var patt = buildPatt(ns, symtab)
+  var patt = buildPatt(ns)
   patt.add Inst(op: opReturn)
   when npegTrace:
     echo patt
-  genCode("p", patt)
+  genCode(patt)
 
 
 # Create a parser for a PEG grammar
@@ -62,6 +62,13 @@ macro peg*(name: string, ns: untyped): untyped =
   let patt = linkGrammar(grammar, name.strVal)
   when npegTrace:
     echo patt
-  genCode(name.strVal, patt)
+  genCode(patt)
+
+
+proc captures*(mr: MatchResult): seq[string] =
+  collectCaptures(mr.s, mr.cs)
+
+proc capturesJson*(mr: MatchResult): JsonNode =
+  collectCapturesJson(mr.s, mr.cs)
 
 

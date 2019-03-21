@@ -40,9 +40,15 @@ subject string. The parser function returns an object of the type `MatchResult`:
 MatchResult = object
   ok: bool                   # Set to 'true' if the string parsed without errors
   matchLen: int              # The length up to where the string was parsed.
-  captures: seq[string]      # All captures made by the pattern
-  capturesJson: JsonNode     # JSON tree of parsed strings, arrays and objects
 ```
+
+The following proc are available to retrieve the captured results:
+
+```nim
+proc captures(m: MatchResult): seq[string]
+proc capturesJson(m: MatchResult): JsonNode
+```
+
 
 ### Simple patterns
 

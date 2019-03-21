@@ -7,9 +7,7 @@ import codegen
 import patt
 
 
-type
-
-  Grammar* = TableRef[string, Patt]
+type Grammar* = TableRef[string, Patt]
 
 
 # Recursively compile a PEG rule to a Pattern
@@ -30,9 +28,16 @@ proc buildPatt*(nn: NimNode, symTab: Grammar = nil): Patt =
           result[result.high].capAction = n[1]
           echo result.repr
         else: krak n, "Too many expressions in parenthesis"
-      of nnkIntLit: return newIntLitPatt(n.intVal)
-      of nnkStrLit: return newStrLitPatt(n.strval)
-      of nnkCharLit: return newStrLitPatt($n.intVal.char)
+
+      of nnkIntLit:
+        return newIntLitPatt(n.intVal)
+
+      of nnkStrLit:
+        return newStrLitPatt(n.strval)
+
+      of nnkCharLit:
+        return newStrLitPatt($n.intVal.char)
+
       of nnkCall:
         if n.len == 2:
           let p = aux n[1]
@@ -48,6 +53,7 @@ proc buildPatt*(nn: NimNode, symTab: Grammar = nil): Patt =
             result = newCapPatt(aux n[2], ckJFieldFixed)
             result[0].capName = n[1].strVal
           else: krak n, "Unhandled capture type"
+
       of nnkPrefix:
         let p = aux n[1]
         if n[0].eqIdent("?"): return ?p
@@ -56,6 +62,7 @@ proc buildPatt*(nn: NimNode, symTab: Grammar = nil): Patt =
         elif n[0].eqIdent("!"): return !p
         elif n[0].eqIdent(">"): return >p
         else: krak n, "Unhandled prefix operator"
+
       of nnkInfix:
         if n[0].eqIdent("%"):
           result = newCapPatt(aux n[1], ckAction)
@@ -66,6 +73,7 @@ proc buildPatt*(nn: NimNode, symTab: Grammar = nil): Patt =
           elif n[0].eqIdent("-"): return p1 - p2
           elif n[0].eqIdent("|"): return p1 | p2
           else: krak n, "Unhandled infix operator"
+
       of nnkCurlyExpr:
         let p = aux(n[0])
         if n[1].kind == nnkIntLit:
@@ -73,12 +81,14 @@ proc buildPatt*(nn: NimNode, symTab: Grammar = nil): Patt =
         elif n[1].kind == nnkInfix and n[1][0].eqIdent(".."):
           return p{n[1][1].intVal..n[1][2].intVal}
         else: krak n, "syntax error"
+
       of nnkIdent:
         let name = n.strVal
         if name in symTab:
           return symTab[name]
         else:
           return newCallPatt(name)
+
       of nnkCurly:
         var cs: CharSet
         for nc in n:
@@ -96,6 +106,7 @@ proc buildPatt*(nn: NimNode, symTab: Grammar = nil): Patt =
           return newIntLitPatt(1)
         else:
           return newSetPatt(cs)
+
       of nnkCallStrLit:
         if n[0].eqIdent("i"): return newStrLitPatt(n.strval)
         else: krak n, "unhandled string prefix"

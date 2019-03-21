@@ -25,12 +25,5 @@ type
     ck: CapKind
     name: string
 
-  MatchResult* = object
-    ok*: bool
-    matchLen*: int
-    captures*: seq[string]
-    capturesJson*: JsonNode
-
-
 const npegTrace* = defined(npegTrace)
 
