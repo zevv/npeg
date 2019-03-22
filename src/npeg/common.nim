@@ -1,6 +1,7 @@
 
 import json
 import strutils
+import tables
 
 type
 
@@ -28,7 +29,7 @@ type
 
 const npegTrace* = defined(npegTrace)
 
-# Helper procs
+
 
 proc subStrCmp*(s: string, si: int, s2: string): bool =
   if si > s.len - s2.len:
@@ -38,6 +39,7 @@ proc subStrCmp*(s: string, si: int, s2: string): bool =
       return false
   return true
 
+
 proc subIStrCmp*(s: string, si: int, s2: string): bool =
   if si > s.len - s2.len:
     return false
@@ -45,4 +47,34 @@ proc subIStrCmp*(s: string, si: int, s2: string): bool =
     if s[si+i].toLowerAscii != s2[i].toLowerAscii:
       return false
   return true
+
+
+type
+
+  TwoWayTable*[X,Y] = ref object
+    x2y: Table[X, Y]
+    y2x: Table[Y, X]
+
+  Symtab* = TwoWayTable[string, int]
+
+proc newTwoWayTable*[X,Y](): TwoWayTable[X,Y] =
+  new result
+  result.x2y = initTable[X, Y]()
+  result.y2x = initTable[Y, X]()
+
+proc add*[X,Y](s: TwoWayTable[X,Y], x: X, y: Y) =
+  s.x2y[x] = y
+  s.y2x[y] = x
+
+proc contains*[X,Y](s: TwoWayTable[X,Y], y: Y): bool =
+  return y in s.y2x
+
+proc contains*[X,Y](s: TwoWayTable[X,Y], x: X): bool =
+  return x in s.x2y
+
+proc get*[X,Y](s: TwoWayTable[X,Y], y: Y): X =
+  return s.y2x[y]
+
+proc get*[X,Y](s: TwoWayTable[X,Y], x: X): Y =
+  return s.x2y[x]
 

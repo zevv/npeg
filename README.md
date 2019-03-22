@@ -338,35 +338,66 @@ and go into an infinite loop.
 When compiled with `-d:npegTrace`, NPeg will dump its immediate representation
 of the compiled PEG, and will dump a trace of the execution during matching.
 These traces can be used for debugging purposes or for performance tuning of
-the parser. This is considered advanced use, and the exact interpretation of
-the trace is not discussed here.
+the parser.
 
 For example, the following program:
 
 ```nim
-let s2 = peg "line":
-  line <- ("one" | "two") * "three"
-discard s2("twothree")
+let s = peg "line":
+  space <- ' '
+  line <- word * *(space * word)
+  word <- +{'a'..'z'}
+
+discard s("one two")
 ```
 
-will output the following output:
+will output the following intermediate repesentation at compile time.  From the
+IR it can be seen that the `space` rule has been inlined in the `line` rule,
+but that the `word` rule has been emitted as a subroutine which gets called
+from `line`:
 
 ```
-0: opChoice 3
-1: opStr one
-2: opCommit 4
-3: opStr two
-4: opStr three
-5: opReturn
-
-  0 |   0 |twothree  | choice -> 3  |
-  1 |   0 |twothree  | str one      | *   (ip: 3, si: 0, rp: 0, cp: 0)
-  3 |   0 |twothree  | fail -> 3    |
-  3 |   0 |twothree  | str two      |
-  4 |   3 |three     | str three    |
-  5 |   8 |          | return       |
-  5 |   8 |          | done         |
+line:
+  0: line           opCall         word:6
+  1: line           opChoice       5
+  2:  space         opStr
+  3: line           opCall         word:6
+  4: line           opPartCommit   2
+  5:                opReturn
+word:
+  6: word           opSet          '{'a'-'z'}'
+  7: word           opSpan         '{'a'-'z'}'
+  8:                opReturn
 ```
+
+At runtime, the following trace is generated. The trace consists of a number
+of columns:
+
+- 1: the current instruction pointer, which maps to the compile time dump
+- 2: the index into the subject
+- 3: the substring of the subject
+- 4: the instruction being executed
+- 5: the backtrace stack depth
+
+```
+  0 |   0 |one two       | call -> word:6      |
+  6 |   0 |one two       | set {'a'-'z'}       |
+  7 |   1 |ne two        | span {'a'-'z'}      |
+  8 |   3 | two          | return              |
+  1 |   3 | two          | choice -> 5         |
+  2 |   3 | two          | str " "             | *
+  3 |   4 |two           | call -> word:6      | *
+  6 |   4 |two           | set {'a'-'z'}       | *
+  7 |   5 |wo            | span {'a'-'z'}      | *
+  8 |   7 |              | return              | *
+  4 |   7 |              | pcommit -> 2        | *
+  2 |   7 |              | str " "             | *
+  5 |   7 |              | fail -> 5           |
+  5 |   7 |              | return              |
+  5 |   7 |              | done                |
+```
+
+The exact meaning of the IR instructions is not discussed here.
 
 
 ## Examples

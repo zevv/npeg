@@ -41,7 +41,7 @@ type Grammar* = TableRef[string, Patt]
 
 # Recursively compile a PEG rule to a Pattern
 
-proc buildPatt*(nn: NimNode, symTab: Grammar = nil): Patt =
+proc buildPatt*(nn: NimNode, grammar: Grammar = nil): Patt =
 
   proc aux(n: NimNode): Patt =
 
@@ -112,8 +112,8 @@ proc buildPatt*(nn: NimNode, symTab: Grammar = nil): Patt =
 
       of nnkIdent:
         let name = n.strVal
-        if name in symTab:
-          return symTab[name]
+        if name in grammar:
+          return grammar[name]
         else:
           return newCallPatt(name)
 
@@ -142,7 +142,4 @@ proc buildPatt*(nn: NimNode, symTab: Grammar = nil): Patt =
         krak n, "syntax error"
 
   result = aux(nn)
-
-
-
 

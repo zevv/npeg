@@ -50,7 +50,7 @@ export push, pop, update
 macro patt*(ns: untyped): untyped =
   var patt = buildPatt(ns) * newReturnPatt()
   when npegTrace:
-    echo patt
+    patt.dump()
   genCode(patt)
 
 
@@ -58,8 +58,6 @@ macro patt*(ns: untyped): untyped =
 
 macro peg*(name: string, ns: untyped): untyped =
   let patt = buildGrammar(name.strVal, ns)
-  when npegTrace:
-    echo patt
   genCode(patt)
 
 

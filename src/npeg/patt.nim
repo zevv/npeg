@@ -6,7 +6,7 @@ import options
 import tables
 import json
 
-import common
+import npeg/common
 
 type
 
@@ -49,6 +49,8 @@ type
         msg*: string
       of opFail, opReturn, opAny, opNop:
         discard
+    when npegTrace:
+      name*: string
 
   Patt* = seq[Inst]
 
@@ -104,8 +106,10 @@ proc dumpString*(s: string, o:int=0, l:int=1024): string =
 
 # Create string representation of a pattern
 
-proc `$`*(p: Patt): string =
+proc dump*(p: Patt, symtab: SymTab = nil) =
   for n, i in p.pairs:
+    if symTab != nil and n in symTab:
+      echo symtab.get(n) & ":"
     var args: string
     case i.op:
       of opStr, opIStr:
@@ -122,8 +126,12 @@ proc `$`*(p: Patt): string =
         args = " " & $i.capKind
       of opFail, opReturn, opNop, opAny:
         discard
-    result &= align($n, 3) & ": " & alignLeft($i.op, 14) &
-              alignLeft(args, 30) & "\n"
+    var l: string
+    l.add align($n, 3) & ": " 
+    when npegTrace:
+      l.add alignLeft($i.name, 15)
+    l.add $i.op & " " & args
+    echo l
 
 # Some tests on patterns
 

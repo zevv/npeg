@@ -58,8 +58,6 @@ template skel(cases: untyped, ip: NimNode, c: NimNode) =
            " |" & alignLeft(dumpString(s, si, 24), 24) &
            "| " & alignLeft(msg, 30) &
            "| " & alignLeft(repeat("*", backStack.top), 20)
-      if backStack.top > 0:
-        l.add $backStack[backStack.top-1]
       echo l
 
     template trace(msg: string) =
