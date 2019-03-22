@@ -105,10 +105,9 @@ to allow the grammar to be properly parsed by the Nim compiler:
 
 NPeg patterns and grammars can be composed from the following parts:
 
-
-### Atoms
-
 ```nim
+Atoms:
+
   0            # matches always and consumes nothing
   1            # matches any character
   n            # matches exactly n characters
@@ -117,15 +116,9 @@ NPeg patterns and grammars can be composed from the following parts:
 i"xyz"         # matches literal string, case insensitive
  {'x'..'y'}    # matches any character in the range from 'x'..'y'
  {'x','y','z'} # matches any character from the set
-```
 
-The set syntax `{}` is flexible and can take multiple ranges and characters in
-one expression, for example `{'0'..'9','a'..'f','A'..'F'}`.
+Operators:
 
-
-### Operators
-
-```nim
 (P)            # grouping
 !P             # matches everything but P.
  P1 * P2       # concatenation
@@ -136,19 +129,11 @@ one expression, for example `{'0'..'9','a'..'f','A'..'F'}`.
 +P             # matches P one or more times
  P{n}          # matches P n times
  P{m..n}       # matches P m to n times
-```
+ 
+Captures:
 
-### Captures
-
-String capture:
-
-```nim
 >P             # Captures the string matching P
-```
 
-Json captures:
-
-```nim
 Js(P)          # Produces a JString from the string matching P
 Ji(P)          # Produces a JInteger from the string matching P
 Jf(P)          # Produces a JFloat from the string matching P
@@ -157,29 +142,96 @@ Jo()           # Produces a new JObject
 Jt("tag", P)   # Stores capture P in the field "tag" of the outer JObject
 Jt(P)          # Stores the second Json capture of P in the outer JObject,
                # using the first Json capure of P as the tag. 
-```
 
-Action capture:
-
-```nim
 P % code       # Passes all matches made in P to the code fragment
                # in the variable c: seq[string]
 ```
 
+### Atoms
 
-## Searching
+#### Integer literal: 0 / 1 / n
 
-Patterns are always matched in anchored mode only. To search for a pattern in
-a stream, a construct like this can be used:
+The int literal atom `N` matches exactly n number of bytes. `0` always matches,
+but does not consume any data.
 
-```nim
-p <- "hello"
-search <- p | 1 * search
-```
+#### Character and string literals: 'x' / "xyz" / i"xyz"
 
-The above grammar first tries to match pattern `p`, or if that fails, matches
-any character `1` and recurses back to itself.
+Characters and strings are literally matched. If a string is prefixed with `i`,
+it will be matched case insentive.
 
+#### Character sets
+
+Characters set notation is similar to native Nim. A set consists of zero or more
+comma separated characters or character ranges.
+
+ {'x'..'y'}    # matches any character in the range from 'x'..'y'
+ {'x','y','z'} # matches any character from the set 'x', 'y', and 'z'
+
+The set syntax `{}` is flexible and can take multiple ranges and characters in
+one expression, for example `{'0'..'9','a'..'f','A'..'F'}`.
+
+
+### Operators
+
+#### Grouping: (P)
+
+Brackets are used to group patterns similar to normal mathematical expressions.
+
+#### Not: !P
+
+The pattern `!P` returns a pattern that matches only if the input does not match `P`.
+In contrast to most other patterns, this pattern does not consume any input.
+
+A common usage for this operator is the pattern `!1`, meaning "only succeed if there
+is no a single character left to match" - which is only true for the end of the string.
+
+#### Concatenation: P1 * P2
+
+The pattern `P1 * P2` returns a new pattern that matches only if first `P1` matches,
+followed by `P2`.
+
+For example, `"foo" * "bar"` would only match the string `"foobar"`
+
+#### Ordered choice: P1 | P2
+
+The pattern `P1 | P2` tries to first match pattern `P1`. If this succeeds, matching
+will proceed without trying `P2`. Only if `P1` can not be matched, NPeg will backtrace
+and try to match `P2`
+
+For example `("foo" | "bar") * "fizz"` would match both `"foofizz"` and `"barfizz"`
+
+#### Zero or one time: ?P
+
+The pattern `?P` matches if `P` can be matched zero or more times, so essentially
+succeeds if `P` either matches or not.
+
+For example, `?"foo" * bar"` matches both `"foobar"` and `"bar"`
+
+#### Zero or more times: *P
+
+The pattern `*P` tries to match as many occurances of pattern `P` as possible.
+
+For example, `*"foo" * "bar"` matches `"bar"`, `"fooboar"`, `"foofoobar"`, etc
+
+#### One or more times: +p
+
+The pattern `+P` matches `P` at least once, but also more times. It is equivalent
+to the `P * *P`
+
+#### Match exactly N times: P{N}
+
+The pattern `P{N}` matches `P` exactly `N` times.
+
+For example, `"foo"{3}` only matches the string `"foofoofoo"`
+
+#### Match M to N times: P{M..N}
+
+The pattern `P{M..N}` matches `P` at least `M` and at most `N` times.
+
+For example, `"foo{1,3}"` matches `"foo"`, `"foofoo"` and `"foofoofo"`
+
+
+### Captures
 
 
 ## Captures
@@ -296,6 +348,20 @@ After the parsing finished, the `words` table will now contain
 Note: Due to ambiguities in the PEG syntax, the code on the right hand of the `%`
 might not be parsed right at compile time, especially when this is an assignment
 statement - simple enclose the statement in brackets to mitigate.
+
+
+## Searching
+
+Patterns are always matched in anchored mode only. To search for a pattern in
+a stream, a construct like this can be used:
+
+```nim
+p <- "hello"
+search <- p | 1 * search
+```
+
+The above grammar first tries to match pattern `p`, or if that fails, matches
+any character `1` and recurses back to itself.
 
 
 ## Error handling
