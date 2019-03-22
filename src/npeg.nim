@@ -48,8 +48,7 @@ export push, pop, update
 # Create a parser for a single PEG pattern
 
 macro patt*(ns: untyped): untyped =
-  var patt = buildPatt(ns)
-  patt.add Inst(op: opReturn)
+  var patt = buildPatt(ns) * newReturnPatt()
   when npegTrace:
     echo patt
   genCode(patt)

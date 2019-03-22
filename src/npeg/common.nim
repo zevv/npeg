@@ -1,5 +1,6 @@
 
 import json
+import strutils
 
 type
 
@@ -26,4 +27,22 @@ type
     name: string
 
 const npegTrace* = defined(npegTrace)
+
+# Helper procs
+
+proc subStrCmp*(s: string, si: int, s2: string): bool =
+  if si > s.len - s2.len:
+    return false
+  for i in 0..<s2.len:
+    if s[si+i] != s2[i]:
+      return false
+  return true
+
+proc subIStrCmp*(s: string, si: int, s2: string): bool =
+  if si > s.len - s2.len:
+    return false
+  for i in 0..<s2.len:
+    if s[si+i].toLowerAscii != s2[i].toLowerAscii:
+      return false
+  return true
 

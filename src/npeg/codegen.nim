@@ -1,6 +1,5 @@
 
 import macros
-import json
 import strutils
 
 import npeg/common
@@ -30,15 +29,19 @@ type
 
 
 
-# Template for generating the parsing match proc.  A dummy 'ip' node is passed
-# into this template to prevent its name from getting mangled so that the code
-# in the `peg` macro can access it
+# Template for generating the parsing match proc.
+#
+# Note: Dummy 'ip' and 'c' nodes are passed into this template to prevent these
+# names from getting mangled so that the code in the `peg` macro can access it.
+# I'd love to hear if there are better solutions for this.
 
 template skel(cases: untyped, ip: NimNode, c: NimNode) =
 
   {.push hint[XDeclaredButNotUsed]: off.}
 
   let match = proc(s: string): MatchResult =
+
+    # The parser state
 
     var
       ip: int
@@ -62,24 +65,6 @@ template skel(cases: untyped, ip: NimNode, c: NimNode) =
     template trace(msg: string) =
       when npegTrace:
         doTrace(msg)
-
-    # Helper procs
-
-    proc subStrCmp(s: string, si: int, s2: string): bool =
-      if si > s.len - s2.len:
-        return false
-      for i in 0..<s2.len:
-        if s[si+i] != s2[i]:
-          return false
-      return true
-
-    proc subIStrCmp(s: string, si: int, s2: string): bool =
-      if si > s.len - s2.len:
-        return false
-      for i in 0..<s2.len:
-        if s[si+i].toLowerAscii != s2[i].toLowerAscii:
-          return false
-      return true
 
     # State machine instruction handlers
 

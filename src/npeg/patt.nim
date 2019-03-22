@@ -169,6 +169,9 @@ proc newIntLitPatt*(n: BiggestInt): Patt =
 proc newSetPatt*(cs: CharSet): Patt =
   result.add Inst(op: opSet, cs: cs)
 
+proc newReturnPatt*(): Patt =
+  result.add Inst(op: opReturn)
+
 ### Prefixes
 
 proc `?`*(p: Patt): Patt =
@@ -223,11 +226,11 @@ proc `-`*(p1, p2: Patt): Patt =
 
 ### Others
 
-proc `{}`*(p: Patt, n: BiggestInt): Patt = 
+proc `{}`*(p: Patt, n: BiggestInt): Patt =
   for i in 1..n:
     result.add p
 
-proc `{}`*(p: Patt, range: HSlice[system.BiggestInt, system.BiggestInt]): Patt = 
+proc `{}`*(p: Patt, range: HSlice[system.BiggestInt, system.BiggestInt]): Patt =
   result.add p{range.a}
   for i in range.a..range.b:
     result.add ?p
