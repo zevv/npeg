@@ -15,10 +15,10 @@ proc parseGrammar*(ns: NimNode): Grammar =
     n[0].expectKind nnkIdent
     n[1].expectKind nnkIdent
     if not n[0].eqIdent("<-"):
-      error("Expected <-")
+      error "Expected <-", n
     let pname = n[1].strVal
     if pname in result:
-      error "Redefinition of rule '" & pname & "'"
+      error "Redefinition of rule '" & pname & "'", n
     result[pname] = buildPatt(n[2], result)
 
 
