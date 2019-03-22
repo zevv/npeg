@@ -57,8 +57,7 @@ macro patt*(ns: untyped): untyped =
 # Create a parser for a PEG grammar
 
 macro peg*(name: string, ns: untyped): untyped =
-  let grammar = parseGrammar(ns)
-  let patt = linkGrammar(grammar, name.strVal)
+  let patt = buildGrammar(name.strVal, ns)
   when npegTrace:
     echo patt
   genCode(patt)

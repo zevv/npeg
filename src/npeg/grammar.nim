@@ -8,7 +8,7 @@ import buildpatt
 
 # Compile the PEG to a table of patterns
 
-proc parseGrammar*(ns: NimNode): Grammar =
+proc parseGrammar(ns: NimNode): Grammar =
   result = newTable[string, Patt]()
   for n in ns:
     n.expectKind nnkInfix
@@ -26,7 +26,7 @@ proc parseGrammar*(ns: NimNode): Grammar =
 # pattern. Start with the initial rule, add all other non terminals and fixup
 # opCall addresses
 
-proc linkGrammar*(patts: Grammar, initial_name: string): Patt =
+proc linkGrammar(patts: Grammar, initial_name: string): Patt =
 
   if initial_name notin patts:
     error "inital pattern '" & initial_name & "' not found"
@@ -62,4 +62,9 @@ proc linkGrammar*(patts: Grammar, initial_name: string): Patt =
       i.op = opJump
 
   return grammar
+
+
+proc buildGrammar*(name: string, ns: NimNode): Patt =
+  let grammar = parseGrammar(ns)
+  linkGrammar(grammar, name)
 
