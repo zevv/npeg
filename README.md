@@ -159,7 +159,7 @@ but does not consume any data.
 Characters and strings are literally matched. If a string is prefixed with `i`,
 it will be matched case insentive.
 
-#### Character sets
+#### Character sets: {'x','y'}
 
 Characters set notation is similar to native Nim. A set consists of zero or more
 comma separated characters or character ranges.
@@ -199,6 +199,14 @@ will proceed without trying `P2`. Only if `P1` can not be matched, NPeg will bac
 and try to match `P2`
 
 For example `("foo" | "bar") * "fizz"` would match both `"foofizz"` and `"barfizz"`
+
+NPeg optimizes the `|` operator for characters and character sets: The pattern `'a' | 'b' | 'c'`
+will be rewritten to a character set `{'a','b','c'}`
+
+#### Subraction: P1 - P2
+
+The pattern `P1 - P2` matches `P1` *only* if `P2` does not match. This is equivalent to
+`!P2 * P1`
 
 #### Zero or one time: ?P
 
