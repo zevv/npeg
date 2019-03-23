@@ -53,11 +53,12 @@ template skel(cases: untyped, ip: NimNode, c: NimNode) =
     # Debug trace. Slow and expensive
 
     proc doTrace(msg: string) =
-      var l = align($ip, 3) &
-           " | " & align($si, 3) &
-           " |" & alignLeft(dumpString(s, si, 24), 24) &
-           "| " & alignLeft(msg, 30) &
-           "| " & alignLeft(repeat("*", backStack.top), 20)
+      var l: string
+      l.add if ip >= 0: align($ip, 3) else: "   "
+      l.add " | " & align($si, 3)
+      l.add " |" & alignLeft(dumpString(s, si, 24), 24) & "| "
+      l.add alignLeft(msg, 30)
+      l.add "| " & alignLeft(repeat("*", backStack.top), 20)
       echo l
 
     template trace(msg: string) =
@@ -159,11 +160,11 @@ template skel(cases: untyped, ip: NimNode, c: NimNode) =
       ip = retStack.pop()
 
     template opFailFn() =
+      trace "fail"
       if backStack.top == 0:
         trace "error"
         break
       (ip, si, retStack.top, capStack.top) = backStack.pop()
-      trace "fail -> " & $ip
 
     template opErrFn(msg: string) =
       trace "err " & msg

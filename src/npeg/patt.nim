@@ -113,7 +113,7 @@ proc dump*(p: Patt, symtab: SymTab = nil) =
     var args: string
     case i.op:
       of opStr, opIStr:
-        args = " " & dumpString(i.str)
+        args = " \"" & dumpString(i.str) & "\""
       of opSet, opSpan:
         args = " '" & dumpset(i.cs) & "'"
       of opChoice, opCommit, opPartCommit:
