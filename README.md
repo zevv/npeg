@@ -138,19 +138,19 @@ Operators:
  
 Captures:
 
-  >P           # Captures the string matching P
+  >P            # Captures the string matching P
   
-  Js(P)        # Produces a JString from the string matching P
-  Ji(P)        # Produces a JInteger from the string matching P
-  Jf(P)        # Produces a JFloat from the string matching P
-  Ja()         # Produces a new JArray
-  Jo()         # Produces a new JObject
-  Jt("tag", P) # Stores capture P in the field "tag" of the outer JObject
-  Jt(P)        # Stores the second Json capture of P in the outer JObject,
-               # using the first Json capure of P as the tag. 
+  Js(P)         # Produces a JString from the string matching P
+  Ji(P)         # Produces a JInteger from the string matching P
+  Jf(P)         # Produces a JFloat from the string matching P
+  Ja()          # Produces a new JArray
+  Jo()          # Produces a new JObject
+  Jt("tag", P)  # Stores capture P in the field "tag" of the outer JObject
+  Jt(P)         # Stores the second Json capture of P in the outer JObject,
+                # using the first Json capure of P as the tag. 
   
-  P % code     # Passes all matches made in P to the code fragment
-               # in the variable c: seq[string]
+  P % code      # Passes all matches made in P to the code fragment
+                # in the variable c: seq[string]
 ```
 
 ### Atoms
