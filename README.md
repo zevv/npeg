@@ -149,106 +149,104 @@ P % code       # Passes all matches made in P to the code fragment
 
 ### Atoms
 
-#### Integer literal: 0 / 1 / n
+- Integer literal: `0` / `1` / `n`
+  
+  The int literal atom `N` matches exactly n number of bytes. `0` always matches,
+  but does not consume any data.
 
-The int literal atom `N` matches exactly n number of bytes. `0` always matches,
-but does not consume any data.
+- Character and string literals: `'x'` / `"xyz"` / `i"xyz"`
+  
+  Characters and strings are literally matched. If a string is prefixed with `i`,
+  it will be matched case insentive.
 
-#### Character and string literals: 'x' / "xyz" / i"xyz"
-
-Characters and strings are literally matched. If a string is prefixed with `i`,
-it will be matched case insentive.
-
-#### Character sets: {'x','y'}
-
-Characters set notation is similar to native Nim. A set consists of zero or more
-comma separated characters or character ranges.
-
-```nim
- {'x'..'y'}    # matches any character in the range from 'x'..'y'
- {'x','y','z'} # matches any character from the set 'x', 'y', and 'z'
-```
-
-The set syntax `{}` is flexible and can take multiple ranges and characters in
-one expression, for example `{'0'..'9','a'..'f','A'..'F'}`.
-
-
+- Character sets: `{'x','y'}`
+  
+  Characters set notation is similar to native Nim. A set consists of zero or more
+  comma separated characters or character ranges.
+  
+  ```nim
+   {'x'..'y'}    # matches any character in the range from 'x'..'y'
+   {'x','y','z'} # matches any character from the set 'x', 'y', and 'z'
+  ```
+  
+  The set syntax `{}` is flexible and can take multiple ranges and characters in
+  one expression, for example `{'0'..'9','a'..'f','A'..'F'}`.
+  
+  
 ### Operators
 
 
-#### Grouping: (P)
+- Grouping: `(P)`
+  
+  Brackets are used to group patterns similar to normal mathematical expressions.
 
-Brackets are used to group patterns similar to normal mathematical expressions.
+- Not: `!P`
+  
+  The pattern `!P` returns a pattern that matches only if the input does not match `P`.
+  In contrast to most other patterns, this pattern does not consume any input.
+  
+  A common usage for this operator is the pattern `!1`, meaning "only succeed if there
+  is no a single character left to match" - which is only true for the end of the string.
 
-
-#### Not: !P
-
-The pattern `!P` returns a pattern that matches only if the input does not match `P`.
-In contrast to most other patterns, this pattern does not consume any input.
-
-A common usage for this operator is the pattern `!1`, meaning "only succeed if there
-is no a single character left to match" - which is only true for the end of the string.
-
-
-#### Concatenation: P1 * P2
-
-The pattern `P1 * P2` returns a new pattern that matches only if first `P1` matches,
-followed by `P2`.
-
-For example, `"foo" * "bar"` would only match the string `"foobar"`
+- Concatenation: `P1 * P2`
+  
+  The pattern `P1 * P2` returns a new pattern that matches only if first `P1` matches,
+  followed by `P2`.
+  
+  For example, `"foo" * "bar"` would only match the string `"foobar"`
 
 
-#### Ordered choice: P1 | P2
+- Ordered choice: `P1 | P2`
 
-The pattern `P1 | P2` tries to first match pattern `P1`. If this succeeds, matching
-will proceed without trying `P2`. Only if `P1` can not be matched, NPeg will backtrace
-and try to match `P2`
+  The pattern `P1 | P2` tries to first match pattern `P1`. If this succeeds, matching
+  will proceed without trying `P2`. Only if `P1` can not be matched, NPeg will backtrace
+  and try to match `P2`
+  
+  For example `("foo" | "bar") * "fizz"` would match both `"foofizz"` and `"barfizz"`
+  
+  NPeg optimizes the `|` operator for characters and character sets: The pattern `'a' | 'b' | 'c'`
+  will be rewritten to a character set `{'a','b','c'}`
 
-For example `("foo" | "bar") * "fizz"` would match both `"foofizz"` and `"barfizz"`
 
-NPeg optimizes the `|` operator for characters and character sets: The pattern `'a' | 'b' | 'c'`
-will be rewritten to a character set `{'a','b','c'}`
+- Subraction: `P1 - P2`
 
-
-#### Subraction: P1 - P2
-
-The pattern `P1 - P2` matches `P1` *only* if `P2` does not match. This is equivalent to
+  The pattern `P1 - P2` matches `P1` *only* if `P2` does not match. This is equivalent to
 `!P2 * P1`
 
 
-#### Zero or one time: ?P
+- Match zero or one times: `?P`
 
-The pattern `?P` matches if `P` can be matched zero or more times, so essentially
-succeeds if `P` either matches or not.
-
-For example, `?"foo" * bar"` matches both `"foobar"` and `"bar"`
-
-
-#### Zero or more times: *P
-
-The pattern `*P` tries to match as many occurances of pattern `P` as possible.
-
-For example, `*"foo" * "bar"` matches `"bar"`, `"fooboar"`, `"foofoobar"`, etc
+  The pattern `?P` matches if `P` can be matched zero or more times, so essentially
+  succeeds if `P` either matches or not.
+  
+  For example, `?"foo" * bar"` matches both `"foobar"` and `"bar"`
 
 
-#### One or more times: +p
+- Match ero or more times: `*P`
 
-The pattern `+P` matches `P` at least once, but also more times. It is equivalent
-to the `P * *P`
-
-
-#### Match exactly N times: P{N}
-
-The pattern `P{N}` matches `P` exactly `N` times.
-
-For example, `"foo"{3}` only matches the string `"foofoofoo"`
+  The pattern `*P` tries to match as many occurances of pattern `P` as possible.
+  
+  For example, `*"foo" * "bar"` matches `"bar"`, `"fooboar"`, `"foofoobar"`, etc
 
 
-#### Match M to N times: P{M..N}
+- Match one or more times: `+p`
+  
+  The pattern `+P` matches `P` at least once, but also more times. It is equivalent
+  to the `P * *P`
 
-The pattern `P{M..N}` matches `P` at least `M` and at most `N` times.
 
-For example, `"foo{1,3}"` matches `"foo"`, `"foofoo"` and `"foofoofo"`
+- Match exactly `n` times: `P{n}`
+
+  The pattern `P{n}` matches `P` exactly `n` times.
+  
+  For example, `"foo"{3}` only matches the string `"foofoofoo"`
+
+
+- Match `m` to `n` times: `P{m..n}`
+  
+  The pattern `P{m..n}` matches `P` at least `m` and at most `n` times.
+  
+  For example, `"foo{1,3}"` matches `"foo"`, `"foofoo"` and `"foofoofo"`
 
 
 ## Captures
