@@ -2,7 +2,6 @@
 import capture
 import macros
 import strutils
-import options
 import tables
 import json
 
@@ -139,17 +138,21 @@ proc isSet(p: Patt): bool =
   p.len == 1 and p[0].op == opSet
 
 
-proc toSet(p: Patt): Option[CharSet] =
+proc toSet(p: Patt, cs: var Charset): bool =
   if p.len == 1:
     let i = p[0]
     if i.op == opSet:
-      return some i.cs
+      cs = i.cs
+      return true
     if i.op == opStr and i.str.len == 1:
-      return some { i.str[0] }
+      cs = { i.str[0] }
+      return true
     if i.op == opIStr and i.str.len == 1:
-      return some { toLowerAscii(i.str[0]), toUpperAscii(i.str[0]) }
+      cs = { toLowerAscii(i.str[0]), toUpperAscii(i.str[0]) }
+      return true
     if i.op == opAny:
-      return some anySet
+      cs = anySet
+      return true
 
 ### Atoms
 
@@ -215,9 +218,9 @@ proc `*`*(p1, p2: Patt): Patt =
   result.add p2
 
 proc `|`*(p1, p2: Patt): Patt =
-  let (cs1, cs2) = (p1.toSet, p2.toSet)
-  if cs1.isSome and cs2.isSome:
-    result.add Inst(op: opSet, cs: cs1.get + cs2.get)
+  var cs1, cs2: Charset
+  if p1.toSet(cs1) and p2.toSet(cs2):
+    result.add Inst(op: opSet, cs: cs1 + cs2)
   else:
     result.add Inst(op: opChoice, offset: p1.len+2)
     result.add p1
@@ -225,9 +228,9 @@ proc `|`*(p1, p2: Patt): Patt =
     result.add p2
 
 proc `-`*(p1, p2: Patt): Patt =
-  let (cs1, cs2) = (p1.toSet, p2.toSet)
-  if cs1.isSome and cs2.isSome:
-    result.add Inst(op: opSet, cs: cs1.get - cs2.get)
+  var cs1, cs2: Charset
+  if p1.toSet(cs1) and p2.toSet(cs2):
+    result.add Inst(op: opSet, cs: cs1 - cs2)
   else:
     result.add !p2
     result.add p1

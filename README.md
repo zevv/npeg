@@ -214,7 +214,7 @@ Captures:
   will be rewritten to a character set `{'a','b','c'}`
 
 
-- Subtraction: `P1 - P2`
+- Difference: `P1 - P2`
 
   The pattern `P1 - P2` matches `P1` *only* if `P2` does not match. This is equivalent to
 `!P2 * P1`
