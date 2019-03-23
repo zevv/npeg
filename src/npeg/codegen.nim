@@ -196,13 +196,13 @@ template skel(cases: untyped, ip: NimNode, c: NimNode) =
 
 # Convert the list of parser instructions into a Nim finite state machine
 
-proc genCode*(program: Patt): NimNode =
+proc genCode*(patt: Patt): NimNode =
 
   let ipNode = ident("ip")
   let nopStmt = nnkStmtList.newTree(nnkDiscardStmt.newTree(newEmptyNode()))
   var cases = nnkCaseStmt.newTree(ipNode)
 
-  for n, i in program.pairs:
+  for n, i in patt.pairs:
 
     let call = nnkCall.newTree(ident($i.op & "Fn"))
 
