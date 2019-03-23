@@ -192,7 +192,7 @@ Captures:
   In contrast to most other patterns, this pattern does not consume any input.
   
   A common usage for this operator is the pattern `!1`, meaning "only succeed if there
-  is no a single character left to match" - which is only true for the end of the string.
+  is not a single character left to match" - which is only true for the end of the string.
 
 - Concatenation: `P1 * P2`
   
@@ -371,13 +371,19 @@ might not be parsed right at compile time, especially when this is an assignment
 statement - simple enclose the statement in brackets to mitigate.
 
 
-## Searching
+## Some notes on using PEGs
 
-Patterns are always matched in anchored mode only. To search for a pattern in
-a stream, a construct like this can be used:
+
+### Searching
+
+Unlike regular expressions, PEGs are always matched in *anchored* mode only: the
+defined pattern is matched from the start of the subject string. For example,
+the pattern `"bar"` does not match the string `"foobar"`.
+
+To search for a pattern in a stream, a construct like this can be used:
 
 ```nim
-p <- "hello"
+p <- "bar"
 search <- p | 1 * search
 ```
 
@@ -385,16 +391,28 @@ The above grammar first tries to match pattern `p`, or if that fails, matches
 any character `1` and recurs back to itself.
 
 
-## Error handling
+### End of string
 
-The `ok` field in the `MatchResult` indicates if the parser was successful. The
-`matchLen` field indicates how to which offset the matcher was able to parse
-the subject string. If matching fails, `matchLen` is usually a good indication
-of where in the subject string the error occurred.
+PEGs do not care what is in the subject string after the matching succeeds. For
+example, the rule `"foo"` happily matches the string `"foobar"`. To make sure
+the pattern matches the end of string, this has to be made explicit in the
+pattern.
+
+The idiomatic notation for this is `!1`, meaning "only succeed if there is not
+a single character left to match" - which is only true for the end of the
+string.
 
 
+### Error handling
 
-## Limitations
+The `ok` field in the `MatchResult` indicates if the parser was successful.
+
+The `matchLen` field indicates how to which offset the matcher was able to
+parse the subject string. If matching fails, `matchLen` is usually a good
+indication of where in the subject string the error occurred.
+
+
+### Left recursion
 
 NPeg does not support left recursion (this applies to PEGs in general). For
 example, the rule 
@@ -404,7 +422,9 @@ A <- A / 'a'
 ```
 
 will cause an infinite loop because it allows for left-recursion of the
-non-terminal `A`. Similarly, the grammar
+non-terminal `A`.
+
+Similarly, the grammar
 
 ```nim
 A <- B / 'a' A
@@ -414,18 +434,17 @@ B <- A
 is problematic because it is mutually left-recursive through the non-terminal
 `B`.
 
-
-Loops of patterns that can match the empty string will not result in the
-expected behaviour. For example, the rule `*0` will cause the parser to stall
-and go into an infinite loop.
+Not that loops of patterns that can match the empty string will not result in
+the expected behaviour. For example, the rule `*0` will cause the parser to
+stall and go into an infinite loop.
 
 
 ## Tracing and debugging
 
 When compiled with `-d:npegTrace`, NPeg will dump its immediate representation
 of the compiled PEG, and will dump a trace of the execution during matching.
-These traces can be used for debugging purposes or for performance tuning of
-the parser.
+These traces can be used for debugging or for performance tuning of a grammar.
+
 
 For example, the following program:
 
