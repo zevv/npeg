@@ -5,7 +5,6 @@ import strutils
 import tables
 
 {.push warning[Spacing]: off.}
-abortOnError = true
 
 
 suite "npeg":

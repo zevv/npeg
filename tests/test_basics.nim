@@ -3,7 +3,6 @@ import npeg
 import json
   
 {.push warning[Spacing]: off.}
-abortOnError = true
 
 
 suite "npeg":
