@@ -2,8 +2,9 @@
 # NPeg
 
 NPeg is a pure Nim pattern-matching library. It provides macros to compile
-patterns and grammars (PEGs) to Nim procedures which will parse a string and collect
-selected parts of the input.
+patterns and grammars (PEGs) to Nim procedures which will parse a string and
+collect selected parts of the input. PEGs are not unlike regular expressions,
+but offer more power and flexibility, and have less ambiguities.
 
 ```nim
 import npeg, strutils, tables
@@ -22,15 +23,15 @@ echo words
 {"two": 2, "three": 3, "one": 1, "four": 4}
 ```
 
-Npeg can generate parsers that run at compile time.
+NPeg can generate parsers that run at compile time.
 
 
 ## Usage
 
 The `patt()` and `peg()` macros can be used to compile parser functions.
 
-`patt()` can create a parser from a single anonymouse pattern, while `peg()`
-allows the definion of a set of (potentially recursive) rules making up a
+`patt()` can create a parser from a single anonymous pattern, while `peg()`
+allows the definition of a set of (potentially recursive) rules making up a
 complete grammar.
 
 The result of these macros is a parser function that can be called to parse a
@@ -76,7 +77,7 @@ doAssert p("lowercaseword").ok
 #### Ordering of rules in a grammar
 
 The order in which the grammar patterns are defined affects the generated parser.
-Although NPeg could aways reorder, this is a design choice to give the user
+Although NPeg could always reorder, this is a design choice to give the user
 more control over the generated parser:
 
 * when a pattern `P1` refers to pattern `P2` which is defined *before* `P1`,
@@ -100,7 +101,7 @@ to allow the grammar to be properly parsed by the Nim compiler:
 
 - NPeg uses prefixes instead of suffixes for `*`, `+`, `-` and `?`
 - Ordered choice uses `|` instead of `/` because of operator precedence
-- The explict `*` infix operator is used for sequences
+- The explicit `*` infix operator is used for sequences
 
 
 NPeg patterns and grammars can be composed from the following parts:
@@ -157,7 +158,7 @@ P % code       # Passes all matches made in P to the code fragment
 - Character and string literals: `'x'` / `"xyz"` / `i"xyz"`
   
   Characters and strings are literally matched. If a string is prefixed with `i`,
-  it will be matched case insentive.
+  it will be matched case insensitive.
 
 - Character sets: `{'x','y'}`
   
@@ -208,7 +209,7 @@ P % code       # Passes all matches made in P to the code fragment
   will be rewritten to a character set `{'a','b','c'}`
 
 
-- Subraction: `P1 - P2`
+- Subtraction: `P1 - P2`
 
   The pattern `P1 - P2` matches `P1` *only* if `P2` does not match. This is equivalent to
 `!P2 * P1`
@@ -222,9 +223,9 @@ P % code       # Passes all matches made in P to the code fragment
   For example, `?"foo" * bar"` matches both `"foobar"` and `"bar"`
 
 
-- Match ero or more times: `*P`
+- Match zero or more times: `*P`
 
-  The pattern `*P` tries to match as many occurances of pattern `P` as possible.
+  The pattern `*P` tries to match as many occurrences of pattern `P` as possible.
   
   For example, `*"foo" * "bar"` matches `"bar"`, `"fooboar"`, `"foofoobar"`, etc
 
@@ -270,7 +271,7 @@ let s = peg "pairs":
 
 The basic method for capturing is marking parts of the peg
 with the capture prefix `>`. During parsing NPeg keeps track of all matches,
-properly discarting any matches which were invalidated by backtracking. Only
+properly discarding any matches which were invalidated by backtracking. Only
 when parsing has fully succeeded it creates a `seq[string]` of all matched
 parts, which is then returned in the `MatchData.captures` field.
 
@@ -284,14 +285,14 @@ let s = peg "pairs":
   pair <- >word * '=' * >word
 ```
 
-The resultings list of captures ia now:
+The resulting list of captures is now:
 
 ```nim
 @["one", "1", "two", "2", "three", "3", "four", "4"]
 ```
 
 
-### JSON captures
+### Json captures
 
 In order capture more complex data it is possible to mark the PEG with
 operators which will build a tree of JsonNodes from the matched data.
@@ -299,13 +300,13 @@ operators which will build a tree of JsonNodes from the matched data.
 In the example below: 
 
 - The outermost rule `pairs` gets encapsulated by the `Jo` operator, which
-  produces a javascript object (`JObject`).
+  produces a Json object (`JObject`).
 
 - The `pair` rule is encapsulated in `Jt` which will produce a tagged pair
   which will be stored in its outer JObject. 
 
 - The matched `word` is captured with `Js` to produce a JString. This will
-  be consumed by its outer `Jt` capure which will used it for the field name
+  be consumed by its outer `Jt` capture which will used it for the field name
 
 - The matched `number` is captured with a `Ji` to produce a JInteger, which
   will be consumed by its outer `Jt` capture which will use it for the field
@@ -333,10 +334,10 @@ The resulting Json data is now:
 
 ### Action captures
 
-The `%` operator can be used to execute arbritary Nim code during parsing. The
-Nim code can access all captures made within the the capture through the
+The `%` operator can be used to execute arbitrary Nim code during parsing. The
+Nim code can access all captures made within the capture through the
 implicit declared variable `c: seq[string]`. Note that the Nim code gets
-excuted during parsing, *even if the match is part of a pattern that fails and
+executed during parsing, *even if the match is part of a pattern that fails and
 is later backtracked*
 
 The example has been extended to capture each word and number with the regular `>` capture
@@ -376,7 +377,7 @@ search <- p | 1 * search
 ```
 
 The above grammar first tries to match pattern `p`, or if that fails, matches
-any character `1` and recurses back to itself.
+any character `1` and recurs back to itself.
 
 
 ## Error handling
@@ -384,7 +385,7 @@ any character `1` and recurses back to itself.
 The `ok` field in the `MatchResult` indicates if the parser was successful. The
 `matchLen` field indicates how to which offset the matcher was able to parse
 the subject string. If matching fails, `matchLen` is usually a good indication
-of where in the subject string the error occured.
+of where in the subject string the error occurred.
 
 
 
@@ -432,7 +433,7 @@ let s = peg "line":
 discard s("one two")
 ```
 
-will output the following intermediate repesentation at compile time.  From the
+will output the following intermediate representation at compile time.  From the
 IR it can be seen that the `space` rule has been inlined in the `line` rule,
 but that the `word` rule has been emitted as a subroutine which gets called
 from `line`:
@@ -496,9 +497,9 @@ doAssert s("3*(4+15)+2").ok
 ```
 
 
-### A complete JSON parser
+### A complete Json parser
 
-The following PEG defines a complete parser for the JSON language - it will not produce
+The following PEG defines a complete parser for the Json language - it will not produce
 any captures, but simple traverse and validate the document:
 
 ```nim
@@ -519,10 +520,10 @@ let match = peg "DOC":
   ExpPart        <- ( 'e' | 'E' ) * ?( '+' | '-' ) * +{'0'..'9'}
   Number         <- ?Minus * IntPart * ?FractPart * ?ExpPart
 
-  DOC            <- JSON * !1
-  JSON           <- ?S * ( Number | Object | Array | String | True | False | Null ) * ?S
-  Object         <- '{' * ( String * ":" * JSON * *( "," * String * ":" * JSON ) | ?S ) * "}"
-  Array          <- "[" * ( JSON * *( "," * JSON ) | ?S ) * "]"
+  DOC            <- Json * !1
+  Json           <- ?S * ( Number | Object | Array | String | True | False | Null ) * ?S
+  Object         <- '{' * ( String * ":" * Json * *( "," * String * ":" * Json ) | ?S ) * "}"
+  Array          <- "[" * ( Json * *( "," * Json ) | ?S ) * "]"
 
 let doc = """ {"jsonrpc": "2.0", "method": "subtract", "params": [42, 23], "id": 1} """
 doAssert match(doc).ok
@@ -532,7 +533,7 @@ doAssert match(doc).ok
 ### Captures
 
 The following example shows captures in action. This PEG parses a HTTP
-request into a nested JSON tree:
+request into a nested Json tree:
 
 ```nim
 let s = peg "http":
@@ -566,7 +567,7 @@ echo r.capturesJson.pretty
 ```
 
 
-The resulting JSON data:
+The resulting Json data:
 ```json
 {
   "response": {
