@@ -219,10 +219,25 @@ proc `|`*(p1, p2: Patt): Patt =
   if cs1.isSome and cs2.isSome:
     result.add Inst(op: opSet, cs: cs1.get + cs2.get)
   else:
-    result.add Inst(op: opChoice, offset: p1.len+2)
-    result.add p1
-    result.add Inst(op: opCommit, offset: p2.len+1)
-    result.add p2
+    # Optimization: detect if P1 is already an ordered choice, and rewrite the
+    # offsets in the choice and commits instructions, then add the new choice
+    # P2 to the end. The naive implementation would generate inefficient code
+    # because the | terms are added left-associative.
+    var p3 = p1
+    var ip = 0
+    while p3[ip].op == opChoice:
+      let ipCommit = p3[ip].offset + ip - 1
+      if p3[ipCommit].op == opCommit and p3[ipCommit].offset + ipCommit == p1.len:
+        p3[ipCommit].offset += p2.len + 2
+        ip = ipCommit + 1
+      else:
+        break
+    p3.setlen ip
+    p3.add Inst(op: opChoice, offset: p1.high - ip + 3)
+    p3.add p1[ip..p1.high]
+    p3.add Inst(op: opCommit, offset: p2.len + 1)
+    p3.add p2
+    result = p3
 
 proc `-`*(p1, p2: Patt): Patt =
   let (cs1, cs2) = (p1.toSet, p2.toSet)
