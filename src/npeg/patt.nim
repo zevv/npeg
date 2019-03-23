@@ -108,7 +108,7 @@ proc dumpString*(s: string, o:int=0, l:int=1024): string =
 proc dump*(p: Patt, symtab: SymTab = nil) =
   for n, i in p.pairs:
     if symTab != nil and n in symTab:
-      echo symtab.get(n) & ":"
+      echo "\n" & symtab.get(n) & ":"
     var args: string
     case i.op:
       of opStr, opIStr:
@@ -123,13 +123,15 @@ proc dump*(p: Patt, symtab: SymTab = nil) =
         args = " " & i.msg
       of opCapOpen, opCapClose:
         args = " " & $i.capKind
+        if i.capAction != nil:
+          args &= ": " & i.capAction.repr
       of opFail, opReturn, opNop, opAny:
         discard
     var l: string
-    l.add align($n, 3) & ": " 
+    l.add align($n, 4) & ": "
     when npegTrace:
       l.add alignLeft($i.name, 15)
-    l.add $i.op & " " & args
+    l.add $i.op & args
     echo l
 
 # Some tests on patterns

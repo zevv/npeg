@@ -18,7 +18,7 @@ proc initStack*[T](name: string, len: int, max: int=int.high): Stack[T] =
   result.frames.setLen len
   result.max = max
 
-template push*[T](s: var Stack[T], frame: T) =
+proc push*[T](s: var Stack[T], frame: T) =
   if s.top >= s.frames.len:
     if s.top >= s.max:
       raise newException(NPegException, s.name & " stack overflow, depth>" & $s.max)
