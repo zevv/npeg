@@ -6,6 +6,11 @@ patterns and grammars (PEGs) to Nim procedures which will parse a string and
 collect selected parts of the input. PEGs are not unlike regular expressions,
 but offer more power and flexibility, and have less ambiguities.
 
+Here is a simple example showing NPegs functionality. The macro `peg` compiles
+a grammar definition into a function `match`, which is used to parse a string
+and place the key-value pairs into the Nim table `words`:
+
+
 ```nim
 import npeg, strutils, tables
 
