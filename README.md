@@ -164,8 +164,10 @@ it will be matched case insentive.
 Characters set notation is similar to native Nim. A set consists of zero or more
 comma separated characters or character ranges.
 
+```nim
  {'x'..'y'}    # matches any character in the range from 'x'..'y'
  {'x','y','z'} # matches any character from the set 'x', 'y', and 'z'
+```
 
 The set syntax `{}` is flexible and can take multiple ranges and characters in
 one expression, for example `{'0'..'9','a'..'f','A'..'F'}`.
@@ -173,9 +175,11 @@ one expression, for example `{'0'..'9','a'..'f','A'..'F'}`.
 
 ### Operators
 
+
 #### Grouping: (P)
 
 Brackets are used to group patterns similar to normal mathematical expressions.
+
 
 #### Not: !P
 
@@ -185,12 +189,14 @@ In contrast to most other patterns, this pattern does not consume any input.
 A common usage for this operator is the pattern `!1`, meaning "only succeed if there
 is no a single character left to match" - which is only true for the end of the string.
 
+
 #### Concatenation: P1 * P2
 
 The pattern `P1 * P2` returns a new pattern that matches only if first `P1` matches,
 followed by `P2`.
 
 For example, `"foo" * "bar"` would only match the string `"foobar"`
+
 
 #### Ordered choice: P1 | P2
 
@@ -203,10 +209,12 @@ For example `("foo" | "bar") * "fizz"` would match both `"foofizz"` and `"barfiz
 NPeg optimizes the `|` operator for characters and character sets: The pattern `'a' | 'b' | 'c'`
 will be rewritten to a character set `{'a','b','c'}`
 
+
 #### Subraction: P1 - P2
 
 The pattern `P1 - P2` matches `P1` *only* if `P2` does not match. This is equivalent to
 `!P2 * P1`
+
 
 #### Zero or one time: ?P
 
@@ -215,16 +223,19 @@ succeeds if `P` either matches or not.
 
 For example, `?"foo" * bar"` matches both `"foobar"` and `"bar"`
 
+
 #### Zero or more times: *P
 
 The pattern `*P` tries to match as many occurances of pattern `P` as possible.
 
 For example, `*"foo" * "bar"` matches `"bar"`, `"fooboar"`, `"foofoobar"`, etc
 
+
 #### One or more times: +p
 
 The pattern `+P` matches `P` at least once, but also more times. It is equivalent
 to the `P * *P`
+
 
 #### Match exactly N times: P{N}
 
@@ -232,14 +243,12 @@ The pattern `P{N}` matches `P` exactly `N` times.
 
 For example, `"foo"{3}` only matches the string `"foofoofoo"`
 
+
 #### Match M to N times: P{M..N}
 
 The pattern `P{M..N}` matches `P` at least `M` and at most `N` times.
 
 For example, `"foo{1,3}"` matches `"foo"`, `"foofoo"` and `"foofoofo"`
-
-
-### Captures
 
 
 ## Captures
