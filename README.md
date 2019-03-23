@@ -556,10 +556,36 @@ doAssert match(doc).ok
 
 ### Captures
 
-The following example shows captures in action. This PEG parses a HTTP
-request into a nested Json tree:
+The following example shows how to use the `%` operator for action captures.
+The defined grammar will parse a HTTP response document and extract structured
+data from the document into a Nim object:
 
 ```nim
+
+# Example HTTP response data
+
+const data = """
+HTTP/1.1 301 Moved Permanently
+Content-Length: 162
+Content-Type: text/html
+Location: https://nim.org/
+"""
+
+# Nim object in which the parsed data will be copied
+
+type
+  Request = object
+    proto: string
+    version: string
+    code: int
+    message: string
+    headers: Table[string, string]
+
+var req: Request
+req.headers = initTable[string, string]()
+
+# HTTP grammar (simplified)
+
 let s = peg "http":
   space       <- ' '
   crlf        <- '\n' * ?'\r'
@@ -569,49 +595,37 @@ let s = peg "http":
   eof         <- !1
   header_name <- +(alpha | '-')
   header_val  <- +(1-{'\n'}-{'\r'})
-  proto       <- Cn("proto", C(+alpha) )
-  version     <- Cn("version", C(+digit * '.' * +digit) )
-  code        <- Cn("code", C(+digit) )
-  msg         <- Cn("msg", C(+(1 - '\r' - '\n')) )
-  header      <- Ca( C(header_name) * ": " * C(header_val) )
+  proto       <- >(+alpha) % (req.proto = c[0])
+  version     <- >(+digit * '.' * +digit) % (req.version = c[0])
+  code        <- >(+digit) % (req.code = c[0].parseInt)
+  msg         <- >(+(1 - '\r' - '\n')) % (req.message = c[0])
+  header      <- (>header_name * ": " * >header_val) % (req.headers[c[0]] = c[1])
 
-  response    <- Cn("response", Co( proto * '/' * version * space * code * space * msg ))
-  headers     <- Cn("headers", Ca( *(header * crlf) ))
-  http        <- Co(response * crlf * headers * eof)
+  response    <- proto * '/' * version * space * code * space * msg 
+  headers     <- *(header * crlf)
+  http        <- response * crlf * headers * eof
 
-let data = """
-HTTP/1.1 301 Moved Permanently
-Content-Length: 162
-Content-Type: text/html
-Location: https://nim.org/
-"""
 
-let r = s(data)
-echo r.capturesJson.pretty
+# Parse the data and print the resulting table
+
+let res = s(data)
+echo req
 ```
 
+The resulting data:
 
-The resulting Json data:
-```json
-{
-  "response": {
-    "proto": "HTTP",
-    "version": "1.1",
-    "code": "301",
-    "msg": "Moved Permanently"
-  },
-  "headers": [
-    [
-      "Content-Length",
-      "162"
-    ], [
-      "Content-Type",
-      "text/html"
-    ], [
-      "Location",
-      "https://nim.org/"
-    ]
-  ]
-}
+```nim
+(
+  proto: "HTTP",
+  version: "1.1",
+  code: 301,
+  message: "Moved Permanently",
+  headers: {
+    "Content-Length": "162",
+    "Content-Type":
+    "text/html",
+    "Location": "https://nim.org/"
+  }
+)
 ```
 
