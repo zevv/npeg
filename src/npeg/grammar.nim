@@ -65,10 +65,10 @@ proc linkGrammar(grammar: Grammar, initial_name: string): Patt =
 
   # Fixup call addresses and do tail call optimization
 
-  for n, i in retPatt.mpairs:
+  for ip, i in retPatt.mpairs:
     if i.op == opCall:
-      i.callAddr = symtab.get(i.callLabel)
-    if i.op == opCall and retPatt[n+1].op == opReturn:
+      i.callOffset = symtab.get(i.callLabel) - ip
+    if i.op == opCall and retPatt[ip+1].op == opReturn:
       i.op = opJump
 
   result = retPatt

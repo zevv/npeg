@@ -58,8 +58,9 @@ MatchResult = object
   matched.
 
 * `matchMax`: The highest index into the subject that was reached during
-  parsing, *even if matching did not succeed*. This offset is usually a good
-  indication of the location where the matching error occured.
+  parsing, *even if matching was backtracked or did not succeed*. This offset
+  is usually a good indication of the location where the matching error
+  occured.
 
 The following proc are available to retrieve the captured results:
 
@@ -147,18 +148,19 @@ Atoms:
 
 Operators:
 
- `(P)`          # grouping
- `!P`           # matches everything but P
- `&P`           # matches P without consuming input
   `P1 * P2`     # concatenation
   `P1 | P2`     # ordered choice
   `P1 - P2`     # matches P1 if P2 does not match
+ `(P)`          # grouping
+ `!P`           # matches everything but P
+ `&P`           # matches P without consuming input
  `?P`           # matches P zero or one times
  `*P`           # matches P zero or more times
  `+P`           # matches P one or more times
+ `@P`           # search for P
   `P{n}`        # matches P n times
   `P{m..n}`     # matches P m to n times
- 
+
 String captures:
 
   `P`           # Captures the string matching `P`
@@ -172,7 +174,7 @@ Json captures:
  `Jo()`         # Produces a new JObject
  `Jt("tag", P)` # Stores capture `P` in the field "tag" of the outer JObject
  `Jt(P)`        # Stores the second Json capture of `P` in the outer JObject
-                # using the first Json capure of `P` as the tag. 
+                # using the first Json capure of `P` as the tag.
 
 Action captures:
 
@@ -188,54 +190,39 @@ Error handling:
 ### Atoms
 
 - Integer literal: `0` / `1` / `n`
-  
+
   The int literal atom `N` matches exactly n number of bytes. `0` always matches,
   but does not consume any data.
 
+
 - Character and string literals: `'x'` / `"xyz"` / `i"xyz"`
-  
+
   Characters and strings are literally matched. If a string is prefixed with `i`,
   it will be matched case insensitive.
 
+
 - Character sets: `{'x','y'}`
-  
+
   Characters set notation is similar to native Nim. A set consists of zero or more
   comma separated characters or character ranges.
-  
+
   ```nim
    {'x'..'y'}    # matches any character in the range from 'x'..'y'
    {'x','y','z'} # matches any character from the set 'x', 'y', and 'z'
   ```
-  
+
   The set syntax `{}` is flexible and can take multiple ranges and characters in
   one expression, for example `{'0'..'9','a'..'f','A'..'F'}`.
-  
-  
+
+
 ### Operators
 
 
-- Grouping: `(P)`
-  
-  Brackets are used to group patterns similar to normal mathematical expressions.
-
-- Not predicate: `!P`
-  
-  The pattern `!P` returns a pattern that matches only if the input does not match `P`.
-  In contrast to most other patterns, this pattern does not consume any input.
-  
-  A common usage for this operator is the pattern `!1`, meaning "only succeed if there
-  is not a single character left to match" - which is only true for the end of the string.
-
-- And predicate: `&P`
-
-  The pattern `&P` matches only if the input matches `P`, but will *not*
-  consume any input. This is equivalent to `!!P`
-
 - Concatenation: `P1 * P2`
-  
+
   The pattern `P1 * P2` returns a new pattern that matches only if first `P1` matches,
   followed by `P2`.
-  
+
   For example, `"foo" * "bar"` would only match the string `"foobar"`
 
 
@@ -244,51 +231,82 @@ Error handling:
   The pattern `P1 | P2` tries to first match pattern `P1`. If this succeeds, matching
   will proceed without trying `P2`. Only if `P1` can not be matched, NPeg will backtrace
   and try to match `P2`
-  
+
   For example `("foo" | "bar") * "fizz"` would match both `"foofizz"` and `"barfizz"`
-  
-  NPeg optimizes the `|` operator for characters and character sets: The pattern `'a' | 'b' | 'c'`
-  will be rewritten to a character set `{'a','b','c'}`
+
+  NPeg optimizes the `|` operator for characters and character sets: The
+  pattern `'a' | 'b' | 'c'` will be rewritten to a character set
+  `{'a','b','c'}`
 
 
 - Difference: `P1 - P2`
 
-  The pattern `P1 - P2` matches `P1` *only* if `P2` does not match. This is equivalent to
-`!P2 * P1`
+  The pattern `P1 - P2` matches `P1` *only* if `P2` does not match. This is
+  equivalent to `!P2 * P1`
+
+
+- Grouping: `(P)`
+
+  Brackets are used to group patterns similar to normal mathematical expressions.
+
+
+- Not predicate: `!P`
+
+  The pattern `!P` returns a pattern that matches only if the input does not match `P`.
+  In contrast to most other patterns, this pattern does not consume any input.
+
+  A common usage for this operator is the pattern `!1`, meaning "only succeed if there
+  is not a single character left to match" - which is only true for the end of the string.
+
+
+- And predicate: `&P`
+
+  The pattern `&P` matches only if the input matches `P`, but will *not*
+  consume any input. This is equivalent to `!!P`
 
 
 - Match zero or one times: `?P`
 
   The pattern `?P` matches if `P` can be matched zero or more times, so essentially
   succeeds if `P` either matches or not.
-  
+
   For example, `?"foo" * bar"` matches both `"foobar"` and `"bar"`
 
 
 - Match zero or more times: `*P`
 
   The pattern `*P` tries to match as many occurrences of pattern `P` as possible.
-  
+
   For example, `*"foo" * "bar"` matches `"bar"`, `"fooboar"`, `"foofoobar"`, etc
 
 
-- Match one or more times: `+p`
-  
+- Match one or more times: `+P`
+
   The pattern `+P` matches `P` at least once, but also more times. It is equivalent
   to the `P * *P`
+
+
+- Search: `@P`
+
+  This operator is syntactic sugar for the operation of searching `s <- P | 1 * s`,
+  which translates to "try to match `P`, and if this fails, consume 1 byte and
+  try again".
+
+  Note that this operator does not allow capturing the skipped data up to the
+  match; if his is required you can manually construct a grammar to do this.
 
 
 - Match exactly `n` times: `P{n}`
 
   The pattern `P{n}` matches `P` exactly `n` times.
-  
+
   For example, `"foo"{3}` only matches the string `"foofoofoo"`
 
 
 - Match `m` to `n` times: `P{m..n}`
-  
+
   The pattern `P{m..n}` matches `P` at least `m` and at most `n` times.
-  
+
   For example, `"foo{1,3}"` matches `"foo"`, `"foofoo"` and `"foofoofo"`
 
 
@@ -339,13 +357,13 @@ The resulting list of captures is now:
 In order capture more complex data it is possible to mark the PEG with
 operators which will build a tree of JsonNodes from the matched data.
 
-In the example below: 
+In the example below:
 
 - The outermost rule `pairs` gets encapsulated by the `Jo` operator, which
   produces a Json object (`JObject`).
 
 - The `pair` rule is encapsulated in `Jt` which will produce a tagged pair
-  which will be stored in its outer JObject. 
+  which will be stored in its outer JObject.
 
 - The matched `word` is captured with `Js` to produce a JString. This will
   be consumed by its outer `Jt` capture which will used it for the field name
@@ -377,14 +395,14 @@ The resulting Json data is now:
 ### Action captures
 
 The `%` operator can be used to execute arbitrary Nim code during parsing. The
-Nim code can access all captures made within the capture through the
-implicit declared variable `c: seq[string]`. Note that the Nim code gets
-executed during parsing, *even if the match is part of a pattern that fails and
-is later backtracked*
+Nim code can access all captures made within the capture through the implicit
+declared variable `c: seq[string]`. Note that the Nim code gets executed during
+parsing, *even if the match is part of a pattern that fails and is later
+backtracked*
 
-The example has been extended to capture each word and number with the regular `>` capture
-prefix. Then the complete pair is passed to a snippet of Nim code by the `%` operator,
-where the data is added to a Nim table:
+The example has been extended to capture each word and number with the regular
+`>` capture prefix. Then the complete pair is passed to a snippet of Nim code
+by the `%` operator, where the data is added to a Nim table:
 
 ```nim
 from strutils import parseInt
@@ -394,7 +412,7 @@ let s = peg "pairs":
   pairs <- pair * *(',' * pair) * !1
   word <- +{'a'..'z'}
   number <- +{'0'..'9'}
-  pair <- (>word * '=' * >number) % (words[c[0]] = parseInt(c[1])) 
+  pair <- (>word * '=' * >number) % (words[c[0]] = parseInt(c[1]))
 ```
 
 After the parsing finished, the `words` table will now contain
@@ -479,7 +497,7 @@ Error: unhandled exception: Parsing error at #14: expected "word" [NPegException
 ### Left recursion
 
 NPeg does not support left recursion (this applies to PEGs in general). For
-example, the rule 
+example, the rule
 
 ```nim
 A <- A / 'a'
@@ -600,7 +618,7 @@ let match = peg "DOC":
 
   UnicodeEscape  <- 'u' * {'0'..'9','A'..'F','a'..'f'}{4}
   Escape         <- '\\' * ({ '{', '"', '|', '\\', 'b', 'f', 'n', 'r', 't' } | UnicodeEscape)
-  StringBody     <- ?Escape * *( +( {'\x20'..'\xff'} - {'"'} - {'\\'}) * *Escape) 
+  StringBody     <- ?Escape * *( +( {'\x20'..'\xff'} - {'"'} - {'\\'}) * *Escape)
   String         <- ?S * '"' * StringBody * '"' * ?S
 
   Minus          <- '-'
@@ -666,7 +684,7 @@ let s = peg "http":
   msg         <- >(+(1 - '\r' - '\n')) % (req.message = c[0])
   header      <- (>header_name * ": " * >header_val) % (req.headers[c[0]] = c[1])
 
-  response    <- proto * '/' * version * space * code * space * msg 
+  response    <- proto * '/' * version * space * code * space * msg
   headers     <- *(header * crlf)
   http        <- response * crlf * headers * eof
 

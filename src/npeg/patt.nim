@@ -37,7 +37,7 @@ type
         str*: string
       of opCall, opJump:
         callLabel*: string
-        callAddr*: int
+        callOffset*: int
       of opSet, opSpan:
         cs*: CharSet
       of opCapOpen, opCapClose:
@@ -118,7 +118,7 @@ proc dump*(p: Patt, symtab: SymTab = nil) =
       of opChoice, opCommit, opPartCommit:
         args = " " & $(n+i.offset)
       of opCall, opJump:
-        args = " " & i.callLabel & ":" & $i.callAddr
+        args = " " & $(n+i.callOffset) & " " & i.callLabel
       of opErr:
         args = " " & i.msg
       of opCapOpen, opCapClose:
@@ -218,6 +218,13 @@ proc `!`*(p: Patt): Patt =
 
 proc `&`*(p: Patt): Patt =
   result.add !(!p)
+
+proc `@`*(p: Patt): Patt =
+  result.add Inst(op: opChoice, offset: p.len + 2)
+  result.add p
+  result.add Inst(op: opCommit, offset: 3)
+  result.add Inst(op: opAny)
+  result.add Inst(op: opJump, callOffset: - p.len - 3)
 
 ### Infixes
 

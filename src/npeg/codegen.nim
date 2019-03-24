@@ -127,14 +127,14 @@ template skel(cases: untyped, ip: NimNode, c: NimNode) =
       backStack.update(cp, capStack.top)
       ip = n
 
-    template opCallFn(label: string, address: int, iname="") =
-      trace iname, "call \"" & label & "\""
+    template opCallFn(label: string, offset: int, iname="") =
+      trace iname, "call -> " & label & ":" & $(ip+offset)
       retStack.push ip+1
-      ip = address
+      ip += offset
 
-    template opJumpFn(label: string, address: int, iname="") =
-      trace iname, "jump -> " & label & ":" & $address
-      ip = address
+    template opJumpFn(label: string, offset: int, iname="") =
+      trace iname, "jump -> " & label & ":" & $(ip+offset)
+      ip += offset
 
     template opCapOpenFn(n: int, capname: string, iname="") =
       let ck = CapKind(n)
@@ -223,7 +223,7 @@ proc genCode*(patt: Patt): NimNode =
 
       of opCall, opJump:
         call.add newStrLitNode(i.callLabel)
-        call.add newIntLitNode(i.callAddr)
+        call.add newIntLitNode(i.callOffset)
 
       of opCapOpen:
         call.add newIntLitNode(i.capKind.int)

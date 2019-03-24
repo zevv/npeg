@@ -92,6 +92,7 @@ proc buildPatt*(nn: NimNode, grammar: Grammar = nil): Patt =
           of "!": return !p
           of "&": return &p
           of ">": return >p
+          of "@": return @p
           else: krak n, "Unhandled prefix operator"
 
       of nnkInfix:
