@@ -25,6 +25,7 @@ type
     s*: string
     ok*: bool
     matchLen*: int
+    matchMax*: int
     cs*: Captures
 
 
@@ -181,11 +182,12 @@ template skel(cases: untyped, ip: NimNode, c: NimNode) =
       # Keep track of the highest string index we ever reached, this is a good
       # indication of the location of errors when parsing fails
 
-      result.matchLen = max(result.matchLen, si)
+      result.matchMax = max(result.matchMax, si)
 
     # When the parsing machine is done, close the capture stack and collect all
     # the captures in the match result
 
+    result.matchLen = si
     if result.ok and capStack.top > 0:
       result.s = s
       result.cs = fixCaptures(capStack, false)

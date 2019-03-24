@@ -44,9 +44,22 @@ subject string. The parser function returns an object of the type `MatchResult`:
 
 ```nim
 MatchResult = object
-  ok: bool                   # Set to 'true' if the string parsed without errors
-  matchLen: int              # The length up to where the string was parsed.
+  ok: bool
+  matchLen: int
+  matchMax: int
+  ...
 ```
+
+* `ok`: A boolean indicating if the matching succeeded without error. Note that
+  a successful match does not imply that *all of the subject* was matched,
+  unless the pattern explicitly matches the end-of-string.
+
+* `matchLen`: The number of input bytes of the subject that successfully
+  matched.
+
+* `matchMax`: The highest index into the subject that was reached during
+  parsing, *even if matching did not succeed*. This offset is usually a good
+  indication of the location where the matching error occured.
 
 The following proc are available to retrieve the captured results:
 
@@ -136,6 +149,7 @@ Operators:
 
  `(P)`          # grouping
  `!P`           # matches everything but P
+ `&P`           # matches P without consuming input
   `P1 * P2`     # concatenation
   `P1 | P2`     # ordered choice
   `P1 - P2`     # matches P1 if P2 does not match
@@ -204,13 +218,18 @@ Error handling:
   
   Brackets are used to group patterns similar to normal mathematical expressions.
 
-- Not: `!P`
+- Not predicate: `!P`
   
   The pattern `!P` returns a pattern that matches only if the input does not match `P`.
   In contrast to most other patterns, this pattern does not consume any input.
   
   A common usage for this operator is the pattern `!1`, meaning "only succeed if there
   is not a single character left to match" - which is only true for the end of the string.
+
+- And predicate: `&P`
+
+  The pattern `&P` matches only if the input matches `P`, but will *not*
+  consume any input. This is equivalent to `!!P`
 
 - Concatenation: `P1 * P2`
   
@@ -429,10 +448,10 @@ The `ok` field in the `MatchResult` indicates if the parser was successful:
 when the complete pattern has been mached this value will be set to `true`,
 if the complete pattern did not match the subject the value will be `false`.
 
-In addition to the `ok` field, the `matchLen` field indicates the maximum
+In addition to the `ok` field, the `matchMax` field indicates the maximum
 offset into the subject the parser was able to match the string. If the
-matching succeeded `matchLen` equals the total length of the subject, if the
-matching failed, the value of `matchLen` is usually a good indication of where
+matching succeeded `matchMax` equals the total length of the subject, if the
+matching failed, the value of `matchMax` is usually a good indication of where
 in the subject string the error occurred.
 
 When, during matching, the parser reaches an `E"message"` atom in the grammar,

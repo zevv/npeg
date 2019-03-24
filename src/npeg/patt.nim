@@ -216,6 +216,9 @@ proc `!`*(p: Patt): Patt =
   result.add Inst(op: opCommit, offset: 1)
   result.add Inst(op: opFail)
 
+proc `&`*(p: Patt): Patt =
+  result.add !(!p)
+
 ### Infixes
 
 proc `*`*(p1, p2: Patt): Patt =
