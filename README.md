@@ -58,12 +58,21 @@ proc capturesJson(m: MatchResult): JsonNode
 
 ### Simple patterns
 
-A simple pattern can be compiled with the `patt` macro:
+A simple pattern can be compiled with the `patt` macro.
+
+For example, the pattern below splits a string by white space:
 
 ```nim
-let p = patt *{'a'..'z'}
-doAssert p("lowercaseword").ok
+let split = patt *(*' ' * > +(1-' '))
+echo split("   one two three ").captures
 ```
+
+Output:
+
+```
+@["one", "two", "three"]
+```
+
 
 ### Grammars
 

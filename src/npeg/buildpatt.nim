@@ -69,13 +69,14 @@ proc buildPatt*(nn: NimNode, grammar: Grammar = nil): Patt =
       of nnkCall:
         if n.len == 2:
           let p = aux n[1]
-          if n[0].eqIdent "Js":   return newCapPatt(p, ckJString)
-          elif n[0].eqIdent "Ji": return newCapPatt(p, ckJInt)
-          elif n[0].eqIdent "Jf": return newCapPatt(p, ckJFloat)
-          elif n[0].eqIdent "Ja": return newCapPatt(p, ckJArray)
-          elif n[0].eqIdent "Jo": return newCapPatt(p, ckJObject)
-          elif n[0].eqIdent "Jt": return newCapPatt(p, ckJFieldDynamic)
-          else: krak n, "Unhandled capture type"
+          case n[0].strVal:
+            of "Js": return newCapPatt(p, ckJString)
+            of "Ji": return newCapPatt(p, ckJInt)
+            of "Jf": return newCapPatt(p, ckJFloat)
+            of "Ja": return newCapPatt(p, ckJArray)
+            of "Jo": return newCapPatt(p, ckJObject)
+            of "Jt": return newCapPatt(p, ckJFieldDynamic)
+            else: krak n, "Unhandled capture type"
         elif n.len == 3:
           if n[0].eqIdent "Jf":
             result = newCapPatt(aux n[2], ckJFieldFixed)
@@ -84,12 +85,13 @@ proc buildPatt*(nn: NimNode, grammar: Grammar = nil): Patt =
 
       of nnkPrefix:
         let p = aux n[1]
-        if n[0].eqIdent("?"): return ?p
-        elif n[0].eqIdent("+"): return +p
-        elif n[0].eqIdent("*"): return *p
-        elif n[0].eqIdent("!"): return !p
-        elif n[0].eqIdent(">"): return >p
-        else: krak n, "Unhandled prefix operator"
+        case n[0].strVal:
+          of "?": return ?p
+          of "+": return +p
+          of "*": return *p
+          of "!": return !p
+          of ">": return >p
+          else: krak n, "Unhandled prefix operator"
 
       of nnkInfix:
         if n[0].eqIdent("%"):
@@ -97,10 +99,11 @@ proc buildPatt*(nn: NimNode, grammar: Grammar = nil): Patt =
           result[result.high].capAction = n[2]
         else:
           let (p1, p2) = (aux n[1], aux n[2])
-          if n[0].eqIdent("*"): return p1 * p2
-          elif n[0].eqIdent("-"): return p1 - p2
-          elif n[0].eqIdent("|"): return p1 | p2
-          else: krak n, "Unhandled infix operator"
+          case n[0].strVal:
+            of "*": return p1 * p2
+            of "-": return p1 - p2
+            of "|": return p1 | p2
+            else: krak n, "Unhandled infix operator"
 
       of nnkCurlyExpr:
         let p = aux(n[0])
@@ -136,9 +139,10 @@ proc buildPatt*(nn: NimNode, grammar: Grammar = nil): Patt =
           return newSetPatt(cs)
 
       of nnkCallStrLit:
-        if n[0].eqIdent("i"): return newStrLitPatt(n[1].strval)
-        elif n[0].eqIdent("E"): return newErrorPatt(n[1].strval)
-        else: krak n, "unhandled string prefix"
+        case n[0].strVal:
+          of "i": return newStrLitPatt(n[1].strval)
+          of "E": return newErrorPatt(n[1].strval)
+          else: krak n, "unhandled string prefix"
       else:
         krak n, "syntax error"
 
