@@ -52,98 +52,99 @@ template skel(cases: untyped, ip: NimNode, c: NimNode) =
 
     # Debug trace. Slow and expensive
 
-    proc doTrace(msg: string) =
+    proc doTrace(iname, msg: string) =
       var l: string
       l.add if ip >= 0: align($ip, 3) else: "   "
-      l.add " | " & align($si, 3)
-      l.add " |" & alignLeft(dumpString(s, si, 24), 24) & "| "
-      l.add alignLeft(msg, 30)
-      l.add "| " & alignLeft(repeat("*", backStack.top), 20)
+      l.add "|" & align($si, 3)
+      l.add "|" & alignLeft(dumpString(s, si, 24), 24)
+      l.add "|" & alignLeft(iname, 15)
+      l.add "|" & alignLeft(msg, 30)
+      l.add "|" & alignLeft(repeat("*", backStack.top), 20)
       echo l
 
-    template trace(msg: string) =
+    template trace(iname, msg: string) =
       when npegTrace:
-        doTrace(msg)
+        doTrace(iname, msg)
 
     # State machine instruction handlers
 
-    template opStrFn(s2: string) =
-      trace "str \"" & dumpString(s2) & "\""
+    template opStrFn(s2: string, iname="") =
+      trace iname, "str \"" & dumpString(s2) & "\""
       if subStrCmp(s, si, s2):
         inc ip
         inc si, s2.len
       else:
         ip = -1
 
-    template opIStrFn(s2: string) =
-      trace "str " & s2.dumpString
+    template opIStrFn(s2: string, iname="") =
+      trace iname, "str " & s2.dumpString
       if subIStrCmp(s, si, s2):
         inc ip
         inc si, s2.len
       else:
         ip = -1
 
-    template opSetFn(cs: CharSet) =
-      trace "set " & dumpSet(cs)
+    template opSetFn(cs: CharSet, iname="") =
+      trace iname, "set " & dumpSet(cs)
       if si < s.len and s[si] in cs:
         inc ip
         inc si
       else:
         ip = -1
 
-    template opSpanFn(cs: CharSet) =
-      trace "span " & dumpSet(cs)
+    template opSpanFn(cs: CharSet, iname="") =
+      trace iname, "span " & dumpSet(cs)
       while si < s.len and s[si] in cs:
         inc si
       inc ip
 
-    template opNopFn() =
-      trace "nop"
+    template opNopFn(iname="") =
+      trace iname, "nop"
       inc ip
 
-    template opAnyFn() =
-      trace "any"
+    template opAnyFn(iname="") =
+      trace iname, "any"
       if si < s.len:
         inc ip
         inc si
       else:
         ip = -1
 
-    template opChoiceFn(n: int) =
-      trace "choice -> " & $n
+    template opChoiceFn(n: int, iname="") =
+      trace iname, "choice -> " & $n
       backStack.push (ip:n, si:si, rp:retStack.top, cp:capStack.top)
       inc ip
 
-    template opCommitFn(n: int) =
-      trace "commit -> " & $n
+    template opCommitFn(n: int, iname="") =
+      trace iname, "commit -> " & $n
       discard backStack.pop()
       ip = n
 
-    template opPartCommitFn(n: int) =
-      trace "pcommit -> " & $n
+    template opPartCommitFn(n: int, iname="") =
+      trace iname, "pcommit -> " & $n
       backStack.update(si, si)
       backStack.update(cp, capStack.top)
       ip = n
 
-    template opCallFn(label: string, address: int) =
-      trace "call -> " & label & ":" & $address
+    template opCallFn(label: string, address: int, iname="") =
+      trace iname, "call \"" & label & "\""
       retStack.push ip+1
       ip = address
 
-    template opJumpFn(label: string, address: int) =
-      trace "jump -> " & label & ":" & $address
+    template opJumpFn(label: string, address: int, iname="") =
+      trace iname, "jump -> " & label & ":" & $address
       ip = address
 
-    template opCapOpenFn(n: int, name2: string) =
+    template opCapOpenFn(n: int, capname: string, iname="") =
       let ck = CapKind(n)
-      trace "capopen " & $ck & " -> " & $si
-      capStack.push (cft: cftOpen, si: si, ck: ck, name: name2)
+      trace iname, "capopen " & $ck & " -> " & $si
+      capStack.push (cft: cftOpen, si: si, ck: ck, name: capname)
       inc ip
     
-    template opCapCloseFn(n: int, name2: string, actionCode: untyped) =
+    template opCapCloseFn(n: int, actionCode: untyped, iname="") =
       let ck = CapKind(n)
-      trace "capclose " & $ck & " -> " & $si
-      capStack.push (cft: cftClose, si: si, ck: ck, name: name2)
+      trace iname, "capclose " & $ck & " -> " & $si
+      capStack.push (cft: cftClose, si: si, ck: ck, name: "")
       if ck == ckAction:
         let cs = fixCaptures(capStack, true)
         let c {.inject.} = collectCaptures(s, cs)
@@ -151,23 +152,23 @@ template skel(cases: untyped, ip: NimNode, c: NimNode) =
           actionCode
       inc ip
 
-    template opReturnFn() =
-      trace "return"
+    template opReturnFn(iname="") =
+      trace iname, "return"
       if retStack.top == 0:
-        trace "done"
+        trace iname, "done"
         result.ok = true
         break
       ip = retStack.pop()
 
-    template opFailFn() =
-      trace "fail"
+    template opFailFn(iname="") =
+      trace iname, "fail"
       if backStack.top == 0:
-        trace "error"
+        trace iname, "error"
         break
       (ip, si, retStack.top, capStack.top) = backStack.pop()
 
-    template opErrFn(msg: string) =
-      trace "err " & msg
+    template opErrFn(msg: string, iname="") =
+      trace iname, "err " & msg
       raise newException(NPegException, "Parsing error at #" & $si & ": expected \"" & msg & "\"")
 
     while true:
@@ -228,7 +229,6 @@ proc genCode*(patt: Patt): NimNode =
 
       of opCapClose:
         call.add newIntLitNode(i.capKind.int)
-        call.add newStrLitNode(i.capName)
         if i.capAction != nil:
           call.add nnkStmtList.newTree(i.capAction)
         else:
@@ -239,6 +239,9 @@ proc genCode*(patt: Patt): NimNode =
 
       of opReturn, opAny, opNop, opFail:
         discard
+
+    when npegTrace:
+      call.add newStrLitNode(i.name)
 
     cases.add nnkOfBranch.newTree(newLit(n), call)
 

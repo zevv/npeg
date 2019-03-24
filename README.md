@@ -488,8 +488,7 @@ stall and go into an infinite loop.
 
 When compiled with `-d:npegTrace`, NPeg will dump its immediate representation
 of the compiled PEG, and will dump a trace of the execution during matching.
-These traces can be used for debugging or for performance tuning of a grammar.
-
+These traces can be used for debugging or optimization of a grammar.
 
 For example, the following program:
 
@@ -502,50 +501,52 @@ let s = peg "line":
 discard s("one two")
 ```
 
-will output the following intermediate representation at compile time.  From the
-IR it can be seen that the `space` rule has been inlined in the `line` rule,
-but that the `word` rule has been emitted as a subroutine which gets called
-from `line`:
+will output the following intermediate representation at compile time.  From
+the IR it can be seen that the `space` rule has been inlined in the `line`
+rule, but that the `word` rule has been emitted as a subroutine which gets
+called from `line`:
 
 ```
 line:
-  0: line           opCall         word:6
-  1: line           opChoice       5
-  2:  space         opStr
-  3: line           opCall         word:6
-  4: line           opPartCommit   2
-  5:                opReturn
+   0: line           opCall word:6
+   1: line           opChoice 5
+   2:  space         opStr " "
+   3: line           opCall word:6
+   4: line           opPartCommit 2
+   5:                opReturn
+
 word:
-  6: word           opSet          '{'a'-'z'}'
-  7: word           opSpan         '{'a'-'z'}'
-  8:                opReturn
+   6: word           opSet '{'a'-'z'}'
+   7: word           opSpan '{'a'-'z'}'
+   8:                opReturn
 ```
 
 At runtime, the following trace is generated. The trace consists of a number
 of columns:
 
-- 1: the current instruction pointer, which maps to the compile time dump
-- 2: the index into the subject
-- 3: the substring of the subject
-- 4: the instruction being executed
-- 5: the backtrace stack depth
+1. the current instruction pointer, which maps to the compile time dump
+2. the index into the subject
+3. the substring of the subject
+4. the name of the rule from which this instruction originated
+5. the instruction being executed
+6. the backtrace stack depth
 
 ```
-  0 |   0 |one two       | call -> word:6      |
-  6 |   0 |one two       | set {'a'-'z'}       |
-  7 |   1 |ne two        | span {'a'-'z'}      |
-  8 |   3 | two          | return              |
-  1 |   3 | two          | choice -> 5         |
-  2 |   3 | two          | str " "             | *
-  3 |   4 |two           | call -> word:6      | *
-  6 |   4 |two           | set {'a'-'z'}       | *
-  7 |   5 |wo            | span {'a'-'z'}      | *
-  8 |   7 |              | return              | *
-  4 |   7 |              | pcommit -> 2        | *
-  2 |   7 |              | str " "             | *
-  5 |   7 |              | fail -> 5           |
-  5 |   7 |              | return              |
-  5 |   7 |              | done                |
+  0|  0|one two                 |line           |call -> word:6                |
+  6|  0|one two                 |word           |set {'a'-'z'}                 |
+  7|  1|ne two                  |word           |span {'a'-'z'}                |
+  8|  3| two                    |               |return                        |
+  1|  3| two                    |line           |choice -> 5                   |
+  2|  3| two                    | space         |str " "                       |*
+  3|  4|two                     |line           |call -> word:6                |*
+  6|  4|two                     |word           |set {'a'-'z'}                 |*
+  7|  5|wo                      |word           |span {'a'-'z'}                |*
+  8|  7|                        |               |return                        |*
+  4|  7|                        |line           |pcommit -> 2                  |*
+  2|  7|                        | space         |str " "                       |*
+   |  7|                        |               |fail                          |*
+  5|  7|                        |               |return                        |
+  5|  7|                        |               |done                          |
 ```
 
 The exact meaning of the IR instructions is not discussed here.

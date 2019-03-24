@@ -46,6 +46,7 @@ proc fixCaptures*(capStack: var Stack[CapFrame], onlyOpen: bool): Captures =
       result.add Capture(ck: c.ck, si1: c.si, name: c.name)
     else:
       let i2 = stack.pop()
+      assert result[i2].ck == c.ck
       result[i2].si2 = c.si
       result[i2].len = result.len - i2 - 1
   assert stack.top == 0
