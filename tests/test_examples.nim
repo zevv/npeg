@@ -184,3 +184,25 @@ Location: https://nim.org/
 
   ######################################################################
 
+  test "UTF-8":
+
+    let b = "  añyóng  ♜♞♝♛♚♝♞♜ оживлённым   "
+
+    let m = peg "s":
+
+      cont <- {128..191}
+
+      utf8 <- {0..127} |
+              {194..223} * cont{1} |
+              {224..239} * cont{2} |
+              {240..244} * cont{3}
+
+      s <- *(@ > +(utf8-' '))
+
+    let r = m(b)
+    doAssert r.ok
+    let c = r.captures
+    doAssert c[0] == "añyóng"
+    doAssert c[1] == "♜♞♝♛♚♝♞♜"
+    doAssert c[2] == "оживлённым"
+
