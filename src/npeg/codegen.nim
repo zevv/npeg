@@ -168,7 +168,7 @@ template skel(cases: untyped, ip: NimNode, c: NimNode) =
 
     template opErrFn(msg: string) =
       trace "err " & msg
-      raise newException(NPegException, "Parsing error at #" & $si & ": expected " & msg)
+      raise newException(NPegException, "Parsing error at #" & $si & ": expected \"" & msg & "\"")
 
     while true:
 

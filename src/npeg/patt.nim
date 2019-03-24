@@ -185,6 +185,9 @@ proc newSetPatt*(cs: CharSet): Patt =
 proc newReturnPatt*(): Patt =
   result.add Inst(op: opReturn)
 
+proc newErrorPatt*(msg: string): Patt =
+  result.add Inst(op: opErr, msg: msg)
+
 ### Prefixes
 
 proc `?`*(p: Patt): Patt =

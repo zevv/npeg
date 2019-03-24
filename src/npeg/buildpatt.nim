@@ -136,7 +136,8 @@ proc buildPatt*(nn: NimNode, grammar: Grammar = nil): Patt =
           return newSetPatt(cs)
 
       of nnkCallStrLit:
-        if n[0].eqIdent("i"): return newStrLitPatt(n.strval)
+        if n[0].eqIdent("i"): return newStrLitPatt(n[1].strval)
+        elif n[0].eqIdent("E"): return newErrorPatt(n[1].strval)
         else: krak n, "unhandled string prefix"
       else:
         krak n, "syntax error"

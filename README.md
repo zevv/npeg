@@ -151,6 +151,11 @@ Captures:
   
   P % code      # Passes all matches made in P to the code fragment
                 # in the variable c: seq[string]
+
+Error handling:
+
+  E"msg"        # Raise an execption with the given message
+
 ```
 
 ### Atoms
@@ -403,14 +408,41 @@ a single character left to match" - which is only true for the end of the
 string.
 
 
-### Error handling
+### Parsing error handling
 
-The `ok` field in the `MatchResult` indicates if the parser was successful.
+NPeg offers a number of ways to handle errors during parsing a subject string:
 
-The `matchLen` field indicates how to which offset the matcher was able to
-parse the subject string. If matching fails, `matchLen` is usually a good
-indication of where in the subject string the error occurred.
+The `ok` field in the `MatchResult` indicates if the parser was successful:
+when the complete pattern has been mached this value will be set to `true`,
+if the complete pattern did not match the subject the value will be `false`.
 
+In addition to the `ok` field, the `matchLen` field indicates the maximum
+offset into the subject the parser was able to match the string. If the
+matching succeeded `matchLen` equals the total length of the subject, if the
+matching failed, the value of `matchLen` is usually a good indication of where
+in the subject string the error occurred.
+
+When, during matching, the parser reaches an `E"message"` atom in the grammar,
+NPeg will raise an `NPegException` exception with the given message. The typical
+use case for this atom is to be combine with the ordered choice `|` operator to
+generate helpful error messages. The following example illustrates this:
+
+```
+let m = peg "list":
+  list <- word * *(comma * word) * eof
+  eof <- !1
+  comma <- ','
+  word <- +{'a'..'z'} | E"word"
+
+echo m("one,two,three,")
+```
+
+The rule `word` looks for a sequence of one or more letters (`+{'a'..'z'}`). If
+can this not be matched the `E"word"` matches instead, raising an exception:
+
+```
+Error: unhandled exception: Parsing error at #14: expected "word" [NPegException]
+```
 
 ### Left recursion
 
