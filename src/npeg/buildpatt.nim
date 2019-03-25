@@ -7,7 +7,7 @@ import codegen
 import patt
 
 #
-# The complete PEG syntax parsed by buildPatt(). In PEG. How meta.
+# The complete PEG syntax parsed by parsePatt(). In PEG. How meta.
 #
 #  name        <- +(alphanum | '_' | '-')
 #  S           <- *{' ','\t'}
@@ -41,7 +41,7 @@ type Grammar* = TableRef[string, Patt]
 
 # Recursively compile a PEG rule to a Pattern
 
-proc buildPatt*(nn: NimNode, grammar: Grammar = nil): Patt =
+proc parsePatt*(name: string, nn: NimNode, grammar: Grammar = nil): Patt =
 
   proc aux(n: NimNode): Patt =
 
@@ -149,4 +149,12 @@ proc buildPatt*(nn: NimNode, grammar: Grammar = nil): Patt =
         krak n, "syntax error"
 
   result = aux(nn)
+  
+  when npegTrace:
+    for i in result.mitems:
+      if i.name == "":
+        i.name = name
+      else:
+        i.name = " " & i.name
+
 

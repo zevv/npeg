@@ -49,7 +49,7 @@ export NPegException
 # Create a parser for a PEG grammar
 
 macro peg*(name: string, n: untyped): untyped =
-  var grammar = newGrammar(n)
+  var grammar = parseGrammar(n)
   grammar.link(name.strVal()).genCode()
 
 
@@ -57,7 +57,8 @@ macro peg*(name: string, n: untyped): untyped =
 
 macro patt*(n: untyped): untyped =
   var grammar = newGrammar()
-  grammar.add("anonymous", n)
+  var patt = parsePatt("anonymous", n, grammar)
+  grammar.add("anonymous", patt)
   grammar.link("anonymous").genCode()
 
 

@@ -7,19 +7,10 @@ import patt
 import buildpatt
 
 
-proc add*(grammar: var Grammar, name: string, n: NimNode) =
+proc add*(grammar: var Grammar, name: string, patt: Patt) =
 
   if name in grammar:
-    error "Redefinition of rule '" & name & "'", n
-
-  var patt = buildPatt(n, grammar)
-
-  when npegTrace:
-    for i in patt.mitems:
-      if i.name == "":
-        i.name = name
-      else:
-        i.name = " " & i.name
+    error "Redefinition of rule '" & name & "'"
 
   grammar[name] = patt
 
@@ -70,12 +61,14 @@ proc newGrammar*(): Grammar =
   result = newTable[string, Patt]()
 
 
-proc newGrammar*(ns: NimNode): Grammar =
+proc parseGrammar*(ns: NimNode): Grammar =
   var grammar = newGrammar()
   for n in ns:
     if n.kind == nnkInfix and n[0].kind == nnkIdent and
        n[1].kind == nnkIdent and n[0].eqIdent("<-"):
-      grammar.add(n[1].strVal, n[2])
+      let name = n[1].strVal
+      let patt = parsePatt(name, n[2], grammar)
+      grammar.add(n[1].strVal, patt)
     else:
       echo n.astGenRepr
       error "Expected PEG rule (name <- ...)", n
