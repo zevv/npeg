@@ -84,7 +84,7 @@ proc dumpSet*(cs: CharSet): string =
     if (c - 1 == first):
       result.add "'" & escapeChar(first.char) & "',"
     elif c - 1 > first:
-      result.add "'" & escapeChar(first.char) & "'-'" & escapeChar((c-1).char) & "',"
+      result.add "'" & escapeChar(first.char) & "'..'" & escapeChar((c-1).char) & "',"
     inc c
   if result[result.len-1] == ',': result.setLen(result.len-1)
   result.add "}"
