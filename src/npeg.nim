@@ -45,20 +45,19 @@ import npeg/grammar
 export push, pop, update
 
 
-# Create a parser for a single PEG pattern
-
-macro patt*(ns: untyped): untyped =
-  var patt = buildPatt(ns) * newReturnPatt()
-  when npegTrace:
-    patt.dump()
-  genCode(patt)
-
-
 # Create a parser for a PEG grammar
 
-macro peg*(name: string, ns: untyped): untyped =
-  let patt = buildGrammar(name.strVal, ns)
-  genCode(patt)
+macro peg*(name: string, n: untyped): untyped =
+  var grammar = newGrammar(n)
+  grammar.link(name.strVal()).genCode()
+
+
+# Create a parser for a single PEG pattern
+
+macro patt*(n: untyped): untyped =
+  var grammar = newGrammar()
+  grammar.add("anonymous", n)
+  grammar.link("anonymous").genCode()
 
 
 # Return all plain string captures from the match result

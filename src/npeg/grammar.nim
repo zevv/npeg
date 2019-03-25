@@ -6,47 +6,37 @@ import common
 import patt
 import buildpatt
 
-# Compile the PEG to a table of patterns
 
-proc parseGrammar(ns: NimNode): Grammar =
+proc add*(grammar: var Grammar, name: string, n: NimNode) =
 
-  result = newTable[string, Patt]()
+  if name in grammar:
+    error "Redefinition of rule '" & name & "'", n
 
-  for n in ns:
-    n.expectKind nnkInfix
-    n[0].expectKind nnkIdent
-    n[1].expectKind nnkIdent
+  var patt = buildPatt(n, grammar)
 
-    if not n[0].eqIdent("<-"):
-      error "Expected <-", n
+  when npegTrace:
+    for i in patt.mitems:
+      if i.name == "":
+        i.name = name
+      else:
+        i.name = " " & i.name
 
-    let pname = n[1].strVal
-    if pname in result:
-      error "Redefinition of rule '" & pname & "'", n
-
-    var patt = buildPatt(n[2], result)
-    when npegTrace:
-      for i in patt.mitems:
-        if i.name == "":
-          i.name = pname
-        else:
-          i.name = " " & i.name
-    result[pname] = patt
+  grammar[name] = patt
 
 
 # Link a list of patterns into a grammar, which is itself again a valid
 # pattern. Start with the initial rule, add all other non terminals and fixup
 # opCall addresses
 
-proc linkGrammar(grammar: Grammar, initial_name: string): Patt =
+proc link*(grammar: Grammar, initial_name: string): Patt =
 
   if initial_name notin grammar:
-    error "inital pattern '" & initial_name & "' not found"
+    error "inital rule '" & initial_name & "' not found"
 
   var retPatt: Patt
   var symTab = newTwoWayTable[string, int]()
 
-  # Recursively emit a pattern, and all patterns it calls which are
+  # Recursively emit a pattern and all patterns it calls which are
   # not yet emitted
 
   proc emit(name: string) =
@@ -76,7 +66,18 @@ proc linkGrammar(grammar: Grammar, initial_name: string): Patt =
     result.dump(symTab)
 
 
-proc buildGrammar*(name: string, ns: NimNode): Patt =
-  let grammar = parseGrammar(ns)
-  linkGrammar(grammar, name)
+proc newGrammar*(): Grammar =
+  result = newTable[string, Patt]()
+
+
+proc newGrammar*(ns: NimNode): Grammar =
+  var grammar = newGrammar()
+  for n in ns:
+    if n.kind == nnkInfix and n[0].kind == nnkIdent and
+       n[1].kind == nnkIdent and n[0].eqIdent("<-"):
+      grammar.add(n[1].strVal, n[2])
+    else:
+      echo n.astGenRepr
+      error "Expected PEG rule (name <- ...)", n
+  grammar
 
