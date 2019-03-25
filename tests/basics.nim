@@ -1,6 +1,5 @@
 import unittest
 import npeg
-import json
   
 {.push warning[Spacing]: off.}
 
@@ -26,22 +25,16 @@ suite "unit tests":
     doAssert not patt({'a'..'c'})("d").ok
     doAssert     patt({'a'..'c'})("a").ok
 
-  test "not":
-    doAssert     patt('a' * !'b')("ac").ok
-    doAssert not patt('a' * !'b')("ab").ok
+  test "?: zero or one":
+    doAssert     patt("a" * ?"b" * "c")("abc").ok
+    doAssert     patt("a" * ?"b" * "c")("ac").ok
 
-  test "count":
-    doAssert     patt(1{3})("aaaa").ok
-    doAssert     patt(1{4})("aaaa").ok
-    doAssert not patt('a'{5})("aaaa").ok
-    doAssert not patt('a'{2..4})("a").ok
-    doAssert     patt('a'{2..4})("aa").ok
-    doAssert     patt('a'{2..4})("aaa").ok
-    doAssert     patt('a'{2..4})("aaaa").ok
-    doAssert     patt('a'{2..4})("aaaaa").ok
-    doAssert     patt('a'{2..4})("aaaab").ok
+  test "+: one or more":
+    doAssert     patt("a" * +"b" * "c")("abc").ok
+    doAssert     patt("a" * +"b" * "c")("abbc").ok
+    doAssert not patt("a" * +"b" * "c")("ac").ok
 
-  test "repeat":
+  test "*: zero or more":
     doAssert     patt(*'a')("aaaa").ok
     doAssert     patt(*'a' * 'b')("aaaab").ok
     doAssert     patt(*'a' * 'b')("bbbbb").ok
@@ -50,10 +43,34 @@ suite "unit tests":
     doAssert     patt(+'a' * 'b')("ab").ok
     doAssert not patt(+'a' * 'b')("b").ok
 
-  test "choice":
+  test "!: not":
+    doAssert     patt('a' * !'b')("ac").ok
+    doAssert not patt('a' * !'b')("ab").ok
+
+  test "@: search":
+    doAssert     patt(@"fg")("abcdefghijk").matchLen == 7
+
+  test "{n}: count":
+    doAssert     patt(1{3})("aaaa").ok
+    doAssert     patt(1{4})("aaaa").ok
+
+  test "{m..n}: count":
+    doAssert not patt('a'{5})("aaaa").ok
+    doAssert not patt('a'{2..4})("a").ok
+    doAssert     patt('a'{2..4})("aa").ok
+    doAssert     patt('a'{2..4})("aaa").ok
+    doAssert     patt('a'{2..4})("aaaa").ok
+    doAssert     patt('a'{2..4})("aaaaa").ok
+    doAssert     patt('a'{2..4})("aaaab").ok
+
+  test "|: ordered choice":
     doAssert     patt("ab" | "cd")("ab").ok
     doAssert     patt("ab" | "cd")("cd").ok
     doAssert not patt("ab" | "cd")("ef").ok
+
+  test "-: difference":
+    doAssert not patt("abcd" - "abcdef")("abcdefgh").ok
+    doAssert     patt("abcd" - "abcdf")("abcdefgh").ok
 
   test "grammar1":
     let a = peg "r1":
@@ -66,7 +83,7 @@ suite "unit tests":
       r2 <- r1 * r1
       r1 <- "abc"
     doAssert a("abcabc").ok
-  
+
   test "raise exception":
     let a = patt E"boom"
     expect NPegException:
