@@ -7,11 +7,11 @@ import tables
 {.push warning[Spacing]: off.}
 
 
-suite "npeg":
+suite "examples":
 
   ######################################################################
 
-  test "simple examples":
+  test "misc":
 
     let p1 = patt +{'a'..'z'}
     doAssert p1("lowercaseword").ok

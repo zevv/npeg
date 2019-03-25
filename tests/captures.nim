@@ -5,7 +5,7 @@ import json
 {.push warning[Spacing]: off.}
 
 
-suite "npeg":
+suite "captures":
 
   test "string captures":
     doAssert     patt(>1)("ab").captures == @["a"]

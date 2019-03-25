@@ -5,7 +5,7 @@ import json
 {.push warning[Spacing]: off.}
 
 
-suite "npeg":
+suite "unit tests":
 
   test "atoms":
     doAssert     patt(0 * "a")("a").ok
@@ -55,4 +55,20 @@ suite "npeg":
     doAssert     patt("ab" | "cd")("cd").ok
     doAssert not patt("ab" | "cd")("ef").ok
 
+  test "grammar1":
+    let a = peg "r1":
+      r1 <- "abc"
+      r2 <- r1 * r1
+    doAssert a("abcabc").ok
+
+  test "grammar2":
+    let a = peg "r1":
+      r2 <- r1 * r1
+      r1 <- "abc"
+    doAssert a("abcabc").ok
+  
+  test "raise exception":
+    let a = patt E"boom"
+    expect NPegException:
+      doAssert a("abcabc").ok
 

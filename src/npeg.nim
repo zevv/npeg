@@ -43,6 +43,7 @@ import npeg/buildpatt
 import npeg/grammar
 
 export push, pop, update
+export NPegException
 
 
 # Create a parser for a PEG grammar
