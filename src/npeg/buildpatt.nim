@@ -43,32 +43,26 @@ type Grammar* = TableRef[string, Patt]
 #
 # Builtins
 #
-
-const
-  biAny   = newPatt(1)
-  biUpper = newPatt {'A'..'Z'}
-  biLower = newPatt {'a'..'z'}
-  biAlpha = biUpper | biLower
-  biDigit = newPatt {'0'..'9'}
-  biSpace = newPatt {'\9'..'\13',' '}
-  biWord  = biUpper | biLower | biDigit
-  biHex   = biDigit | newPatt {'A'..'F','a'..'f'}
-  biZero  = newPatt {'\x00'}
+  
+const builtins = {
+  'u': newPatt {'A'..'Z'},
+  'l': newPatt {'a'..'z'},
+  'a': newPatt {'A'..'Z','a'..'z'},
+  'd': newPatt {'0'..'9'},
+  's': newPatt {'\9'..'\13',' '},
+  'w': newPatt {'A'..'Z','a'..'z','0'..'9'},
+  'x': newPatt {'A'..'F','a'..'f','0'..'9'},
+  'z': newPatt {'\x00'},
+}.toTable()
 
 proc toBuiltIn(n: NimNode): Patt =
-  let name = n.strVal
-  case name.toLowerAscii:
-    of "a": result = biAlpha
-    of "d": result = biDigit
-    of "l": result = biLower
-    of "s": result = biSpace
-    of "u": result = biUpper
-    of "w": result = biWord
-    of "x": result = biHex
-    of "z": result = biZero
-    else: error "Unknown builtin \"\\" & name & "\"", n
-  if name.isUpperAscii(true):
-    result = biAny - result
+  let c = n.strVal[0]
+  let cl = c.toLowerAscii
+  if cl notin builtins:
+    error "Unknown builtin \"\\" & n.strVal & "\"", n
+  result = builtins[cl]
+  if c.isUpperAscii():
+    result = newPatt(1) - result
 
 
 # Recursively compile a PEG rule to a Pattern
