@@ -77,7 +77,7 @@ template skel(cases: untyped, ip: NimNode, c: NimNode) =
         ip = -1
 
     template opIStrFn(s2: string, iname="") =
-      trace iname, "str " & s2.dumpString
+      trace iname, "istr \"" & dumpString(s2) & "\""
       if subIStrCmp(s, si, s2):
         inc ip
         inc si, s2.len

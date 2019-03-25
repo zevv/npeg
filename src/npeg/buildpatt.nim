@@ -1,6 +1,7 @@
 
 import tables
 import macros
+import strutils
 
 import common
 import codegen
@@ -39,6 +40,37 @@ import patt
 type Grammar* = TableRef[string, Patt]
 
 
+#
+# Builtins
+#
+
+const
+  biAny   = newPatt(1)
+  biUpper = newPatt {'A'..'Z'}
+  biLower = newPatt {'a'..'z'}
+  biAlpha = biUpper | biLower
+  biDigit = newPatt {'0'..'9'}
+  biSpace = newPatt {'\9'..'\13',' '}
+  biWord  = biUpper | biLower | biDigit
+  biHex   = biDigit | newPatt {'A'..'F','a'..'f'}
+  biZero  = newPatt {'\x00'}
+
+proc toBuiltIn(n: NimNode): Patt =
+  let name = n.strVal
+  case name.toLowerAscii:
+    of "a": result = biAlpha
+    of "d": result = biDigit
+    of "l": result = biLower
+    of "s": result = biSpace
+    of "u": result = biUpper
+    of "w": result = biWord
+    of "x": result = biHex
+    of "z": result = biZero
+    else: error "Unknown builtin \"\\" & name & "\"", n
+  if name.isUpperAscii(true):
+    result = biAny - result
+
+
 # Recursively compile a PEG rule to a Pattern
 
 proc parsePatt*(name: string, nn: NimNode, grammar: Grammar = nil): Patt =
@@ -53,51 +85,61 @@ proc parsePatt*(name: string, nn: NimNode, grammar: Grammar = nil): Patt =
       of nnKPar, nnkStmtList:
         if n.len == 1: return aux n[0]
         elif n.len == 2:
-          result = newCapPatt(aux n[0], ckAction)
+          result = newPatt(aux n[0], ckAction)
           result[result.high].capAction = n[1]
         else: krak n, "Too many expressions in parenthesis"
 
       of nnkIntLit:
-        return newIntLitPatt(n.intVal)
+        return newPatt(n.intVal)
 
       of nnkStrLit:
-        return newStrLitPatt(n.strval)
+        return newPatt(n.strval, opStr)
 
       of nnkCharLit:
-        return newStrLitPatt($n.intVal.char)
+        return newPatt($n.intVal.char, opStr)
 
       of nnkCall:
         if n.len == 2:
           let p = aux n[1]
           case n[0].strVal:
-            of "Js": return newCapPatt(p, ckJString)
-            of "Ji": return newCapPatt(p, ckJInt)
-            of "Jf": return newCapPatt(p, ckJFloat)
-            of "Ja": return newCapPatt(p, ckJArray)
-            of "Jo": return newCapPatt(p, ckJObject)
-            of "Jt": return newCapPatt(p, ckJFieldDynamic)
+            of "Js": return newPatt(p, ckJString)
+            of "Ji": return newPatt(p, ckJInt)
+            of "Jf": return newPatt(p, ckJFloat)
+            of "Ja": return newPatt(p, ckJArray)
+            of "Jo": return newPatt(p, ckJObject)
+            of "Jt": return newPatt(p, ckJFieldDynamic)
             else: krak n, "Unhandled capture type"
         elif n.len == 3:
           if n[0].eqIdent "Jf":
-            result = newCapPatt(aux n[2], ckJFieldFixed)
+            result = newPatt(aux n[2], ckJFieldFixed)
             result[0].capName = n[1].strVal
           else: krak n, "Unhandled capture type"
 
       of nnkPrefix:
-        let p = aux n[1]
-        case n[0].strVal:
-          of "?": return ?p
-          of "+": return +p
-          of "*": return *p
-          of "!": return !p
-          of "&": return &p
-          of ">": return >p
-          of "@": return @p
-          else: krak n, "Unhandled prefix operator"
+        # Nim combines all prefix chars into one string. We handle prefixes
+        # chars right to left
+        var p: Patt
+        let cs = n[0].strVal
+        for i in 1..cs.len:
+          let c = cs[cs.len-i]
+          if c == '\\':
+            p = n[1].toBuiltIn
+          else:
+            if p.len == 0: p = aux n[1]
+            case c:
+              of '?': p = ?p
+              of '+': p = +p
+              of '*': p = *p
+              of '!': p = !p
+              of '&': p = &p
+              of '>': p = >p
+              of '@': p = @p
+              else: krak n, "Unhandled prefix operator"
+        return p
 
       of nnkInfix:
         if n[0].eqIdent("%"):
-          result = newCapPatt(aux n[1], ckAction)
+          result = newPatt(aux n[1], ckAction)
           result[result.high].capAction = n[2]
         else:
           let (p1, p2) = (aux n[1], aux n[2])
@@ -136,13 +178,13 @@ proc parsePatt*(name: string, nn: NimNode, grammar: Grammar = nil): Patt =
           else:
             krak n, "syntax error"
         if cs.card == 0:
-          return newIntLitPatt(1)
+          return newPatt(1)
         else:
-          return newSetPatt(cs)
+          return newPatt(cs)
 
       of nnkCallStrLit:
         case n[0].strVal:
-          of "i": return newStrLitPatt(n[1].strval)
+          of "i": return newPatt(n[1].strval, opIStr)
           of "E": return newErrorPatt(n[1].strval)
           else: krak n, "unhandled string prefix"
       else:

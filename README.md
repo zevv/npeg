@@ -186,6 +186,23 @@ Error handling:
  `E"msg"`       # Raise an execption with the given message
 ```
 
+In addition to the above, NPeg supports the following built in shortcuts for
+common ASCII atoms:
+
+```nim
+  \a	        # letters
+  \d	        # digits
+  \l	        # lower case letters
+  \s	        # space characters
+  \u	        # upper case letters
+  \w	        # alphanumeric characters
+  \x	        # hexadecimal digits
+  \z	        # the character with representation 0
+```
+
+An upper case version of any of those shortcuts represents its complement: for
+example `\D` maches all characters that are not digits.
+
 
 ### Atoms
 

@@ -158,13 +158,19 @@ proc toSet(p: Patt, cs: var Charset): bool =
 
 ### Atoms
 
-proc newStrLitPatt*(s: string): Patt =
-  result.add Inst(op: opStr, str: s)
+proc newPatt*(s: string, op: Opcode): Patt =
+  case op:
+    of opStr:
+      result.add Inst(op: opStr, str: s)
+    of opIStr:
+      result.add Inst(op: opIStr, str: s)
+    else:
+      doAssert false
 
 proc newIStrLitPatt*(s: string): Patt =
   result.add Inst(op: opIStr, str: s)
 
-proc newCapPatt*(p: Patt, ck: CapKind): Patt =
+proc newPatt*(p: Patt, ck: CapKind): Patt =
   result.add Inst(op: opCapOpen, capKind: ck)
   result.add p
   result.add Inst(op: opCapClose, capKind: ck)
@@ -172,14 +178,14 @@ proc newCapPatt*(p: Patt, ck: CapKind): Patt =
 proc newCallPatt*(label: string): Patt =
   result.add Inst(op: opCall, callLabel: label)
 
-proc newIntLitPatt*(n: BiggestInt): Patt =
+proc newPatt*(n: BiggestInt): Patt =
   if n > 0:
     for i in 1..n:
       result.add Inst(op: opAny)
   else:
     result.add Inst(op: opNop)
 
-proc newSetPatt*(cs: CharSet): Patt =
+proc newPatt*(cs: CharSet): Patt =
   result.add Inst(op: opSet, cs: cs)
 
 proc newReturnPatt*(): Patt =
@@ -208,7 +214,7 @@ proc `+`*(p: Patt): Patt =
   result.add *p
 
 proc `>`*(p: Patt): Patt =
-  return newCapPatt(p, ckStr)
+  return newPatt(p, ckStr)
 
 proc `!`*(p: Patt): Patt =
   result.add Inst(op: opChoice, offset: p.len + 3)
