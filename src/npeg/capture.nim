@@ -8,7 +8,8 @@ type
 
   Capture* = object
     ck: CapKind
-    si1, si2: int
+    si: int
+    s: string
     name: string
     len: int
 
@@ -18,7 +19,7 @@ type
 # Convert all closed CapFrames on the capture stack to a list
 # of Captures, all consumed frames are removed from the CapStack
 
-proc fixCaptures*(capStack: var Stack[CapFrame], onlyOpen: bool): Captures =
+proc fixCaptures*(s: string, capStack: var Stack[CapFrame], onlyOpen: bool): Captures =
 
   assert capStack.top > 0
   assert capStack.peek.cft == cftCLose
@@ -43,11 +44,11 @@ proc fixCaptures*(capStack: var Stack[CapFrame], onlyOpen: bool): Captures =
     let c = capStack[i]
     if c.cft == cftOpen:
       stack.push result.len
-      result.add Capture(ck: c.ck, si1: c.si, name: c.name)
+      result.add Capture(ck: c.ck, si: c.si, name: c.name)
     else:
       let i2 = stack.pop()
       assert result[i2].ck == c.ck
-      result[i2].si2 = c.si
+      result[i2].s = s[result[i2].si..<c.si]
       result[i2].len = result.len - i2 - 1
   assert stack.top == 0
 
@@ -56,13 +57,13 @@ proc fixCaptures*(capStack: var Stack[CapFrame], onlyOpen: bool): Captures =
   capStack.top = iFrom
 
 
-proc collectCaptures*(s: string, cs: Captures): seq[string] =
-  for c in cs:
-    if c.ck == ckStr:
-      result.add s[c.si1 ..< c.si2]
+proc collectCaptures*(caps: Captures): seq[string] =
+  for cap in caps:
+    if cap.ck == ckStr:
+      result.add cap.s
 
 
-proc collectCapturesJson*(s: string, cs: Captures): JsonNode =
+proc collectCapturesJson*(cs: Captures): JsonNode =
 
   proc aux(iStart, iEnd: int, parentNode: JsonNode): JsonNode =
 
@@ -71,9 +72,9 @@ proc collectCapturesJson*(s: string, cs: Captures): JsonNode =
       let cap = cs[i]
 
       case cap.ck:
-        of ckJString: result = newJString s[cap.si1 ..< cap.si2]
-        of ckJInt: result = newJInt parseInt(s[cap.si1 ..< cap.si2])
-        of ckJFloat: result = newJFloat parseFloat(s[cap.si1 ..< cap.si2])
+        of ckJString: result = newJString cap.s
+        of ckJInt: result = newJInt parseInt(cap.s)
+        of ckJFloat: result = newJFloat parseFloat(cap.s)
         of ckJArray: result = newJArray()
         of ckJFieldDynamic: result = newJArray()
         of ckJObject: result = newJObject()

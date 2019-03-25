@@ -22,7 +22,6 @@ type
     cp: int
 
   MatchResult* = object
-    s*: string
     ok*: bool
     matchLen*: int
     matchMax*: int
@@ -147,8 +146,8 @@ template skel(cases: untyped, ip: NimNode, c: NimNode) =
       trace iname, "capclose " & $ck & " -> " & $si
       capStack.push (cft: cftClose, si: si, ck: ck, name: "")
       if ck == ckAction:
-        let cs = fixCaptures(capStack, true)
-        let c {.inject.} = collectCaptures(s, cs)
+        let cs = fixCaptures(s, capStack, true)
+        let c {.inject.} = collectCaptures(cs)
         block:
           actionCode
       inc ip
@@ -189,8 +188,7 @@ template skel(cases: untyped, ip: NimNode, c: NimNode) =
 
     result.matchLen = si
     if result.ok and capStack.top > 0:
-      result.s = s
-      result.cs = fixCaptures(capStack, false)
+      result.cs = fixCaptures(s, capStack, false)
 
   {.pop.}
 
