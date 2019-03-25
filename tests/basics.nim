@@ -24,6 +24,9 @@ suite "unit tests":
     doAssert     patt({'a'..'c'})("c").ok
     doAssert not patt({'a'..'c'})("d").ok
     doAssert     patt({'a'..'c'})("a").ok
+    doAssert     patt("")("abcde").matchLen == 0
+    doAssert     patt("a")("abcde").matchLen == 1
+    doAssert     patt("ab")("abcde").matchLen == 2
 
   test "?: zero or one":
     doAssert     patt("a" * ?"b" * "c")("abc").ok
@@ -43,9 +46,14 @@ suite "unit tests":
     doAssert     patt(+'a' * 'b')("ab").ok
     doAssert not patt(+'a' * 'b')("b").ok
 
-  test "!: not":
+  test "!: not predicate":
     doAssert     patt('a' * !'b')("ac").ok
     doAssert not patt('a' * !'b')("ab").ok
+
+  test "&: and predicate":
+    doAssert     patt(&"abc")("abc").ok
+    doAssert not patt(&"abc")("abd").ok
+    doAssert     patt(&"abc")("abc").matchLen == 0
 
   test "@: search":
     doAssert     patt(@"fg")("abcdefghijk").matchLen == 7
