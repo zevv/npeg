@@ -202,6 +202,9 @@ common atoms:
 
 ### Atoms
 
+Atoms are the basic building blocks for a grammer, describing the parts of the
+subject that should be matched.
+
 - Integer literal: `0` / `1` / `n`
 
   The int literal atom `N` matches exactly n number of bytes. `0` always matches,
@@ -230,6 +233,9 @@ common atoms:
 
 ### Operators
 
+NPeg provides various prefix, infix and suffix operators. These operators
+combine or transform one or more patterns into expressions, building larger
+patterns.
 
 - Concatenation: `P1 * P2`
 
@@ -241,15 +247,14 @@ common atoms:
 
 - Ordered choice: `P1 | P2`
 
-  The pattern `P1 | P2` tries to first match pattern `P1`. If this succeeds, matching
-  will proceed without trying `P2`. Only if `P1` can not be matched, NPeg will backtrace
-  and try to match `P2`
+  The pattern `P1 | P2` tries to first match pattern `P1`. If this succeeds,
+  matching will proceed without trying `P2`. Only if `P1` can not be matched,
+  NPeg will backtrack and try to match `P2` instead.
 
   For example `("foo" | "bar") * "fizz"` would match both `"foofizz"` and `"barfizz"`
 
   NPeg optimizes the `|` operator for characters and character sets: The
-  pattern `'a' | 'b' | 'c'` will be rewritten to a character set
-  `{'a','b','c'}`
+  pattern `'a' | 'b' | 'c'` will be rewritten to a character set `{'a','b','c'}`
 
 
 - Difference: `P1 - P2`
@@ -257,13 +262,16 @@ common atoms:
   The pattern `P1 - P2` matches `P1` *only* if `P2` does not match. This is
   equivalent to `!P2 * P1`
 
+  NPeg optimizes the `-` operator for characters and character sets: The
+  pattern `{'a','b','c'} - 'b'` will be rewritten to the character set `{'a','c'}
+
 
 - Grouping: `(P)`
 
   Brackets are used to group patterns similar to normal mathematical expressions.
 
 
-- Not predicate: `!P`
+- Not-predicate: `!P`
 
   The pattern `!P` returns a pattern that matches only if the input does not match `P`.
   In contrast to most other patterns, this pattern does not consume any input.
@@ -272,13 +280,13 @@ common atoms:
   is not a single character left to match" - which is only true for the end of the string.
 
 
-- And predicate: `&P`
+- And-predicate: `&P`
 
   The pattern `&P` matches only if the input matches `P`, but will *not*
   consume any input. This is equivalent to `!!P`
 
 
-- Match zero or one times: `?P`
+- Optional: `?P`
 
   The pattern `?P` matches if `P` can be matched zero or more times, so essentially
   succeeds if `P` either matches or not.
@@ -288,7 +296,8 @@ common atoms:
 
 - Match zero or more times: `*P`
 
-  The pattern `*P` tries to match as many occurrences of pattern `P` as possible.
+  The pattern `*P` tries to match as many occurrences of pattern `P` as
+  possible - this operator always behaves *greedily*.
 
   For example, `*"foo" * "bar"` matches `"bar"`, `"fooboar"`, `"foofoobar"`, etc
 
@@ -296,7 +305,7 @@ common atoms:
 - Match one or more times: `+P`
 
   The pattern `+P` matches `P` at least once, but also more times. It is equivalent
-  to the `P * *P`
+  to the `P * *P` - this operator always behave *greedily*
 
 
 - Search: `@P`
