@@ -18,11 +18,13 @@ proc initStack*[T](name: string, len: int, max: int=int.high): Stack[T] =
   result.frames.setLen len
   result.max = max
 
+proc grow*[T](s: var Stack[T]) =
+  if s.top >= s.max:
+    raise newException(NPegException, s.name & " stack overflow, depth>" & $s.max)
+  s.frames.setLen s.frames.len * 2
+
 proc push*[T](s: var Stack[T], frame: T) =
-  if s.top >= s.frames.len:
-    if s.top >= s.max:
-      raise newException(NPegException, s.name & " stack overflow, depth>" & $s.max)
-    s.frames.setLen s.frames.len * 2
+  if s.top >= s.frames.len: s.grow()
   s.frames[s.top] = frame
   inc s.top
 

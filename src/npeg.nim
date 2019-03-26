@@ -42,7 +42,7 @@ import npeg/capture
 import npeg/buildpatt
 import npeg/grammar
 
-export push, pop, update
+export push, pop, update, grow
 export NPegException
 
 
