@@ -163,7 +163,7 @@ Operators:
 
 String captures:
 
-  `P`           # Captures the string matching `P`
+  >P`           # Captures the string matching `P`
 
 Json captures:
 
