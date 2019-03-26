@@ -45,24 +45,14 @@ type Grammar* = TableRef[string, Patt]
 #
   
 const builtins = {
-  'u': newPatt {'A'..'Z'},
-  'l': newPatt {'a'..'z'},
-  'a': newPatt {'A'..'Z','a'..'z'},
-  'd': newPatt {'0'..'9'},
-  's': newPatt {'\9'..'\13',' '},
-  'w': newPatt {'A'..'Z','a'..'z','0'..'9'},
-  'x': newPatt {'A'..'F','a'..'f','0'..'9'},
-  'z': newPatt {'\x00'},
+  "Upper": newPatt {'A'..'Z'},
+  "Lower": newPatt {'a'..'z'},
+  "Alpha": newPatt {'A'..'Z','a'..'z'},
+  "Digit": newPatt {'0'..'9'},
+  "Space": newPatt {'\9'..'\13',' '},
+  "Word": newPatt {'A'..'Z','a'..'z','0'..'9'},
+  "HexDigit": newPatt {'A'..'F','a'..'f','0'..'9'},
 }.toTable()
-
-proc toBuiltIn(n: NimNode): Patt =
-  let c = n.strVal[0]
-  let cl = c.toLowerAscii
-  if cl notin builtins:
-    error "Unknown builtin \"\\" & n.strVal & "\"", n
-  result = builtins[cl]
-  if c.isUpperAscii():
-    result = newPatt(1) - result
 
 
 # Recursively compile a PEG rule to a Pattern
@@ -110,25 +100,21 @@ proc parsePatt*(name: string, nn: NimNode, grammar: Grammar = nil): Patt =
           else: krak n, "Unhandled capture type"
 
       of nnkPrefix:
-        # Nim combines all prefix chars into one string. We handle prefixes
+        # Nim combines all prefix chars into one string. Handle prefixes
         # chars right to left
-        var p: Patt
         let cs = n[0].strVal
+        var p = aux n[1]
         for i in 1..cs.len:
           let c = cs[cs.len-i]
-          if c == '\\':
-            p = n[1].toBuiltIn
-          else:
-            if p.len == 0: p = aux n[1]
-            case c:
-              of '?': p = ?p
-              of '+': p = +p
-              of '*': p = *p
-              of '!': p = !p
-              of '&': p = &p
-              of '>': p = >p
-              of '@': p = @p
-              else: krak n, "Unhandled prefix operator"
+          case c:
+            of '?': p = ?p
+            of '+': p = +p
+            of '*': p = *p
+            of '!': p = !p
+            of '&': p = &p
+            of '>': p = >p
+            of '@': p = @p
+            else: krak n, "Unhandled prefix operator"
         return p
 
       of nnkInfix:
@@ -153,7 +139,9 @@ proc parsePatt*(name: string, nn: NimNode, grammar: Grammar = nil): Patt =
 
       of nnkIdent:
         let name = n.strVal
-        if name in grammar:
+        if name in builtins:
+          return builtins[name]
+        elif name in grammar:
           return grammar[name]
         else:
           return newCallPatt(name)

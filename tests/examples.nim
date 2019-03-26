@@ -27,8 +27,7 @@ suite "examples":
 
     let s = peg "line":
       ws       <- *' '
-      digit    <- {'0'..'9'} * ws
-      number   <- +digit * ws
+      number   <- +Digit * ws
       termOp   <- {'+', '-'} * ws
       factorOp <- {'*', '/'} * ws
       open     <- '(' * ws
@@ -75,7 +74,7 @@ suite "examples":
       """
 
     let s = peg "DOC":
-      S              <- *{' ','\t','\r','\n'}
+      S              <- *Space
       True           <- "true"
       False          <- "false"
       Null           <- "null"
@@ -116,15 +115,13 @@ suite "examples":
     let s = peg "http":
       space       <- ' '
       crlf        <- '\n' * ?'\r'
-      alpha       <- {'a'..'z','A'..'Z'}
-      digit       <- {'0'..'9'}
-      url         <- +(alpha | digit | '/' | '_' | '.')
+      url         <- +(Alpha | Digit | '/' | '_' | '.')
       eof         <- !1
-      header_name <- +(alpha | '-')
+      header_name <- +(Alpha | '-')
       header_val  <- +(1-{'\n'}-{'\r'})
-      proto       <- >(+alpha) % (req.proto = c[0])
-      version     <- >(+digit * '.' * +digit) % (req.version = c[0])
-      code        <- >(+digit) % (req.code = c[0].parseInt)
+      proto       <- >(+Alpha) % (req.proto = c[0])
+      version     <- >(+Digit * '.' * +Digit) % (req.version = c[0])
+      code        <- >(+Digit) % (req.code = c[0].parseInt)
       msg         <- >(+(1 - '\r' - '\n')) % (req.message = c[0])
       header      <- (>header_name * ": " * >header_val) % (req.headers[c[0]] = c[1])
 
@@ -155,15 +152,13 @@ Location: https://nim.org/
     let s = peg "http":
       space       <- ' '
       crlf        <- '\n' * ?'\r'
-      alpha       <- {'a'..'z','A'..'Z'}
-      digit       <- {'0'..'9'}
-      url         <- +(alpha | digit | '/' | '_' | '.')
+      url         <- +(Alpha | Digit | '/' | '_' | '.')
       eof         <- !1
-      header_name <- +(alpha | '-')
+      header_name <- +(Alpha | '-')
       header_val  <- +(1-{'\n'}-{'\r'})
-      proto       <- Jf("proto", Js(+alpha) )
-      version     <- Jf("version", Js(+digit * '.' * +digit) )
-      code        <- Jf("code", Ji(+digit) )
+      proto       <- Jf("proto", Js(+Alpha) )
+      version     <- Jf("version", Js(+Digit * '.' * +Digit) )
+      code        <- Jf("code", Ji(+Digit) )
       msg         <- Jf("msg", Js(+(1 - '\r' - '\n')) )
       header      <- Ja( Js(header_name) * ": " * Js(header_val) )
 

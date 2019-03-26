@@ -82,21 +82,14 @@ suite "unit tests":
     doAssert     patt("abcd" - "abcdf")("abcdefgh").ok
 
   test "Builtins":
-    doAssert     patt(\d)("1").ok
-    doAssert not patt(\d)("a").ok
-    doAssert     patt(\D)("a").ok
-    doAssert not patt(\D)("1").ok
-    doAssert     patt(\u)("A").ok
-    doAssert not patt(\u)("a").ok
-    doAssert     patt(\U)("a").ok
-    doAssert not patt(\U)("A").ok
-    doAssert     patt(\l)("a").ok
-    doAssert not patt(\l)("A").ok
-    doAssert     patt(\L)("A").ok
-    doAssert not patt(\L)("a").ok
-    doAssert     patt(+\d)("12345").ok
-    doAssert     patt(+\x)("deadbeef").ok
-    doAssert     patt(\z)("\x00").ok
+    doAssert     patt(Digit)("1").ok
+    doAssert not patt(Digit)("a").ok
+    doAssert     patt(Upper)("A").ok
+    doAssert not patt(Upper)("a").ok
+    doAssert     patt(Lower)("a").ok
+    doAssert not patt(Lower)("A").ok
+    doAssert     patt(+Digit)("12345").ok
+    doAssert     patt(+HexDigit)("deadbeef").ok
 
   test "grammar1":
     let a = peg "r1":
