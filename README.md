@@ -442,7 +442,7 @@ statement - simple enclose the statement in brackets to mitigate.
 ## Some notes on using PEGs
 
 
-### Searching
+### Achoring and searching
 
 Unlike regular expressions, PEGs are always matched in *anchored* mode only: the
 defined pattern is matched from the start of the subject string. For example,
@@ -456,7 +456,8 @@ search <- p | 1 * search
 ```
 
 The above grammar first tries to match pattern `p`, or if that fails, matches
-any character `1` and recurs back to itself.
+any character `1` and recurs back to itself. Because searching is a common
+operation, NPeg provides the builtin `@P` operator for this.
 
 
 ### End of string
