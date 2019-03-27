@@ -25,15 +25,17 @@ suite "examples":
 
   test "matchFile":
 
-    let parser = peg "pairs":
-      pairs <- pair * *(',' * pair)
-      word <- +{'a'..'z'}
-      number <- +{'0'..'9'}
-      pair <- (>word * '=' * >number)
+    when defined(windows) or defined(posix):
 
-    let r = parser.matchFile "tests/testdata"
-    doAssert r.ok
-    doAssert r.captures == @["one", "1", "two", "2", "three", "3", "four", "4"]
+      let parser = peg "pairs":
+        pairs <- pair * *(',' * pair)
+        word <- +{'a'..'z'}
+        number <- +{'0'..'9'}
+        pair <- (>word * '=' * >number)
+
+      let r = parser.matchFile "tests/testdata"
+      doAssert r.ok
+      doAssert r.captures == @["one", "1", "two", "2", "three", "3", "four", "4"]
 
   ######################################################################
 

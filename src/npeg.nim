@@ -33,7 +33,8 @@
 import tables
 import macros
 import json
-import memfiles
+when defined(windows) or defined(posix):
+  import memfiles
 
 import npeg/common
 import npeg/patt
@@ -69,12 +70,13 @@ proc match*(p: Parser, s: string): MatchResult =
 proc match*(p: Parser, s: cstring): MatchResult =
   p.fn(s, s.len)
 
-proc matchFile*(p: Parser, fname: string): MatchResult =
-  var f = memfiles.open(fname)
-  let str = cast[cstring](f.mem)
-  let len = f.size
-  result = p.fn(str, len)
-  f.close()
+when defined(windows) or defined(posix):
+  proc matchFile*(p: Parser, fname: string): MatchResult =
+    var f = memfiles.open(fname)
+    let str = cast[cstring](f.mem)
+    let len = f.size
+    result = p.fn(str, len)
+    f.close()
 
 # Return all plain string captures from the match result
 
