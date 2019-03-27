@@ -518,7 +518,7 @@ NPeg will raise an `NPegException` exception with the given message. The typical
 use case for this atom is to be combine with the ordered choice `|` operator to
 generate helpful error messages. The following example illustrates this:
 
-```
+```nim
 let parser = peg "list":
   list <- word * *(comma * word) * eof
   eof <- !1
