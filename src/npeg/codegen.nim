@@ -28,7 +28,7 @@ type
     cs*: Captures
 
   Parser* = object
-    fn*: proc(s: cstring, len: int): MatchResult
+    fn*: proc(s: string): MatchResult
 
 
 
@@ -42,7 +42,7 @@ template skel(cases: untyped, ip: NimNode, c: NimNode) =
 
   {.push hint[XDeclaredButNotUsed]: off.}
 
-  let match = proc(s: cstring, slen: int): MatchResult =
+  let match = proc(s: string): MatchResult =
 
     # The parser state
 
@@ -73,7 +73,7 @@ template skel(cases: untyped, ip: NimNode, c: NimNode) =
 
     template opStrFn(s2: string, iname="") =
       trace iname, "str \"" & dumpString(s2) & "\""
-      if subStrCmp(s, slen, si, s2):
+      if subStrCmp(s, s.len, si, s2):
         inc ip
         inc si, s2.len
       else:
@@ -81,7 +81,7 @@ template skel(cases: untyped, ip: NimNode, c: NimNode) =
 
     template opIStrFn(s2: string, iname="") =
       trace iname, "istr \"" & dumpString(s2) & "\""
-      if subIStrCmp(s, slen, si, s2):
+      if subIStrCmp(s, s.len, si, s2):
         inc ip
         inc si, s2.len
       else:
@@ -89,7 +89,7 @@ template skel(cases: untyped, ip: NimNode, c: NimNode) =
 
     template opSetFn(cs: CharSet, iname="") =
       trace iname, "set " & dumpSet(cs)
-      if si < slen and s[si] in cs:
+      if si < s.len and s[si] in cs:
         inc ip
         inc si
       else:
@@ -97,7 +97,7 @@ template skel(cases: untyped, ip: NimNode, c: NimNode) =
 
     template opSpanFn(cs: CharSet, iname="") =
       trace iname, "span " & dumpSet(cs)
-      while si < slen and s[si] in cs:
+      while si < s.len and s[si] in cs:
         inc si
       inc ip
 
@@ -107,7 +107,7 @@ template skel(cases: untyped, ip: NimNode, c: NimNode) =
 
     template opAnyFn(iname="") =
       trace iname, "any"
-      if si < slen:
+      if si < s.len:
         inc ip
         inc si
       else:
