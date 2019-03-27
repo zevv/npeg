@@ -1,0 +1,22 @@
+
+0.5.0
+=====
+
+- API change: peg() and patt() now return an object of type Parser
+  instead of a proc, and the function match(p: Parser) is now used for
+  matching the subject. match() can match string and cstring types, 
+  matchFile() matches a file using memFile.
+
+- Added builtin atoms Upper, Lower, Digit, HexDigit, Alpha
+
+- Added `@` search operator
+
+- Added `&` and predicate
+
+0.4.0
+=====
+
+- Improved tracing output, during trace the originating rule name
+  for each instruction is dumped.
+
+- Optimizations
