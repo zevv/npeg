@@ -15,11 +15,14 @@ type
 
   Captures* = seq[Capture]
 
+  FixMethod* = enum
+    FixAll, FixOpen
 
-# Convert all closed CapFrames on the capture stack to a list
-# of Captures, all consumed frames are removed from the CapStack
 
-proc fixCaptures*(s: string, capStack: var Stack[CapFrame], onlyOpen: bool): Captures =
+# Convert all closed CapFrames on the capture stack to a list of Captures, all
+# consumed frames are removed from the CapStack
+
+proc fixCaptures*(s: string, capStack: var Stack[CapFrame], fm: FixMethod): Captures =
 
   assert capStack.top > 0
   assert capStack.peek.cft == cftCLose
@@ -28,7 +31,7 @@ proc fixCaptures*(s: string, capStack: var Stack[CapFrame], onlyOpen: bool): Cap
 
   var iFrom = 0
 
-  if onlyOpen:
+  if fm == FixOpen:
     var i = capStack.top - 1
     var depth = 0
     while true:

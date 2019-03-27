@@ -149,7 +149,7 @@ template skel(cases: untyped, ip: NimNode, c: NimNode) =
       trace iname, "capclose " & $ck & " -> " & $si
       capStack.push (cft: cftClose, si: si, ck: ck, name: "")
       if ck == ckAction:
-        let cs = fixCaptures(s, capStack, true)
+        let cs = fixCaptures(s, capStack, FixOpen)
         let c {.inject.} = collectCaptures(cs)
         block:
           actionCode
@@ -191,7 +191,7 @@ template skel(cases: untyped, ip: NimNode, c: NimNode) =
 
     result.matchLen = si
     if result.ok and capStack.top > 0:
-      result.cs = fixCaptures(s, capStack, false)
+      result.cs = fixCaptures(s, capStack, FixAll)
 
   {.pop.}
 
