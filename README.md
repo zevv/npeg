@@ -16,13 +16,13 @@ import npeg, strutils, tables
 
 var words = initTable[string, int]()
 
-let match = peg "pairs":
+let parser = peg "pairs":
   pairs <- pair * *(',' * pair) * !1
   word <- +{'a'..'z'}
   number <- +{'0'..'9'}
   pair <- (>word * '=' * >number) % (words[c[0]] = parseInt(c[1]))
 
-doAssert match("one=1,two=2,three=3,four=4").ok
+doAssert parser.match("one=1,two=2,three=3,four=4").ok
 echo words
 
 {"two": 2, "three": 3, "one": 1, "four": 4}
@@ -33,14 +33,23 @@ NPeg can generate parsers that run at compile time.
 
 ## Usage
 
-The `patt()` and `peg()` macros can be used to compile parser functions.
+The `patt()` and `peg()` macros can be used to compile parser functions:
 
-`patt()` can create a parser from a single anonymous pattern, while `peg()`
-allows the definition of a set of (potentially recursive) rules making up a
-complete grammar.
+- `patt()` creates a parser from a single anonymous pattern
 
-The result of these macros is a parser function that can be called to parse a
-subject string. The parser function returns an object of the type `MatchResult`:
+- `peg()` allows the definition of a set of (potentially recursive) rules 
+          making up a complete grammar.
+
+The result of these macros is an object of the type `Parser` which can be used
+to parse a subject:
+
+```nim
+proc match(p: Parser, s: string) = MatchResult
+proc match(p: Parser, s: cstring) = MatchResult
+proc matchFile(p: Parser, fname: string) = MatchResult
+```
+
+The above `match` functions returns an object of the type `MatchResult`:
 
 ```nim
 MatchResult = object
@@ -77,8 +86,8 @@ A simple pattern can be compiled with the `patt` macro.
 For example, the pattern below splits a string by white space:
 
 ```nim
-let split = patt *(*' ' * > +(1-' '))
-echo split("   one two three ").captures
+let parser = patt *(*' ' * > +(1-' '))
+echo parser.match("   one two three ").captures
 ```
 
 Output:
@@ -95,10 +104,10 @@ argument is the name of initial patterns, followed by a list of named patterns.
 Patterns can now refer to other patterns by name, allowing for recursion:
 
 ```nim
-let p = peg "ident":
+let parser = peg "ident":
   lower <- {'a'..'z'}
   ident <- *lower
-doAssert p("lowercaseword").ok
+doAssert parser.match("lowercaseword").ok
 ```
 
 
@@ -343,10 +352,12 @@ a comma separated list of key-value pairs:
 ```nim
 const data = "one=1,two=2,three=3,four=4"
 
-let s = peg "pairs":
+let parser = peg "pairs":
   pairs <- pair * *(',' * pair) * !1
   word <- +{'a'..'z'}
   pair <- word * '=' * word
+
+let r = parser.match(data)
 ```
 
 ### String captures
@@ -361,10 +372,12 @@ In the example, we add the `>` capture prefix to the `word` rule, causing all
 the matched words to be added to the result capture `seq[string]`
 
 ```nim
-let s = peg "pairs":
+let parser = peg "pairs":
   pairs <- pair * *(',' * pair) * !1
   word <- +{'a'..'z'}
   pair <- >word * '=' * >word
+
+let r = parser.match(data)
 ```
 
 The resulting list of captures is now:
@@ -395,11 +408,14 @@ In the example below:
   value.
 
 ```nim
-let s = peg "pairs":
+let parser = peg "pairs":
   pairs <- Jo(pair * *(',' * pair) * !1)
   word <- +{'a'..'z'}
   number <- +{'0'..'9'}
   pair <- Jt(Js(word) * '=' * Ji(number))
+
+let r = parser.match(data)
+echo r.capturesJson
 ```
 
 The resulting Json data is now:
@@ -430,11 +446,13 @@ by the `%` operator, where the data is added to a Nim table:
 from strutils import parseInt
 var words = initTable[string, int]()
 
-let s = peg "pairs":
+let parser = peg "pairs":
   pairs <- pair * *(',' * pair) * !1
   word <- +{'a'..'z'}
   number <- +{'0'..'9'}
   pair <- (>word * '=' * >number) % (words[c[0]] = parseInt(c[1]))
+
+let r = parser.match(data)
 ```
 
 After the parsing finished, the `words` table will now contain
@@ -501,13 +519,13 @@ use case for this atom is to be combine with the ordered choice `|` operator to
 generate helpful error messages. The following example illustrates this:
 
 ```
-let m = peg "list":
+let parser = peg "list":
   list <- word * *(comma * word) * eof
   eof <- !1
   comma <- ','
   word <- +{'a'..'z'} | E"word"
 
-echo m("one,two,three,")
+echo parser.match("one,two,three,")
 ```
 
 The rule `word` looks for a sequence of one or more letters (`+{'a'..'z'}`). If
@@ -553,12 +571,12 @@ These traces can be used for debugging or optimization of a grammar.
 For example, the following program:
 
 ```nim
-let s = peg "line":
+let parser = peg "line":
   space <- ' '
   line <- word * *(space * word)
   word <- +{'a'..'z'}
 
-discard s("one two")
+discard parser.match("one two")
 ```
 
 will output the following intermediate representation at compile time.  From
@@ -617,13 +635,13 @@ The exact meaning of the IR instructions is not discussed here.
 ### Parsing mathematical expressions
 
 ```nim
-let s = peg "line":
+let parser = peg "line":
   exp      <- term   * *( ('+'|'-') * term)
   term     <- factor * *( ('*'|'/') * factor)
   factor   <- +{'0'..'9'} | ('(' * exp * ')')
   line     <- exp * !1
 
-doAssert s("3*(4+15)+2").ok
+doAssert parser.match("3*(4+15)+2").ok
 ```
 
 
@@ -633,7 +651,7 @@ The following PEG defines a complete parser for the Json language - it will not 
 any captures, but simple traverse and validate the document:
 
 ```nim
-let match = peg "DOC":
+let parser = peg "DOC":
   S              <- *{' ','\t','\r','\n'}
   True           <- "true"
   False          <- "false"
@@ -656,7 +674,7 @@ let match = peg "DOC":
   Array          <- "[" * ( Json * *( "," * Json ) | ?S ) * "]"
 
 let doc = """ {"jsonrpc": "2.0", "method": "subtract", "params": [42, 23], "id": 1} """
-doAssert match(doc).ok
+doAssert parser.match(doc).ok
 ```
 
 
@@ -692,7 +710,7 @@ req.headers = initTable[string, string]()
 
 # HTTP grammar (simplified)
 
-let s = peg "http":
+let parser = peg "http":
   space       <- ' '
   crlf        <- '\n' * ?'\r'
   alpha       <- {'a'..'z','A'..'Z'}
@@ -714,7 +732,7 @@ let s = peg "http":
 
 # Parse the data and print the resulting table
 
-let res = s(data)
+let res = parser.match(data)
 echo req
 ```
 

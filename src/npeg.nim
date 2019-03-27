@@ -33,6 +33,7 @@
 import tables
 import macros
 import json
+import memfiles
 
 import npeg/common
 import npeg/patt
@@ -61,6 +62,19 @@ macro patt*(n: untyped): untyped =
   grammar.add("anonymous", patt)
   grammar.link("anonymous").genCode()
 
+
+proc match*(p: Parser, s: string): MatchResult =
+  p.fn(s.cstring, s.len)
+
+proc match*(p: Parser, s: cstring): MatchResult =
+  p.fn(s, s.len)
+
+proc matchFile*(p: Parser, fname: string): MatchResult =
+  var f = memfiles.open(fname)
+  let str = cast[cstring](f.mem)
+  let len = f.size
+  result = p.fn(str, len)
+  f.close()
 
 # Return all plain string captures from the match result
 

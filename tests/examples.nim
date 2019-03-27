@@ -14,12 +14,26 @@ suite "examples":
   test "misc":
 
     let p1 = patt +{'a'..'z'}
-    doAssert p1("lowercaseword").ok
+    doAssert p1.match("lowercaseword").ok
 
     let p2 = peg "ident":
       lower <- {'a'..'z'}
       ident <- +lower
-    doAssert p2("lowercaseword").ok
+    doAssert p2.match("lowercaseword").ok
+
+  ######################################################################
+
+  test "matchFile":
+
+    let parser = peg "pairs":
+      pairs <- pair * *(',' * pair)
+      word <- +{'a'..'z'}
+      number <- +{'0'..'9'}
+      pair <- (>word * '=' * >number)
+
+    let r = parser.matchFile "tests/testdata"
+    doAssert r.ok
+    doAssert r.captures == @["one", "1", "two", "2", "three", "3", "four", "4"]
 
   ######################################################################
 
@@ -38,11 +52,11 @@ suite "examples":
       factor   <- number | (open * exp * close)
       line     <- ws * exp * eol
 
-    doAssert s("1").ok
-    doAssert s("1+1").ok
-    doAssert s("1+1*1").ok
-    doAssert s("(1+1)*1").ok
-    doAssert s("13 + 5 * (2+1)").ok
+    doAssert s.match("1").ok
+    doAssert s.match("1+1").ok
+    doAssert s.match("1+1*1").ok
+    doAssert s.match("(1+1)*1").ok
+    doAssert s.match("13 + 5 * (2+1)").ok
 
   ######################################################################
 
@@ -95,7 +109,7 @@ suite "examples":
       Object         <- '{' * ( String * ":" * JSON * *( "," * String * ":" * JSON ) | ?S ) * "}"
       Array          <- "[" * ( JSON * *( "," * JSON ) | ?S ) * "]"
 
-    doAssert s(json).ok
+    doAssert s.match(json).ok
 
   ######################################################################
 
@@ -136,7 +150,7 @@ Content-Type: text/html
 Location: https://nim.org/
 """
 
-    let res = s(data)
+    let res = s.match(data)
     doAssert res.ok
     doAssert req.proto == "HTTP"
     doAssert req.version == "1.1"
@@ -173,7 +187,7 @@ Content-Type: text/html
 Location: https://nim.org/
 """
 
-    let res = s(data)
+    let res = s.match(data)
     doAssert res.ok
     doAssert res.capturesJson == parseJson("""{"response":{"proto":"HTTP","version":"1.1","code":301,"msg":"Moved Permanently"},"headers":[["Content-Length","162"],["Content-Type","text/html"],["Location","https://nim.org/"]]}""")
 
@@ -194,7 +208,7 @@ Location: https://nim.org/
 
       s <- *(@ > +(utf8-' '))
 
-    let r = m(b)
+    let r = m.match(b)
     doAssert r.ok
     let c = r.captures
     doAssert c[0] == "añyóng"

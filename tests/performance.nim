@@ -39,7 +39,7 @@ let s = peg "JSON":
 let js = execProcess("bzip2 -d < tests/json-32M.bzip2").string
 
 let tNpeg = measureTime "npeg":
-  echo s(js)
+  echo s.match(js)
 
 let tPackedJson = measureTime "packedjson":
   discard packedjson.parseJson(js)

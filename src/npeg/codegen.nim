@@ -27,6 +27,9 @@ type
     matchMax*: int
     cs*: Captures
 
+  Parser* = object
+    fn*: proc(s: cstring, len: int): MatchResult
+
 
 
 # Template for generating the parsing match proc.
@@ -39,7 +42,7 @@ template skel(cases: untyped, ip: NimNode, c: NimNode) =
 
   {.push hint[XDeclaredButNotUsed]: off.}
 
-  let match = proc(s: string): MatchResult =
+  let match = proc(s: cstring, slen: int): MatchResult =
 
     # The parser state
 
@@ -56,7 +59,7 @@ template skel(cases: untyped, ip: NimNode, c: NimNode) =
       var l: string
       l.add if ip >= 0: align($ip, 3) else: "   "
       l.add "|" & align($si, 3)
-      l.add "|" & alignLeft(dumpString(s, si, 24), 24)
+      l.add "|" & alignLeft(dumpString($s, si, 24), 24)
       l.add "|" & alignLeft(iname, 15)
       l.add "|" & alignLeft(msg, 30)
       l.add "|" & alignLeft(repeat("*", backStack.top), 20)
@@ -70,7 +73,7 @@ template skel(cases: untyped, ip: NimNode, c: NimNode) =
 
     template opStrFn(s2: string, iname="") =
       trace iname, "str \"" & dumpString(s2) & "\""
-      if subStrCmp(s, si, s2):
+      if subStrCmp(s, slen, si, s2):
         inc ip
         inc si, s2.len
       else:
@@ -78,7 +81,7 @@ template skel(cases: untyped, ip: NimNode, c: NimNode) =
 
     template opIStrFn(s2: string, iname="") =
       trace iname, "istr \"" & dumpString(s2) & "\""
-      if subIStrCmp(s, si, s2):
+      if subIStrCmp(s, slen, si, s2):
         inc ip
         inc si, s2.len
       else:
@@ -86,7 +89,7 @@ template skel(cases: untyped, ip: NimNode, c: NimNode) =
 
     template opSetFn(cs: CharSet, iname="") =
       trace iname, "set " & dumpSet(cs)
-      if si < s.len and s[si] in cs:
+      if si < slen and s[si] in cs:
         inc ip
         inc si
       else:
@@ -94,7 +97,7 @@ template skel(cases: untyped, ip: NimNode, c: NimNode) =
 
     template opSpanFn(cs: CharSet, iname="") =
       trace iname, "span " & dumpSet(cs)
-      while si < s.len and s[si] in cs:
+      while si < slen and s[si] in cs:
         inc si
       inc ip
 
@@ -104,7 +107,7 @@ template skel(cases: untyped, ip: NimNode, c: NimNode) =
 
     template opAnyFn(iname="") =
       trace iname, "any"
-      if si < s.len:
+      if si < slen:
         inc ip
         inc si
       else:
@@ -192,7 +195,7 @@ template skel(cases: untyped, ip: NimNode, c: NimNode) =
 
   {.pop.}
 
-  match
+  Parser(fn: match)
 
 
 # Convert the list of parser instructions into a Nim finite state machine

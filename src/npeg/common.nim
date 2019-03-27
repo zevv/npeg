@@ -31,8 +31,8 @@ const npegTrace* = defined(npegTrace)
 
 
 
-proc subStrCmp*(s: string, si: int, s2: string): bool =
-  if si > s.len - s2.len:
+proc subStrCmp*(s: cstring, slen: int, si: int, s2: string): bool =
+  if si > slen - s2.len:
     return false
   for i in 0..<s2.len:
     if s[si+i] != s2[i]:
@@ -40,8 +40,8 @@ proc subStrCmp*(s: string, si: int, s2: string): bool =
   return true
 
 
-proc subIStrCmp*(s: string, si: int, s2: string): bool =
-  if si > s.len - s2.len:
+proc subIStrCmp*(s: cstring, slen: int, si: int, s2: string): bool =
+  if si > slen - s2.len:
     return false
   for i in 0..<s2.len:
     if s[si+i].toLowerAscii != s2[i].toLowerAscii:
