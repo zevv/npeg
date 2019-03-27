@@ -129,7 +129,7 @@ proc parsePatt*(name: string, nn: NimNode, grammar: Grammar = nil): Patt =
             of "|": return p1 | p2
             else: krak n, "Unhandled infix operator"
 
-      of nnkCurlyExpr:
+      of nnkBracketExpr:
         let p = aux(n[0])
         if n[1].kind == nnkIntLit:
           return p{n[1].intVal}

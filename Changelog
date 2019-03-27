@@ -1,4 +1,11 @@
 
+0.6.0
+=====
+
+- API change: count syntax changed from {n} to [n].
+
+- Optimizations in code generation
+
 0.5.0
 =====
 

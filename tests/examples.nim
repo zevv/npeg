@@ -95,7 +95,7 @@ suite "examples":
       False          <- "false"
       Null           <- "null"
 
-      UnicodeEscape  <- 'u' * {'0'..'9','A'..'F','a'..'f'}{4}
+      UnicodeEscape  <- 'u' * {'0'..'9','A'..'F','a'..'f'}[4]
       Escape         <- '\\' * ({ '{', '"', '|', '\\', 'b', 'f', 'n', 'r', 't' } | UnicodeEscape)
       StringBody     <- ?Escape * *( +( {'\x20'..'\xff'} - {'"'} - {'\\'}) * *Escape) 
       String         <- ?S * '"' * StringBody * '"' * ?S
@@ -204,9 +204,9 @@ Location: https://nim.org/
       cont <- {128..191}
 
       utf8 <- {0..127} |
-              {194..223} * cont{1} |
-              {224..239} * cont{2} |
-              {240..244} * cont{3}
+              {194..223} * cont[1] |
+              {224..239} * cont[2] |
+              {240..244} * cont[3]
 
       s <- *(@ > +(utf8-' '))
 

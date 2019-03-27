@@ -60,17 +60,17 @@ suite "unit tests":
     doAssert     patt(@"fg").match("abcdefghijk").matchLen == 7
 
   test "{n}: count":
-    doAssert     patt(1{3}).match("aaaa").ok
-    doAssert     patt(1{4}).match("aaaa").ok
+    doAssert     patt(1[3]).match("aaaa").ok
+    doAssert     patt(1[4]).match("aaaa").ok
 
   test "{m..n}: count":
-    doAssert not patt('a'{5}).match("aaaa").ok
-    doAssert not patt('a'{2..4}).match("a").ok
-    doAssert     patt('a'{2..4}).match("aa").ok
-    doAssert     patt('a'{2..4}).match("aaa").ok
-    doAssert     patt('a'{2..4}).match("aaaa").ok
-    doAssert     patt('a'{2..4}).match("aaaaa").ok
-    doAssert     patt('a'{2..4}).match("aaaab").ok
+    doAssert not patt('a'[5]).match("aaaa").ok
+    doAssert not patt('a'[2..4]).match("a").ok
+    doAssert     patt('a'[2..4]).match("aa").ok
+    doAssert     patt('a'[2..4]).match("aaa").ok
+    doAssert     patt('a'[2..4]).match("aaaa").ok
+    doAssert     patt('a'[2..4]).match("aaaaa").ok
+    doAssert     patt('a'[2..4]).match("aaaab").ok
 
   test "|: ordered choice":
     doAssert     patt("ab" | "cd").match("ab").ok

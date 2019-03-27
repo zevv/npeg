@@ -167,8 +167,8 @@ Operators:
   *P            # matches P zero or more times
   +P            # matches P one or more times
   @P            # search for P
-   P{n}         # matches P n times
-   P{m..n}      # matches P m to n times
+   P[n]         # matches P n times
+   P[m..n]      # matches P m to n times
 
 String captures:
 
@@ -327,18 +327,18 @@ patterns.
   match; if his is required you can manually construct a grammar to do this.
 
 
-- Match exactly `n` times: `P{n}`
+- Match exactly `n` times: `P[n]`
 
-  The pattern `P{n}` matches `P` exactly `n` times.
+  The pattern `P[n]` matches `P` exactly `n` times.
 
-  For example, `"foo"{3}` only matches the string `"foofoofoo"`
+  For example, `"foo"[3]` only matches the string `"foofoofoo"`
 
 
-- Match `m` to `n` times: `P{m..n}`
+- Match `m` to `n` times: `P[m..n]`
 
-  The pattern `P{m..n}` matches `P` at least `m` and at most `n` times.
+  The pattern `P[m..n]` matches `P` at least `m` and at most `n` times.
 
-  For example, `"foo{1,3}"` matches `"foo"`, `"foofoo"` and `"foofoofo"`
+  For example, `"foo[1,3]"` matches `"foo"`, `"foofoo"` and `"foofoofo"`
 
 
 ## Captures
