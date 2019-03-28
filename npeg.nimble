@@ -18,3 +18,9 @@ task test, "Runs the test suite":
 
 task testjs, "Javascript tests":
   exec "nim js tests/tests.nim && node tests/tests.js"
+
+task testwin, "Mingw tests":
+  exec "nim c --gcc.exe:x86_64-w64-mingw32-gcc --gcc.linkerexe:x86_64-w64-mingw32-gcc --os:windows tests/tests.nim && wine tests/tests.exe"
+
+task testall, "Test all":
+  exec "nimble test && nimble testjs && nimble testwin"
