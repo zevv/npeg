@@ -54,15 +54,6 @@ type
   Patt* = seq[Inst]
 
 
-# Create a set containing all characters. This is used for optimizing
-# set unions and differences with opAny
-
-proc mkAnySet(): CharSet {.compileTime.} =
-  for c in char.low..char.high:
-    result.incl c
-const anySet = mkAnySet()
-
-
 # Create a short and friendly text representation of a character set.
 
 proc escapeChar(c: char): string =
@@ -153,7 +144,7 @@ proc toSet(p: Patt, cs: var Charset): bool =
       cs = { toLowerAscii(i.str[0]), toUpperAscii(i.str[0]) }
       return true
     if i.op == opAny:
-      cs = anySet
+      cs = {low(char)..high(char)}
       return true
 
 ### Atoms
