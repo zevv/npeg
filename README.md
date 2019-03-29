@@ -84,6 +84,9 @@ MatchResult = object
   is usually a good indication of the location where the matching error
   occured.
 
+There are two different ways to access the matched data, which can be freely
+mixed:
+
 The following proc are available to retrieve the captured results:
 
 ```nim
@@ -370,14 +373,14 @@ let r = parser.match(data)
 
 ### String captures
 
-The basic method for capturing is marking parts of the peg
-with the capture prefix `>`. During parsing NPeg keeps track of all matches,
-properly discarding any matches which were invalidated by backtracking. Only
-when parsing has fully succeeded it creates a `seq[string]` of all matched
-parts, which is then returned in the `MatchData.captures` field.
+The basic method for capturing is marking parts of the peg with the capture
+prefix `>`. During parsing NPeg keeps track of all matches, properly discarding
+any matches which were invalidated by backtracking. Only when parsing has fully
+succeeded it creates a `seq[string]` of all matched parts, which is then
+returned in the `MatchData.captures` field.
 
-In the example, we add the `>` capture prefix to the `word` rule, causing all
-the matched words to be added to the result capture `seq[string]`
+In the example, the `>` capture prefix is added to the `word` rule, causing all
+the matched words to be appended to the result capture `seq[string]`
 
 ```nim
 let parser = peg "pairs":
@@ -440,6 +443,7 @@ The resulting Json data is now:
 
 ### Code block captures
 
+Code block captures offer the most flexibility for accessing the parsed 
 Within the `peg()` macro it is possible to freely mix PEG rule definitions and
 Nim code. The code can access all captures made within the capture through the
 implicit declared variable `c: seq[string]`. 
