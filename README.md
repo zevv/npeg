@@ -1,15 +1,25 @@
 
 # NPeg
 
-NPeg is a pure Nim pattern-matching library. It provides macros to compile
+NPeg is a pure Nim pattern matching library. It provides macros to compile
 patterns and grammars (PEGs) to Nim procedures which will parse a string and
 collect selected parts of the input. PEGs are not unlike regular expressions,
 but offer more power and flexibility, and have less ambiguities.
 
-Here is a simple example showing NPegs functionality. The macro `peg` compiles
-a grammar definition into a function `match`, which is used to parse a string
-and place the key-value pairs into the Nim table `words`:
+Some NPeg highlights:
 
+- Grammar definitions and Nim code can be freely mixed. Nim code is embedded
+  using the normal Nim code block syntax, and does not disrupt the grammar
+  definition.
+
+- NPeg-generated parsers can be used both at run and at compile time.
+
+- NPeg offers various methods for tracing, optimizing and debugging your
+  parsers.
+
+Here is a simple example showing the power of NPeg: The macro `peg` compiles a
+grammar definition into a `parser` object, which is used to match a string and
+place the key-value pairs into the Nim table `words`:
 
 ```nim
 import npeg, strutils, tables
@@ -20,15 +30,18 @@ let parser = peg "pairs":
   pairs <- pair * *(',' * pair) * !1
   word <- +{'a'..'z'}
   number <- +{'0'..'9'}
-  pair <- (>word * '=' * >number) % (words[c[0]] = parseInt(c[1]))
+  pair <- >word * '=' * >number:
+    words[c[0]] = c[1].parseInt
 
 doAssert parser.match("one=1,two=2,three=3,four=4").ok
 echo words
-
-{"two": 2, "three": 3, "one": 1, "four": 4}
 ```
 
-NPeg can generate parsers that run at compile time.
+Output:
+
+```nim
+{"two": 2, "three": 3, "one": 1, "four": 4}
+```
 
 
 ## Usage
@@ -184,11 +197,6 @@ Json captures:
   Jt("tag", P)  # Stores capture  P  in the field "tag" of the outer JObject
   Jt(P)         # Stores the second Json capture of  P  in the outer JObject
                 # using the first Json capure of  P  as the tag.
-
-Action captures:
-
-  P % code      # Passes all matches made in P to the code fragment
-                # in the variable  c  which has the type seq[string] 
 
 Error handling:
 
@@ -430,17 +438,18 @@ The resulting Json data is now:
 ```
 
 
-### Action captures
+### Code block captures
 
-The `%` operator can be used to execute arbitrary Nim code during parsing. The
-Nim code can access all captures made within the capture through the implicit
-declared variable `c: seq[string]`. Note that the Nim code gets executed during
-parsing, *even if the match is part of a pattern that fails and is later
-backtracked*
+Within the `peg()` macro it is possible to freely mix PEG rule definitions and
+Nim code. The code can access all captures made within the capture through the
+implicit declared variable `c: seq[string]`. 
 
-The example has been extended to capture each word and number with the regular
-`>` capture prefix. Then the complete pair is passed to a snippet of Nim code
-by the `%` operator, where the data is added to a Nim table:
+Note that the Nim code gets executed during parsing, *even if the match is part
+of a pattern that fails and is later backtracked*
+
+The example has been extended to capture each word and number with the `>`
+string capture prefix. When the `pair` rule is matched, the attached code block
+is executed, which can access the value of the captures in the `c[]` array:
 
 ```nim
 from strutils import parseInt
@@ -450,7 +459,8 @@ let parser = peg "pairs":
   pairs <- pair * *(',' * pair) * !1
   word <- +{'a'..'z'}
   number <- +{'0'..'9'}
-  pair <- (>word * '=' * >number) % (words[c[0]] = parseInt(c[1]))
+  pair <- >word * '=' * >number:
+    words[c[0]] = c[1].parseInt
 
 let r = parser.match(data)
 ```
@@ -460,10 +470,6 @@ After the parsing finished, the `words` table will now contain
 ```nim
 {"two": 2, "three": 3, "one": 1, "four": 4}
 ```
-
-Note: Due to ambiguities in the PEG syntax, the code on the right hand of the `%`
-might not be parsed right at compile time, especially when this is an assignment
-statement - simple enclose the statement in brackets to mitigate.
 
 
 ## Some notes on using PEGs
@@ -680,9 +686,9 @@ doAssert parser.match(doc).ok
 
 ### Captures
 
-The following example shows how to use the `%` operator for action captures.
-The defined grammar will parse a HTTP response document and extract structured
-data from the document into a Nim object:
+The following example shows how to use code block captures. The defined
+grammar will parse a HTTP response document and extract structured data from
+the document into a Nim object:
 
 ```nim
 
@@ -719,12 +725,16 @@ let parser = peg "http":
   eof         <- !1
   header_name <- +(alpha | '-')
   header_val  <- +(1-{'\n'}-{'\r'})
-  proto       <- >(+alpha) % (req.proto = c[0])
-  version     <- >(+digit * '.' * +digit) % (req.version = c[0])
-  code        <- >(+digit) % (req.code = c[0].parseInt)
-  msg         <- >(+(1 - '\r' - '\n')) % (req.message = c[0])
-  header      <- (>header_name * ": " * >header_val) % (req.headers[c[0]] = c[1])
-
+  proto       <- >+alpha:
+    req.proto = c[0]
+  version     <- >(+digit * '.' * +digit):
+    req.version = c[0]
+  code        <- >+digit:
+    req.code = c[0].parseInt
+  msg         <- >(+(1 - '\r' - '\n')):
+    req.message = c[0]
+  header      <- >header_name * ": " * >header_val:
+    req.headers[c[0]] = c[1]
   response    <- proto * '/' * version * space * code * space * msg
   headers     <- *(header * crlf)
   http        <- response * crlf * headers * eof

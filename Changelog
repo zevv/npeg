@@ -1,4 +1,9 @@
 
+0.7.0
+=====
+
+- Action callbacks (%) dropped in favour of Nim code block callbacks.
+
 0.6.0
 =====
 

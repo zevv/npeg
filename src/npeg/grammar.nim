@@ -67,8 +67,12 @@ proc parseGrammar*(ns: NimNode): Grammar =
     if n.kind == nnkInfix and n[0].kind == nnkIdent and
        n[1].kind == nnkIdent and n[0].eqIdent("<-"):
       let name = n[1].strVal
-      let patt = parsePatt(name, n[2], grammar)
+      var patt = parsePatt(name, n[2], grammar)
+      if n.len == 4:
+        patt = newPatt(patt, ckAction)
+        patt[patt.high].capAction = n[3]
       grammar.add(n[1].strVal, patt)
+ 
     else:
       echo n.astGenRepr
       error "Expected PEG rule (name <- ...)", n

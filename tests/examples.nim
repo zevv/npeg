@@ -135,11 +135,16 @@ suite "examples":
       eof         <- !1
       header_name <- +(Alpha | '-')
       header_val  <- +(1-{'\n'}-{'\r'})
-      proto       <- >(+Alpha) % (req.proto = c[0])
-      version     <- >(+Digit * '.' * +Digit) % (req.version = c[0])
-      code        <- >(+Digit) % (req.code = c[0].parseInt)
-      msg         <- >(+(1 - '\r' - '\n')) % (req.message = c[0])
-      header      <- (>header_name * ": " * >header_val) % (req.headers[c[0]] = c[1])
+      proto       <- >(+Alpha):
+        req.proto = c[0]
+      version     <- >(+Digit * '.' * +Digit):
+        req.version = c[0]
+      code        <- >+Digit:
+        req.code = c[0].parseInt
+      msg         <- >(+(1 - '\r' - '\n')):
+        req.message = c[0]
+      header      <- >header_name * ": " * >header_val:
+        req.headers[c[0]] = c[1]
 
       response    <- proto * '/' * version * space * code * space * msg 
       headers     <- *(header * crlf)

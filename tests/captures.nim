@@ -16,7 +16,10 @@ suite "captures":
 
   test "action captures":
     var a: string
-    doAssert patt(>1 % (a=c[0])).match("a").ok
+    let p = peg "foo":
+      foo <- >1:
+        a = c[0]
+    doAssert p.match("a").ok
     doassert a == "a"
 
   test "JSON captures":

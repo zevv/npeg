@@ -25,7 +25,7 @@ import patt
 #  char        <- "'" * charbody * "'" * S
 #  charbody    <- ("\\" * {'t','r','n','\\'}) | ("\\x" * hex{2}) | 1
 #  atom        <- (number | string | set | char | name)
-#  infix       <- ('*' | '|' | '-' | '%') * S
+#  infix       <- ('*' | '|' | '-') * S
 #  postfix     <- '{' * number * ?( ".." * number) * "}"
 #  prefix      <- '!' | '*' | '+' | '?' | capture
 #  capture     <- '>' | "Js" | "Jo" | "Ja" | "Jf" | "Ji"
@@ -118,16 +118,12 @@ proc parsePatt*(name: string, nn: NimNode, grammar: Grammar = nil): Patt =
         return p
 
       of nnkInfix:
-        if n[0].eqIdent("%"):
-          result = newPatt(aux n[1], ckAction)
-          result[result.high].capAction = n[2]
-        else:
-          let (p1, p2) = (aux n[1], aux n[2])
-          case n[0].strVal:
-            of "*": return p1 * p2
-            of "-": return p1 - p2
-            of "|": return p1 | p2
-            else: krak n, "Unhandled infix operator"
+        let (p1, p2) = (aux n[1], aux n[2])
+        case n[0].strVal:
+          of "*": return p1 * p2
+          of "-": return p1 - p2
+          of "|": return p1 | p2
+          else: krak n, "Unhandled infix operator"
 
       of nnkBracketExpr:
         let p = aux(n[0])
