@@ -29,8 +29,8 @@ suite "examples":
 
       let parser = peg "pairs":
         pairs <- pair * *(',' * pair)
-        word <- +{'a'..'z'}
-        number <- +{'0'..'9'}
+        word <- +Alnum
+        number <- +Digit
         pair <- (>word * '=' * >number)
 
       let r = parser.matchFile "tests/testdata"
@@ -89,27 +89,27 @@ suite "examples":
       }
       """
 
-    let s = peg "DOC":
+    let s = peg "doc":
       S              <- *Space
-      True           <- "true"
-      False          <- "false"
-      Null           <- "null"
+      jtrue           <- "true"
+      jfalse          <- "false"
+      null           <- "null"
 
-      UnicodeEscape  <- 'u' * {'0'..'9','A'..'F','a'..'f'}[4]
-      Escape         <- '\\' * ({ '{', '"', '|', '\\', 'b', 'f', 'n', 'r', 't' } | UnicodeEscape)
-      StringBody     <- ?Escape * *( +( {'\x20'..'\xff'} - {'"'} - {'\\'}) * *Escape) 
-      String         <- ?S * '"' * StringBody * '"' * ?S
+      unicodeEscape  <- 'u' * Xdigit[4]
+      escape         <- '\\' * ({ '{', '"', '|', '\\', 'b', 'f', 'n', 'r', 't' } | unicodeEscape)
+      stringBody     <- ?escape * *( +( {'\x20'..'\xff'} - {'"'} - {'\\'}) * *escape) 
+      string         <- ?S * '"' * stringBody * '"' * ?S
 
-      Minus          <- '-'
-      IntPart        <- '0' | {'1'..'9'} * *{'0'..'9'}
-      FractPart      <- "." * +{'0'..'9'}
-      ExpPart        <- ( 'e' | 'E' ) * ?( '+' | '-' ) * +{'0'..'9'}
-      Number         <- ?Minus * IntPart * ?FractPart * ?ExpPart
+      minus          <- '-'
+      intPart        <- '0' | (Digit-'0') * *Digit
+      fractPart      <- "." * +Digit
+      expPart        <- ( 'e' | 'E' ) * ?( '+' | '-' ) * +Digit
+      number         <- ?minus * intPart * ?fractPart * ?expPart
 
-      DOC            <- JSON * !1
-      JSON           <- ?S * ( Number | Object | Array | String | True | False | Null ) * ?S
-      Object         <- '{' * ( String * ":" * JSON * *( "," * String * ":" * JSON ) | ?S ) * "}"
-      Array          <- "[" * ( JSON * *( "," * JSON ) | ?S ) * "]"
+      doc            <- JSON * !1
+      JSON           <- ?S * ( number | jobject | jarray | string | jtrue | jfalse | null ) * ?S
+      jobject         <- '{' * ( string * ":" * JSON * *( "," * string * ":" * JSON ) | ?S ) * "}"
+      jarray          <- "[" * ( JSON * *( "," * JSON ) | ?S ) * "]"
 
     doAssert s.match(json).ok
 

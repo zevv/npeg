@@ -736,17 +736,15 @@ req.headers = initTable[string, string]()
 let parser = peg "http":
   space       <- ' '
   crlf        <- '\n' * ?'\r'
-  alpha       <- {'a'..'z','A'..'Z'}
-  digit       <- {'0'..'9'}
-  url         <- +(alpha | digit | '/' | '_' | '.')
+  url         <- +(Alpha | Digit | '/' | '_' | '.')
   eof         <- !1
-  header_name <- +(alpha | '-')
+  header_name <- +(Alpha | '-')
   header_val  <- +(1-{'\n'}-{'\r'})
-  proto       <- >+alpha:
+  proto       <- >+Alpha:
     req.proto = c[0]
-  version     <- >(+digit * '.' * +digit):
+  version     <- >(+Digit * '.' * +Digit):
     req.version = c[0]
-  code        <- >+digit:
+  code        <- >+Digit:
     req.code = c[0].parseInt
   msg         <- >(+(1 - '\r' - '\n')):
     req.message = c[0]
