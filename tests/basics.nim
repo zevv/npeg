@@ -89,7 +89,7 @@ suite "unit tests":
     doAssert     patt(Lower).match("a").ok
     doAssert not patt(Lower).match("A").ok
     doAssert     patt(+Digit).match("12345").ok
-    doAssert     patt(+HexDigit).match("deadbeef").ok
+    doAssert     patt(+Xdigit).match("deadbeef").ok
 
   test "grammar1":
     let a = peg "r1":

@@ -211,16 +211,20 @@ Error handling:
 ```
 
 In addition to the above, NPeg provides the following built-in shortcuts for
-common atoms:
+common atoms, corresponding to POSIX character classes:
 
 ```nim
-  Upper        # {'A'..'Z'},
-  Lower        # {'a'..'z'},
-  Alpha        # {'A'..'Z','a'..'z'},
-  Digit        # {'0'..'9'},
-  Space        # {'\9'..'\13',' '},
-  Word         # {'A'..'Z','a'..'z','0'..'9'},
-  HexDigit     # {'A'..'F','a'..'f','0'..'9'},
+  Alnum  <- {'A'..'Z','a'..'z','0'..'9'}, # Alphanumeric characters
+  Alpha  <- {'A'..'Z','a'..'z'},          # Alphabetic characters
+  Blank  <- {' ','\t'},                   # Space and tab
+  Cntrl  <- {'\x00'..'\x1f','\x7f'},      # Control characters
+  Digit  <- {'0'..'9'},                   # Digits
+  Graph  <- {'\x20'..'\x7e'},             # Visible characters
+  Lower  <- {'a'..'z'},                   # Lowercase characters
+  Print  <- {'\x20'..'\x7e',' '},         # Visible characters and spaces
+  Space  <- {'\9'..'\13',' '},            # Whitespace characters
+  Upper  <- {'A'..'Z'},                   # Uppercase characters
+  Xdigit <- {'A'..'F','a'..'f','0'..'9'}, # Hexadecimal digits
 ```
 
 
