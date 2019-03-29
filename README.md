@@ -6,6 +6,10 @@ patterns and grammars (PEGs) to Nim procedures which will parse a string and
 collect selected parts of the input. PEGs are not unlike regular expressions,
 but offer more power and flexibility, and have less ambiguities.
 
+Some use cases where NPeg is useful are configuration or data file parsers,
+robust protocol implementations, input validation, lexing of programming
+languages or domain specific languages.
+
 Some NPeg highlights:
 
 - Grammar definitions and Nim code can be freely mixed. Nim code is embedded
