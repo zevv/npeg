@@ -443,17 +443,22 @@ The resulting Json data is now:
 
 ### Code block captures
 
-Code block captures offer the most flexibility for accessing the parsed 
-Within the `peg()` macro it is possible to freely mix PEG rule definitions and
-Nim code. The code can access all captures made within the capture through the
-implicit declared variable `c: seq[string]`. 
+Code block captures offer the most flexibility for accessing matched data in
+NPeg. This allows you to define a grammar with embedded Nim code for handling
+the data during parsing.
 
-Note that the Nim code gets executed during parsing, *even if the match is part
-of a pattern that fails and is later backtracked*
+Note that for code block captures, the Nim code gets executed during parsing,
+*even if the match is part of a pattern that fails and is later backtracked*
+
+When a grammar rule ends with a colon `:`, the next indented block in the
+grammar is interpreted as Nim code, which gets executed when the rule has been
+matched. Any string captures that were made inside the rule are available to
+the Nim code in the `c[]` array. Code block captures consume all embedded
+string captures, so these captures will no longer be available after matching.
 
 The example has been extended to capture each word and number with the `>`
 string capture prefix. When the `pair` rule is matched, the attached code block
-is executed, which can access the value of the captures in the `c[]` array:
+is executed, which adds the parsed key and value to the `words` table.
 
 ```nim
 from strutils import parseInt
