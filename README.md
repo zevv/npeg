@@ -674,27 +674,29 @@ The following PEG defines a complete parser for the Json language - it will not 
 any captures, but simple traverse and validate the document:
 
 ```nim
-let parser = peg "DOC":
-  S              <- *{' ','\t','\r','\n'}
-  True           <- "true"
-  False          <- "false"
-  Null           <- "null"
+let s = peg "doc":
+  S              <- *Space
+  jtrue          <- "true"
+  jfalse         <- "false"
+  jnull          <- "null"
 
-  UnicodeEscape  <- 'u' * {'0'..'9','A'..'F','a'..'f'}{4}
-  Escape         <- '\\' * ({ '{', '"', '|', '\\', 'b', 'f', 'n', 'r', 't' } | UnicodeEscape)
-  StringBody     <- ?Escape * *( +( {'\x20'..'\xff'} - {'"'} - {'\\'}) * *Escape)
-  String         <- ?S * '"' * StringBody * '"' * ?S
+  unicodeEscape  <- 'u' * Xdigit[4]
+  escape         <- '\\' * ({ '{', '"', '|', '\\', 'b', 'f', 'n', 'r', 't' } | unicodeEscape)
+  stringBody     <- ?escape * *( +( {'\x20'..'\xff'} - {'"'} - {'\\'}) * *escape)
+  jstring         <- ?S * '"' * stringBody * '"' * ?S
 
-  Minus          <- '-'
-  IntPart        <- '0' | {'1'..'9'} * *{'0'..'9'}
-  FractPart      <- "." * +{'0'..'9'}
-  ExpPart        <- ( 'e' | 'E' ) * ?( '+' | '-' ) * +{'0'..'9'}
-  Number         <- ?Minus * IntPart * ?FractPart * ?ExpPart
+  minus          <- '-'
+  intPart        <- '0' | (Digit-'0') * *Digit
+  fractPart      <- "." * +Digit
+  expPart        <- ( 'e' | 'E' ) * ?( '+' | '-' ) * +Digit
+  jnumber         <- ?minus * intPart * ?fractPart * ?expPart
 
-  DOC            <- Json * !1
-  Json           <- ?S * ( Number | Object | Array | String | True | False | Null ) * ?S
-  Object         <- '{' * ( String * ":" * Json * *( "," * String * ":" * Json ) | ?S ) * "}"
-  Array          <- "[" * ( Json * *( "," * Json ) | ?S ) * "]"
+  doc            <- JSON * !1
+  JSON           <- ?S * ( jnumber | jobject | jarray | jstring | jtrue | jfalse | jnull ) * ?S
+  jobject        <- '{' * ( jstring * ":" * JSON * *( "," * jstring * ":" * JSON ) | ?S ) * "}"
+  jarray         <- "[" * ( JSON * *( "," * JSON ) | ?S ) * "]"
+
+doAssert s.match(json).ok
 
 let doc = """ {"jsonrpc": "2.0", "method": "subtract", "params": [42, 23], "id": 1} """
 doAssert parser.match(doc).ok

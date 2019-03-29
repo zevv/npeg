@@ -91,25 +91,25 @@ suite "examples":
 
     let s = peg "doc":
       S              <- *Space
-      jtrue           <- "true"
-      jfalse          <- "false"
-      null           <- "null"
+      jtrue          <- "true"
+      jfalse         <- "false"
+      jnull          <- "null"
 
       unicodeEscape  <- 'u' * Xdigit[4]
       escape         <- '\\' * ({ '{', '"', '|', '\\', 'b', 'f', 'n', 'r', 't' } | unicodeEscape)
       stringBody     <- ?escape * *( +( {'\x20'..'\xff'} - {'"'} - {'\\'}) * *escape) 
-      string         <- ?S * '"' * stringBody * '"' * ?S
+      jstring        <- ?S * '"' * stringBody * '"' * ?S
 
       minus          <- '-'
       intPart        <- '0' | (Digit-'0') * *Digit
       fractPart      <- "." * +Digit
       expPart        <- ( 'e' | 'E' ) * ?( '+' | '-' ) * +Digit
-      number         <- ?minus * intPart * ?fractPart * ?expPart
+      jnumber        <- ?minus * intPart * ?fractPart * ?expPart
 
       doc            <- JSON * !1
-      JSON           <- ?S * ( number | jobject | jarray | string | jtrue | jfalse | null ) * ?S
-      jobject         <- '{' * ( string * ":" * JSON * *( "," * string * ":" * JSON ) | ?S ) * "}"
-      jarray          <- "[" * ( JSON * *( "," * JSON ) | ?S ) * "]"
+      JSON           <- ?S * ( jnumber | jobject | jarray | jstring | jtrue | jfalse | jnull ) * ?S
+      jobject        <- '{' * ( jstring * ":" * JSON * *( "," * jstring * ":" * JSON ) | ?S ) * "}"
+      jarray         <- "[" * ( JSON * *( "," * JSON ) | ?S ) * "]"
 
     doAssert s.match(json).ok
 
