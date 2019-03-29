@@ -59,11 +59,12 @@ suite "unit tests":
   test "@: search":
     doAssert     patt(@"fg").match("abcdefghijk").matchLen == 7
 
-  test "{n}: count":
+  test "[n]: count":
     doAssert     patt(1[3]).match("aaaa").ok
     doAssert     patt(1[4]).match("aaaa").ok
+    doAssert not patt(1[5]).match("aaaa").ok
 
-  test "{m..n}: count":
+  test "[m..n]: count":
     doAssert not patt('a'[5]).match("aaaa").ok
     doAssert not patt('a'[2..4]).match("a").ok
     doAssert     patt('a'[2..4]).match("aa").ok
