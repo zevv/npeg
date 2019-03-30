@@ -35,7 +35,7 @@ let parser = peg "pairs":
   word <- +{'a'..'z'}
   number <- +{'0'..'9'}
   pair <- >word * '=' * >number:
-    words[c[0]] = c[1].parseInt
+    words[$1] = parseInt($2)
 
 doAssert parser.match("one=1,two=2,three=3,four=4").ok
 echo words
@@ -461,8 +461,15 @@ Note that for code block captures, the Nim code gets executed during parsing,
 When a grammar rule ends with a colon `:`, the next indented block in the
 grammar is interpreted as Nim code, which gets executed when the rule has been
 matched. Any string captures that were made inside the rule are available to
-the Nim code in the `c[]` array. Code block captures consume all embedded
-string captures, so these captures will no longer be available after matching.
+the Nim code in the `capture[]` seq. For convenience there is some syntactic
+sugar performed on the code block which allows to use fake variables `$1` to
+`$9` to be used to access the elements of the `capture[]` seq. (Note that due
+to Nims operator precedence, the dollar-variables might need parentheses or
+different ordering in some cases, for example `$1.parseInt` should be written
+as `parseInt($1)`)
+
+Code block captures consume all embedded string captures, so these captures
+will no longer be available after matching.
 
 The example has been extended to capture each word and number with the `>`
 string capture prefix. When the `pair` rule is matched, the attached code block
@@ -477,7 +484,7 @@ let parser = peg "pairs":
   word <- +{'a'..'z'}
   number <- +{'0'..'9'}
   pair <- >word * '=' * >number:
-    words[c[0]] = c[1].parseInt
+    words[$1] = parseInt($2)
 
 let r = parser.match(data)
 ```
@@ -743,15 +750,15 @@ let parser = peg "http":
   header_name <- +(Alpha | '-')
   header_val  <- +(1-{'\n'}-{'\r'})
   proto       <- >+Alpha:
-    req.proto = c[0]
+    req.proto = $1
   version     <- >(+Digit * '.' * +Digit):
-    req.version = c[0]
+    req.version = $1
   code        <- >+Digit:
-    req.code = c[0].parseInt
+    req.code = parseInt($1)
   msg         <- >(+(1 - '\r' - '\n')):
-    req.message = c[0]
+    req.message = $1
   header      <- >header_name * ": " * >header_val:
-    req.headers[c[0]] = c[1]
+    req.headers[$1] = $2
   response    <- proto * '/' * version * space * code * space * msg
   headers     <- *(header * crlf)
   http        <- response * crlf * headers * eof

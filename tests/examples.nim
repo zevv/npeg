@@ -136,15 +136,15 @@ suite "examples":
       header_name <- +(Alpha | '-')
       header_val  <- +(1-{'\n'}-{'\r'})
       proto       <- >(+Alpha):
-        req.proto = c[0]
+        req.proto = $1
       version     <- >(+Digit * '.' * +Digit):
-        req.version = c[0]
+        req.version = $1
       code        <- >+Digit:
-        req.code = c[0].parseInt
+        req.code = parseInt($1)
       msg         <- >(+(1 - '\r' - '\n')):
-        req.message = c[0]
+        req.message = $1
       header      <- >header_name * ": " * >header_val:
-        req.headers[c[0]] = c[1]
+        req.headers[$1] = $2
 
       response    <- proto * '/' * version * space * code * space * msg 
       headers     <- *(header * crlf)
@@ -218,7 +218,5 @@ Location: https://nim.org/
     let r = m.match(b)
     doAssert r.ok
     let c = r.captures
-    doAssert c[0] == "añyóng"
-    doAssert c[1] == "♜♞♝♛♚♝♞♜"
-    doAssert c[2] == "оживлённым"
+    doAssert c == @["añyóng", "♜♞♝♛♚♝♞♜", "оживлённым"]
 

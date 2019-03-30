@@ -1,4 +1,10 @@
 
+0.8.0
+=====
+
+- Added syntactic sugar for accessing the captures[] seq in capture
+  code blocks with dollar-number variables $1..$9
+
 0.7.0
 =====
 

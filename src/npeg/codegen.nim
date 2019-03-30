@@ -31,14 +31,26 @@ type
     fn*: proc(s: string): MatchResult
 
 
+# This macro translates $1.. into capture[0].. for use in code block captures
+
+proc mkDollarCaptures(n: NimNode): NimNode =
+  if n.kind == nnkPrefix and 
+     n[0].kind == nnkIdent and n[0].eqIdent("$") and
+     n[1].kind == nnkIntLit:
+    result = nnkBracketExpr.newTree(newIdentNode("capture"), newLit(n[1].intVal-1))
+  else:
+    result = copyNimNode(n)
+    for nc in n:
+      result.add mkDollarCaptures(nc)
+
 
 # Template for generating the parsing match proc.
 #
-# Note: Dummy 'ip' and 'c' nodes are passed into this template to prevent these
+# Note: Dummy 'ip' and 'capture' nodes are passed into this template to prevent these
 # names from getting mangled so that the code in the `peg` macro can access it.
 # I'd love to hear if there are better solutions for this.
 
-template skel(cases: untyped, ip: NimNode, c: NimNode) =
+template skel(cases: untyped, ip: NimNode, capture: NimNode) =
 
   {.push hint[XDeclaredButNotUsed]: off.}
 
@@ -150,7 +162,7 @@ template skel(cases: untyped, ip: NimNode, c: NimNode) =
       capStack.push (cft: cftClose, si: si, ck: ck, name: "")
       if ck == ckAction:
         let cs = fixCaptures(s, capStack, FixOpen)
-        let c {.inject.} = collectCaptures(cs)
+        let capture {.inject.} = collectCaptures(cs)
         block:
           actionCode
       inc ip
@@ -233,7 +245,7 @@ proc genCode*(patt: Patt): NimNode =
       of opCapClose:
         call.add newIntLitNode(i.capKind.int)
         if i.capAction != nil:
-          call.add nnkStmtList.newTree(i.capAction)
+          call.add nnkStmtList.newTree(mkDollarCaptures(i.capAction))
         else:
           call.add nopStmt
 
@@ -249,7 +261,7 @@ proc genCode*(patt: Patt): NimNode =
     cases.add nnkOfBranch.newTree(newLit(n), call)
 
   cases.add nnkElse.newTree(parseStmt("opFailFn()"))
-  result = getAst skel(cases, ipNode, ident "c")
+  result = getAst skel(cases, ipNode, ident "capture")
 
   when false:
     echo result.repr

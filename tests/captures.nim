@@ -18,7 +18,7 @@ suite "captures":
     var a: string
     let p = peg "foo":
       foo <- >1:
-        a = c[0]
+        a = $1
     doAssert p.match("a").ok
     doassert a == "a"
 

@@ -158,9 +158,6 @@ proc newPatt*(s: string, op: Opcode): Patt =
     else:
       doAssert false
 
-proc newIStrLitPatt*(s: string): Patt =
-  result.add Inst(op: opIStr, str: s)
-
 proc newPatt*(p: Patt, ck: CapKind): Patt =
   result.add Inst(op: opCapOpen, capKind: ck)
   result.add p
