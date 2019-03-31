@@ -1,6 +1,6 @@
 # Package
 
-version       = "0.8.0"
+version       = "0.9.0"
 author        = "Ico Doornekamp"
 description   = "a PEG library"
 license       = "MIT"
@@ -20,7 +20,10 @@ task testjs, "Javascript tests":
   exec "nim js tests/tests.nim && node tests/tests.js"
 
 task testwin, "Mingw tests":
-  exec "nim c --gcc.exe:x86_64-w64-mingw32-gcc --gcc.linkerexe:x86_64-w64-mingw32-gcc --os:windows tests/tests.nim && wine tests/tests.exe"
+  exec "nim c -d:mingw tests/tests.nim && wine tests/tests.exe"
+
+task test32, "32 bit tests":
+  exec "nim c --cpu:i386 --passC:-m32 --passL:-m32 tests/tests.nim && tests/tests"
 
 task testall, "Test all":
   exec "nimble test && nimble testjs && nimble testwin"

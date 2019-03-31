@@ -1,4 +1,8 @@
 
+0.9.0
+
+- Some syntax changes to fix compilation with mainline Nim 0.19.4
+
 0.8.0
 =====
 
