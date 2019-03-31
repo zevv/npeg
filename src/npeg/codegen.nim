@@ -37,7 +37,7 @@ proc mkDollarCaptures(n: NimNode): NimNode =
   if n.kind == nnkPrefix and 
      n[0].kind == nnkIdent and n[0].eqIdent("$") and
      n[1].kind == nnkIntLit:
-    result = nnkBracketExpr.newTree(newIdentNode("capture"), newLit(n[1].intVal-1))
+    result = nnkBracketExpr.newTree(newIdentNode("capture"), newLit(int(n[1].intVal-1)))
   else:
     result = copyNimNode(n)
     for nc in n:

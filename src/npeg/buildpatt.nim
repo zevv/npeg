@@ -45,17 +45,17 @@ type Grammar* = TableRef[string, Patt]
 #
 
 const builtins = {
-  "Alnum":  newPatt {'A'..'Z','a'..'z','0'..'9'}, # Alphanumeric characters
-  "Alpha":  newPatt {'A'..'Z','a'..'z'},          # Alphabetic characters
-  "Blank":  newPatt {' ','\t'},                   # Space and tab
-  "Cntrl":  newPatt {'\x00'..'\x1f','\x7f'},      # Control characters
-  "Digit":  newPatt {'0'..'9'},                   # Digits
-  "Graph":  newPatt {'\x20'..'\x7e'},             # Visible characters
-  "Lower":  newPatt {'a'..'z'},                   # Lowercase characters
-  "Print":  newPatt {'\x20'..'\x7e',' '},         # Visible characters and spaces
-  "Space":  newPatt {'\9'..'\13',' '},            # Whitespace characters
-  "Upper":  newPatt {'A'..'Z'},                   # Uppercase characters
-  "Xdigit": newPatt {'A'..'F','a'..'f','0'..'9'}, # Hexadecimal digits
+  "Alnum":  newPatt({'A'..'Z','a'..'z','0'..'9'}), # Alphanumeric characters
+  "Alpha":  newPatt({'A'..'Z','a'..'z'}),          # Alphabetic characters
+  "Blank":  newPatt({' ','\t'}),                   # Space and tab
+  "Cntrl":  newPatt({'\x00'..'\x1f','\x7f'}),      # Control characters
+  "Digit":  newPatt({'0'..'9'}),                   # Digits
+  "Graph":  newPatt({'\x20'..'\x7e'}),             # Visible characters
+  "Lower":  newPatt({'a'..'z'}),                   # Lowercase characters
+  "Print":  newPatt({'\x20'..'\x7e',' '}),         # Visible characters and spaces
+  "Space":  newPatt({'\9'..'\13',' '}),            # Whitespace characters
+  "Upper":  newPatt({'A'..'Z'}),                   # Uppercase characters
+  "Xdigit": newPatt({'A'..'F','a'..'f','0'..'9'}), # Hexadecimal digits
 }.toTable()
 
 
