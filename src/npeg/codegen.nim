@@ -127,23 +127,23 @@ template skel(cases: untyped, ip: NimNode, capture: NimNode) =
 
     template opChoiceFn(n: int, iname="") =
       trace iname, "choice -> " & $n
-      backStack.push (ip:n, si:si, rp:retStack.top, cp:capStack.top)
+      push(backstack, (ip:n, si:si, rp:retStack.top, cp:capStack.top))
       inc ip
 
     template opCommitFn(n: int, iname="") =
       trace iname, "commit -> " & $n
-      discard backStack.pop()
+      discard pop(backStack)
       ip = n
 
     template opPartCommitFn(n: int, iname="") =
       trace iname, "pcommit -> " & $n
-      backStack.update(si, si)
-      backStack.update(cp, capStack.top)
+      update(backStack, si, si)
+      update(backStack, cp, capStack.top)
       ip = n
 
     template opCallFn(label: string, offset: int, iname="") =
       trace iname, "call -> " & label & ":" & $(ip+offset)
-      retStack.push ip+1
+      push(retStack, ip+1)
       ip += offset
 
     template opJumpFn(label: string, offset: int, iname="") =
@@ -153,13 +153,13 @@ template skel(cases: untyped, ip: NimNode, capture: NimNode) =
     template opCapOpenFn(n: int, capname: string, iname="") =
       let ck = CapKind(n)
       trace iname, "capopen " & $ck & " -> " & $si
-      capStack.push (cft: cftOpen, si: si, ck: ck, name: capname)
+      push(capStack, (cft: cftOpen, si: si, ck: ck, name: capname))
       inc ip
     
     template opCapCloseFn(n: int, actionCode: untyped, iname="") =
       let ck = CapKind(n)
       trace iname, "capclose " & $ck & " -> " & $si
-      capStack.push (cft: cftClose, si: si, ck: ck, name: "")
+      push(capStack, (cft: cftClose, si: si, ck: ck, name: ""))
       if ck == ckAction:
         let cs = fixCaptures(s, capStack, FixOpen)
         let capture {.inject.} = collectCaptures(cs)
@@ -173,14 +173,14 @@ template skel(cases: untyped, ip: NimNode, capture: NimNode) =
         trace iname, "done"
         result.ok = true
         break
-      ip = retStack.pop()
+      ip = pop(retStack)
 
     template opFailFn(iname="") =
       trace iname, "fail"
       if backStack.top == 0:
         trace iname, "error"
         break
-      (ip, si, retStack.top, capStack.top) = backStack.pop()
+      (ip, si, retStack.top, capStack.top) = pop(backStack)
 
     template opErrFn(msg: string, iname="") =
       trace iname, "err " & msg

@@ -24,7 +24,7 @@ proc grow*[T](s: var Stack[T]) =
   s.frames.setLen s.frames.len * 2
 
 proc push*[T](s: var Stack[T], frame: T) =
-  if s.top >= s.frames.len: s.grow()
+  if s.top >= s.frames.len: grow(s)
   s.frames[s.top] = frame
   inc s.top
 
