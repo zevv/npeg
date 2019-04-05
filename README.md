@@ -291,7 +291,7 @@ patterns.
   equivalent to `!P2 * P1`
 
   NPeg optimizes the `-` operator for characters and character sets: The
-  pattern `{'a','b','c'} - 'b'` will be rewritten to the character set `{'a','c'}
+  pattern `{'a','b','c'} - 'b'` will be rewritten to the character set `{'a','c'}`
 
 
 - Grouping: `(P)`
