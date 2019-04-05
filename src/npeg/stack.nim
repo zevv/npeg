@@ -23,7 +23,7 @@ proc grow*[T](s: var Stack[T]) =
     raise newException(NPegException, s.name & " stack overflow, depth>" & $s.max)
   s.frames.setLen s.frames.len * 2
 
-proc push*[T](s: var Stack[T], frame: T) =
+template push*[T](s: var Stack[T], frame: T) =
   if s.top >= s.frames.len: grow(s)
   s.frames[s.top] = frame
   inc s.top

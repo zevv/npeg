@@ -61,6 +61,7 @@ template skel(cases: untyped, ip: NimNode, capture: NimNode) =
     var
       ip: int
       si: int
+      simax: int
       retStack = initStack[RetFrame]("return", 8, RETSTACK_MAX)
       capStack = initStack[CapFrame]("capture", 8)
       backStack = initStack[BackFrame]("backtrace", 8, BACKSTACK_MAX)
@@ -196,12 +197,14 @@ template skel(cases: untyped, ip: NimNode, capture: NimNode) =
       # Keep track of the highest string index we ever reached, this is a good
       # indication of the location of errors when parsing fails
 
-      result.matchMax = max(result.matchMax, si)
+      if si > simax:
+        simax = si
 
     # When the parsing machine is done, close the capture stack and collect all
     # the captures in the match result
 
     result.matchLen = si
+    result.matchMax = simax
     if result.ok and capStack.top > 0:
       result.cs = fixCaptures(s, capStack, FixAll)
 
