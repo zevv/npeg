@@ -32,8 +32,8 @@ var words = initTable[string, int]()
 
 let parser = peg "pairs":
   pairs <- pair * *(',' * pair) * !1
-  word <- +{'a'..'z'}
-  number <- +{'0'..'9'}
+  word <- +Alpha
+  number <- +Digit
   pair <- >word * '=' * >number:
     words[$1] = parseInt($2)
 
@@ -373,8 +373,9 @@ const data = "one=1,two=2,three=3,four=4"
 
 let parser = peg "pairs":
   pairs <- pair * *(',' * pair) * !1
-  word <- +{'a'..'z'}
-  pair <- word * '=' * word
+  word <- +Alpha
+  number <- +Digit
+  pair <- word * '=' * number
 
 let r = parser.match(data)
 ```
@@ -393,8 +394,9 @@ the matched words to be appended to the result capture `seq[string]`
 ```nim
 let parser = peg "pairs":
   pairs <- pair * *(',' * pair) * !1
-  word <- +{'a'..'z'}
-  pair <- >word * '=' * >word
+  word <- +Alpha
+  number <- +Digit
+  pair <- >word * '=' * >number
 
 let r = parser.match(data)
 ```
@@ -429,8 +431,8 @@ In the example below:
 ```nim
 let parser = peg "pairs":
   pairs <- Jo(pair * *(',' * pair) * !1)
-  word <- +{'a'..'z'}
-  number <- +{'0'..'9'}
+  word <- +Alpha
+  number <- +Digit
   pair <- Jt(Js(word) * '=' * Ji(number))
 
 let r = parser.match(data)
@@ -481,8 +483,8 @@ var words = initTable[string, int]()
 
 let parser = peg "pairs":
   pairs <- pair * *(',' * pair) * !1
-  word <- +{'a'..'z'}
-  number <- +{'0'..'9'}
+  word <- +Alpha
+  number <- +Digit
   pair <- >word * '=' * >number:
     words[$1] = parseInt($2)
 
