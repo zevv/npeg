@@ -31,19 +31,6 @@ type
     fn*: proc(s: string): MatchResult
 
 
-# This macro translates $1.. into capture[0].. for use in code block captures
-
-proc mkDollarCaptures(n: NimNode): NimNode =
-  if n.kind == nnkPrefix and 
-     n[0].kind == nnkIdent and n[0].eqIdent("$") and
-     n[1].kind == nnkIntLit:
-    result = nnkBracketExpr.newTree(newIdentNode("capture"), newLit(int(n[1].intVal-1)))
-  else:
-    result = copyNimNode(n)
-    for nc in n:
-      result.add mkDollarCaptures(nc)
-
-
 # Template for generating the parsing match proc.
 #
 # Note: Dummy 'ip' and 'capture' nodes are passed into this template to prevent these
@@ -156,7 +143,7 @@ template skel(cases: untyped, ip: NimNode, capture: NimNode) =
       trace iname, "capopen " & $ck & " -> " & $si
       push(capStack, (cft: cftOpen, si: si, ck: ck, name: capname))
       inc ip
-    
+
     template opCapCloseFn(n: int, actionCode: untyped, iname="") =
       let ck = CapKind(n)
       trace iname, "capclose " & $ck & " -> " & $si
@@ -213,12 +200,26 @@ template skel(cases: untyped, ip: NimNode, capture: NimNode) =
   Parser(fn: match)
 
 
+# This macro translates `$1`.. into `capture[0]`.. for use in code block captures
+
+proc mkDollarCaptures(n: NimNode): NimNode =
+  if n.kind == nnkNilLit:
+    result = nnkDiscardStmt.newTree(newEmptyNode())
+  elif n.kind == nnkPrefix and
+     n[0].kind == nnkIdent and n[0].eqIdent("$") and
+     n[1].kind == nnkIntLit:
+    result = nnkBracketExpr.newTree(newIdentNode("capture"), newLit(int(n[1].intVal-1)))
+  else:
+    result = copyNimNode(n)
+    for nc in n:
+      result.add mkDollarCaptures(nc)
+
+
 # Convert the list of parser instructions into a Nim finite state machine
 
 proc genCode*(patt: Patt): NimNode =
 
   let ipNode = ident("ip")
-  let nopStmt = nnkStmtList.newTree(nnkDiscardStmt.newTree(newEmptyNode()))
   var cases = nnkCaseStmt.newTree(ipNode)
 
   for n, i in patt.pairs:
@@ -227,39 +228,34 @@ proc genCode*(patt: Patt): NimNode =
 
     case i.op:
       of opStr, opIStr:
-        call.add newStrLitNode(i.str)
+        call.add newLit(i.str)
 
       of opSet, opSpan:
-        let setNode = nnkCurly.newTree()
-        for c in i.cs: setNode.add newLit(c)
-        call.add setNode
+        call.add newLit(i.cs)
 
       of opChoice, opCommit, opPartCommit:
-        call.add newIntLitNode(n + i.offset)
+        call.add newLit(n + i.offset)
 
       of opCall, opJump:
-        call.add newStrLitNode(i.callLabel)
-        call.add newIntLitNode(i.callOffset)
+        call.add newLit(i.callLabel)
+        call.add newLit(i.callOffset)
 
       of opCapOpen:
-        call.add newIntLitNode(i.capKind.int)
-        call.add newStrLitNode(i.capName)
+        call.add newLit(i.capKind.int)
+        call.add newLit(i.capName)
 
       of opCapClose:
-        call.add newIntLitNode(i.capKind.int)
-        if i.capAction != nil:
-          call.add nnkStmtList.newTree(mkDollarCaptures(i.capAction))
-        else:
-          call.add nopStmt
+        call.add newLit(i.capKind.int)
+        call.add mkDollarCaptures(i.capAction)
 
       of opErr:
-        call.add newStrLitNode(i.msg)
+        call.add newLit(i.msg)
 
       of opReturn, opAny, opNop, opFail:
         discard
 
     when npegTrace:
-      call.add newStrLitNode(i.name)
+      call.add newLit(i.name)
 
     cases.add nnkOfBranch.newTree(newLit(n), call)
 
