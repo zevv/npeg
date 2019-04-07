@@ -21,6 +21,8 @@ Some NPeg highlights:
 - NPeg offers various methods for tracing, optimizing and debugging your
   parsers.
 
+## Quickstart
+
 Here is a simple example showing the power of NPeg: The macro `peg` compiles a
 grammar definition into a `parser` object, which is used to match a string and
 place the key-value pairs into the Nim table `words`:
@@ -47,6 +49,25 @@ Output:
 {"two": 2, "three": 3, "one": 1, "four": 4}
 ```
 
+A brief explanation of the above code:
+
+* The macro `peg` is used to create a parser object, which uses `pairs` as the
+  initial grammar rule to match
+
+* The rule `pairs` matches one `pair`, followed by zero or more times (`*`) a
+  comma followed by a `pair`.
+
+* The rules `word` and `number` match a sequence of one or more (`+`)
+  alphabetic characters or digits, respectively. The `Alpha` and `Digit` rules
+  are pre-defined rules matching the character classes `{'A'..'Z','a'..'z'}` and 
+  `{'0'..'9'}`
+
+* The rule `pair` matches a `word`, followed by an equals sign (`=`), followed
+  by a `number.
+
+* The `word` and `number` in the `pair` rule are captured with the `>`
+  operator. The Nim code fragment below this rule is executed for every match,
+  and stores the captured word and number in the `words` Nim table.
 
 ## Usage
 
