@@ -33,8 +33,12 @@ type
 
 # This macro translates $1.. into capture[0].. for use in code block captures
 
+# This macro translates `$1`.. into `capture[0]`.. for use in code block captures
+
 proc mkDollarCaptures(n: NimNode): NimNode =
-  if n.kind == nnkPrefix and 
+  if n.kind == nnkNilLit:
+    result = nnkDiscardStmt.newTree(newEmptyNode())
+  elif n.kind == nnkPrefix and
      n[0].kind == nnkIdent and n[0].eqIdent("$") and
      n[1].kind == nnkIntLit:
     result = nnkBracketExpr.newTree(newIdentNode("capture"), newLit(int(n[1].intVal-1)))
@@ -227,7 +231,7 @@ proc genCode*(patt: Patt): NimNode =
 
     case i.op:
       of opStr, opIStr:
-        call.add newStrLitNode(i.str)
+        call.add newLit(i.str)
 
       of opSet, opSpan:
         let setNode = nnkCurly.newTree()
@@ -235,22 +239,19 @@ proc genCode*(patt: Patt): NimNode =
         call.add setNode
 
       of opChoice, opCommit, opPartCommit:
-        call.add newIntLitNode(n + i.offset)
+        call.add newLit(n + i.offset)
 
       of opCall, opJump:
-        call.add newStrLitNode(i.callLabel)
-        call.add newIntLitNode(i.callOffset)
+        call.add newLit(i.callLabel)
+        call.add newLit(i.callOffset)
 
       of opCapOpen:
-        call.add newIntLitNode(i.capKind.int)
-        call.add newStrLitNode(i.capName)
+        call.add newLit(i.capKind.int)
+        call.add newLit(i.capName)
 
       of opCapClose:
-        call.add newIntLitNode(i.capKind.int)
-        if i.capAction != nil:
-          call.add nnkStmtList.newTree(mkDollarCaptures(i.capAction))
-        else:
-          call.add nopStmt
+        call.add newLit(i.capKind.int)
+        call.add mkDollarCaptures(i.capAction)
 
       of opErr:
         call.add newStrLitNode(i.msg)
