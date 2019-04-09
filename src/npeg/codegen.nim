@@ -138,15 +138,17 @@ template skel(cases: untyped, ip: NimNode, capture: NimNode) =
       trace iname, "jump -> " & label & ":" & $(ip+offset)
       ip += offset
 
-    template opCapOpenFn(n: CapKind, capname: string, iname="") =
-      trace iname, "capopen " & $n & " -> " & $si
-      push(capStack, (cft: cftOpen, si: si, ck: n, name: capname))
+    template opCapOpenFn(n: int, capname: string, iname="") =
+      let ck = CapKind(n)
+      trace iname, "capopen " & $ck & " -> " & $si
+      push(capStack, (cft: cftOpen, si: si, ck: ck, name: capname))
       inc ip
 
-    template opCapCloseFn(n: CapKind, actionCode: untyped, iname="") =
-      trace iname, "capclose " & $n & " -> " & $si
-      push(capStack, (cft: cftClose, si: si, ck: n, name: ""))
-      if n == ckAction:
+    template opCapCloseFn(n: int, actionCode: untyped, iname="") =
+      let ck = CapKind(n)
+      trace iname, "capclose " & $ck & " -> " & $si
+      push(capStack, (cft: cftClose, si: si, ck: ck, name: ""))
+      if ck == ckAction:
         let cs = fixCaptures(s, capStack, FixOpen)
         let capture {.inject.} = collectCaptures(cs)
         block:
@@ -221,22 +223,34 @@ proc genCode*(patt: Patt): NimNode =
   var cases = nnkCaseStmt.newTree(ipNode)
 
   for n, i in patt.pairs:
+
     let call = nnkCall.newTree(ident($i.op & "Fn"))
+
     case i.op:
       of opStr, opIStr:
-        call.add [ newLit(i.str) ]
+        call.add newLit(i.str)
+
       of opSet, opSpan:
-        call.add [ newLit(i.cs) ]
+        call.add newLit(i.cs)
+
       of opChoice, opCommit, opPartCommit:
-        call.add [ newLit(n + i.offset) ]
+        call.add newLit(n + i.offset)
+
       of opCall, opJump:
-        call.add [ newLit(i.callLabel), newLit(i.callOffset) ]
+        call.add newLit(i.callLabel)
+        call.add newLit(i.callOffset)
+
       of opCapOpen:
-        call.add [ newLit(i.capKind), newLit(i.capName) ]
+        call.add newLit(i.capKind.int)
+        call.add newLit(i.capName)
+
       of opCapClose:
-        call.add [ newLit(i.capKind), mkDollarCaptures(i.capAction) ]
+        call.add newLit(i.capKind.int)
+        call.add mkDollarCaptures(i.capAction)
+
       of opErr:
-        call.add [ newLit(i.msg) ]
+        call.add newLit(i.msg)
+
       of opReturn, opAny, opNop, opFail:
         discard
 
