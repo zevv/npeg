@@ -610,7 +610,7 @@ B <- A
 is problematic because it is mutually left-recursive through the non-terminal
 `B`.
 
-Not that loops of patterns that can match the empty string will not result in
+Note that loops of patterns that can match the empty string will not result in
 the expected behaviour. For example, the rule `*0` will cause the parser to
 stall and go into an infinite loop.
 
