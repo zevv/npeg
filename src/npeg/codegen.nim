@@ -31,8 +31,6 @@ type
     fn*: proc(s: string): MatchResult
 
 
-# This macro translates $1.. into capture[0].. for use in code block captures
-
 # This macro translates `$1`.. into `capture[0]`.. for use in code block captures
 
 proc mkDollarCaptures(n: NimNode): NimNode =
@@ -222,7 +220,6 @@ template skel(cases: untyped, ip: NimNode, capture: NimNode) =
 proc genCode*(patt: Patt): NimNode =
 
   let ipNode = ident("ip")
-  let nopStmt = nnkStmtList.newTree(nnkDiscardStmt.newTree(newEmptyNode()))
   var cases = nnkCaseStmt.newTree(ipNode)
 
   for n, i in patt.pairs:
