@@ -99,7 +99,6 @@ suite "unit tests":
         number <- >+Digit:
           n = $1
       doAssert p.match("12345").ok
-      echo "Hop"
       return n
     const v = doTest()
     doAssert v == "12345"

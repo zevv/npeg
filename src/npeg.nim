@@ -42,7 +42,7 @@ import npeg/capture
 import npeg/buildpatt
 import npeg/grammar
 
-export NPegException
+export NPegException, Parser, MatchResult
 
 
 # Create a parser for a PEG grammar
