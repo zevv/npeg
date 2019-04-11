@@ -92,6 +92,18 @@ suite "unit tests":
     doAssert     patt(+Digit).match("12345").ok
     doAssert     patt(+Xdigit).match("deadbeef").ok
 
+  test "Compile time":
+    proc dotest(): string {.compileTime.} =
+      var n: string
+      let p = peg "number":
+        number <- >+Digit:
+          n = $1
+      doAssert p.match("12345").ok
+      echo "Hop"
+      return n
+    const v = doTest()
+    doAssert v == "12345"
+
   test "grammar1":
     let a = peg "r1":
       r1 <- "abc"
