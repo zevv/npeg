@@ -1,5 +1,4 @@
 
-import common
 
 type
   Stack*[T] = object

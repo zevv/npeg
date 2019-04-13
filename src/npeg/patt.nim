@@ -3,7 +3,6 @@ import capture
 import macros
 import strutils
 import tables
-import json
 
 import npeg/common
 
