@@ -1,10 +1,7 @@
 
 import tables
 import macros
-
-import common
-import patt
-import buildpatt
+import npeg/[common,patt,buildpatt]
 
 
 proc add*(grammar: var Grammar, name: string, patt: Patt) =

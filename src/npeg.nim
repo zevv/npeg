@@ -33,14 +33,7 @@
 import tables
 import macros
 import json
-
-import npeg/common
-import npeg/patt
-import npeg/stack
-import npeg/codegen
-import npeg/capture
-import npeg/buildpatt
-import npeg/grammar
+import npeg/[common,patt,stack,codegen,capture,buildpatt,grammar]
 
 export NPegException, Parser, MatchResult
 

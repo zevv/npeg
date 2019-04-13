@@ -1,8 +1,7 @@
 
 import json
 import strutils
-import stack
-import common
+import npeg/[stack,common]
 
 type
 

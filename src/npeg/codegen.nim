@@ -1,11 +1,7 @@
 
 import macros
 import strutils
-
-import npeg/common
-import npeg/patt
-import npeg/stack
-import npeg/capture
+import npeg/[common,patt,stack,capture]
 
 const
   RETSTACK_MAX = 1024
