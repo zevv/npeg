@@ -50,9 +50,9 @@ const builtins = {
   "Blank":  newPatt({' ','\t'}),                   # Space and tab
   "Cntrl":  newPatt({'\x00'..'\x1f','\x7f'}),      # Control characters
   "Digit":  newPatt({'0'..'9'}),                   # Digits
-  "Graph":  newPatt({'\x20'..'\x7e'}),             # Visible characters
+  "Graph":  newPatt({'\x21'..'\x7e'}),             # Visible characters
   "Lower":  newPatt({'a'..'z'}),                   # Lowercase characters
-  "Print":  newPatt({'\x20'..'\x7e',' '}),         # Visible characters and spaces
+  "Print":  newPatt({'\x21'..'\x7e',' '}),         # Visible characters and spaces
   "Space":  newPatt({'\9'..'\13',' '}),            # Whitespace characters
   "Upper":  newPatt({'A'..'Z'}),                   # Uppercase characters
   "Xdigit": newPatt({'A'..'F','a'..'f','0'..'9'}), # Hexadecimal digits
