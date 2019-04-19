@@ -91,6 +91,7 @@ suite "unit tests":
     doAssert     patt(Lower).match("A").ok == false
     doAssert     patt(+Digit).match("12345").ok
     doAssert     patt(+Xdigit).match("deadbeef").ok
+    doAssert     patt(+Graph).match(" x").ok == false
 
   test "Compile time":
     proc dotest(): string {.compileTime.} =
