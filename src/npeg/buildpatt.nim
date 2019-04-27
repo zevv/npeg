@@ -63,7 +63,7 @@ proc parsePatt*(name: string, nn: NimNode, grammar: Grammar = nil): Patt =
   proc aux(n: NimNode): Patt =
 
     template krak(n: NimNode, msg: string) =
-      error "NPeg: " & msg & ": " & n.repr & "\n" & n.astGenRepr, n
+      error "NPeg: " & msg & ": " & n.repr & "\n"
 
     case n.kind:
 
@@ -84,6 +84,8 @@ proc parsePatt*(name: string, nn: NimNode, grammar: Grammar = nil): Patt =
         return newPatt($n.intVal.char, opStr)
 
       of nnkCall:
+        if n[0].kind != nnkIdent:
+          krak n, "syntax error"
         if n.len == 2:
           let p = aux n[1]
           case n[0].strVal:
