@@ -615,6 +615,26 @@ the expected behaviour. For example, the rule `*0` will cause the parser to
 stall and go into an infinite loop.
 
 
+### UTF-8 / Unicode
+
+At this time NPeg has no native support for UTF-8 and/or unicode, as I am not
+sure what exactly would be required. If you have any specific needs or ideas,
+let me know and we can discuss the details.
+
+That said, it is at this time perfectly possible to parse UTF-8 in NPeg by
+explicitly making the UTF-8 encoding part of the grammar. The following rule
+`utf8` will match any UTF-8 multi byte sequence:
+ 
+```
+cont <- {128..191}
+
+utf8 <- {0..127} |
+        {194..223} * cont[1] |
+        {224..239} * cont[2] |
+        {240..244} * cont[3]
+```
+
+
 ## Tracing and debugging
 
 When compiled with `-d:npegTrace`, NPeg will dump its immediate representation
