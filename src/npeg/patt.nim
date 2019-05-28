@@ -6,6 +6,10 @@ import tables
 
 import npeg/common
 
+const
+  PATT_LEN_MAX = 4096
+
+
 type
 
   Opcode* = enum
@@ -146,6 +150,12 @@ proc toSet(p: Patt, cs: var Charset): bool =
       cs = {low(char)..high(char)}
       return true
 
+
+proc checkSanity(p: Patt) =
+  if p.len >= PATT_LEN_MAX:
+    error "NPeg: grammar too complex"
+
+
 ### Atoms
 
 proc newPatt*(s: string, op: Opcode): Patt =
@@ -224,6 +234,7 @@ proc `@`*(p: Patt): Patt =
 proc `*`*(p1, p2: Patt): Patt =
   result.add p1
   result.add p2
+  result.checkSanity
 
 proc `|`*(p1, p2: Patt): Patt =
   var cs1, cs2: Charset
@@ -249,6 +260,7 @@ proc `|`*(p1, p2: Patt): Patt =
     p3.add Inst(op: opCommit, offset: p2.len + 1)
     p3.add p2
     result = p3
+  result.checkSanity
 
 proc `-`*(p1, p2: Patt): Patt =
   var cs1, cs2: Charset

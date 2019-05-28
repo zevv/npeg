@@ -170,6 +170,14 @@ The exact parser size and performance behavior depends on many factors; when
 performance and/or code size matters, it pays to experiment with different
 orderings and measure the results.
 
+Repetitive inlining of rules might cause the grammar to grow too large,
+resulting in a huge executable size. To prevent this, NPeg checks the size of
+the grammar, and if it thinks it is too large it will fail compilation with the
+error message:
+
+```
+NPeg: grammar too complex
+```
 
 
 ## Syntax
