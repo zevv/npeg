@@ -187,6 +187,41 @@ When in doubt, check the generated parser instructions by compiling with the
 `-d:npegTrace` or `-d:npegDumpDot` flags - see the section Tracing and
 Debugging for more information.
 
+At this time the upper limit is 4096 rules, this might become a configurable
+number in a future release.
+
+For example, the following grammar will not compile because recursive inlining
+will cause it to expand to a parser with more then 4^6 = 4096 rules:
+
+```
+let p = peg "z":
+  f <- 1
+  e <- f * f * f * f
+  d <- e * e * e * e
+  c <- d * d * d * d
+  b <- c * c * c * c
+  a <- b * b * b * b
+  z <- a * a * a * a
+```
+
+The fix is to change the order of the rules so that instead of inlining NPeg
+will use a calling mechanism:
+
+```
+let p = peg "z":
+  z <- a * a * a * a
+  a <- b * b * b * b
+  b <- c * c * c * c
+  c <- d * d * d * d
+  d <- e * e * e * e
+  e <- f * f * f * f
+  f <- 1
+```
+
+When in doubt check the generated parser instructions by compiling with the
+`-d:npegTrace` flag - see the section Tracing and Debugging for more
+information.
+
 
 ## Syntax
 
