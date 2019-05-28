@@ -25,6 +25,7 @@ type
     opFail,         # Fail: unwind stack until last frame
     opCapOpen,      # Capture open
     opCapClose,     # Capture close
+    opBackref       # Back reference
     opErr,          # Error handler
 
   CharSet* = set[char]
@@ -48,6 +49,8 @@ type
         msg*: string
       of opFail, opReturn, opAny, opNop:
         discard
+      of opBackref:
+        refName*: string
     when npegTrace:
       name*: string
 
@@ -116,6 +119,8 @@ proc dump*(p: Patt, symtab: SymTab = nil) =
         args = " " & $i.capKind
         if i.capAction != nil:
           args &= ": " & i.capAction.repr
+      of opBackref:
+        args = " " & i.refName
       of opFail, opReturn, opNop, opAny:
         discard
     var l: string
@@ -181,6 +186,9 @@ proc newPatt*(n: BiggestInt): Patt =
 
 proc newPatt*(cs: CharSet): Patt =
   result.add Inst(op: opSet, cs: cs)
+
+proc newBackrefPatt*(refName: string): Patt =
+  result.add Inst(op: opBackref, refName: refName)
 
 proc newReturnPatt*(): Patt =
   result.add Inst(op: opReturn)

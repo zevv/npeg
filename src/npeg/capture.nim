@@ -65,6 +65,12 @@ proc collectCaptures*(caps: Captures): seq[string] =
       result.add cap.s
 
 
+proc collectCapturesRef*(caps: Captures): Ref =
+  for cap in caps:
+    result.key = cap.name
+    result.val = cap.s
+
+
 proc collectCapturesJson*(cs: Captures): JsonNode =
 
   proc aux(iStart, iEnd: int, parentNode: JsonNode): JsonNode =
@@ -80,7 +86,7 @@ proc collectCapturesJson*(cs: Captures): JsonNode =
         of ckJArray: result = newJArray()
         of ckJFieldDynamic: result = newJArray()
         of ckJObject: result = newJObject()
-        of ckStr, ckJFieldFixed, ckAction, ckClose: discard
+        of ckStr, ckJFieldFixed, ckAction, ckClose, ckRef: discard
       
       let nextParentNode = 
         if result != nil and result.kind in { JArray, JObject }: result

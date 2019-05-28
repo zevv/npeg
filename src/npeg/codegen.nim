@@ -1,6 +1,7 @@
 
 import macros
 import strutils
+import tables
 import npeg/[common,patt,stack,capture]
 
 type
@@ -56,6 +57,7 @@ template skel(cases: untyped, ip: NimNode, capture: NimNode) =
       ip: int
       si: int
       simax: int
+      refs = initTable[string, string]()
       retStack = initStack[RetFrame]("return", 8, RETSTACK_MAX)
       capStack = initStack[CapFrame]("capture", 8)
       backStack = initStack[BackFrame]("backtrace", 8, BACKSTACK_MAX)
@@ -160,7 +162,23 @@ template skel(cases: untyped, ip: NimNode, capture: NimNode) =
         let capture {.inject.} = collectCaptures(cs)
         block:
           actionCode
+      elif ck == ckRef:
+        let cs = fixCaptures(s, capStack, FixOpen)
+        let r = collectCapturesRef(cs)
+        refs[r.key] = r.val
       inc ip
+    
+    template opBackrefFn(refName: string, iname="") =
+      if refName in refs:
+        let s2 = refs[refName]
+        trace iname, "backref " & refName & ":\"" & s2 & "\""
+        if subStrCmp(s, s.len, si, s2):
+          inc ip
+          inc si, s2.len
+        else:
+          ip = -1
+      else:
+        raise newException(NPegException, "Unknown back reference '" & refName & "'")
 
     template opReturnFn(iname="") =
       trace iname, "return"
@@ -244,6 +262,9 @@ proc genCode*(patt: Patt): NimNode =
       of opCapClose:
         call.add newLit(i.capKind.int)
         call.add mkDollarCaptures(i.capAction)
+
+      of opBackref:
+        call.add newLit(i.refName)
 
       of opErr:
         call.add newStrLitNode(i.msg)

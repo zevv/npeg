@@ -29,6 +29,7 @@ type
     ckJFieldFixed,  # JSON Object field with fixed tag
     ckJFieldDynamic,# JSON Object field with dynamic tag
     ckAction,       # Action capture, executes Nim code at match time
+    ckRef           # Reference
     ckClose,        # Closes capture
 
   CapFrame* = tuple
@@ -36,6 +37,10 @@ type
     si: int
     ck: CapKind
     name: string
+
+  Ref* = object
+    key*: string
+    val*: string
 
 const npegTrace* = defined(npegTrace)
 

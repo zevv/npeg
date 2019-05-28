@@ -87,18 +87,22 @@ proc parsePatt*(name: string, nn: NimNode, grammar: Grammar = nil, dot: Dot = ni
         if n[0].kind != nnkIdent:
           krak n, "syntax error"
         if n.len == 2:
-          let p = aux n[1]
           case n[0].strVal:
-            of "Js": return newPatt(p, ckJString)
-            of "Ji": return newPatt(p, ckJInt)
-            of "Jf": return newPatt(p, ckJFloat)
-            of "Ja": return newPatt(p, ckJArray)
-            of "Jo": return newPatt(p, ckJObject)
-            of "Jt": return newPatt(p, ckJFieldDynamic)
+            of "Js": return newPatt(aux n[1], ckJString)
+            of "Ji": return newPatt(aux n[1], ckJInt)
+            of "Jf": return newPatt(aux n[1], ckJFloat)
+            of "Ja": return newPatt(aux n[1], ckJArray)
+            of "Jo": return newPatt(aux n[1], ckJObject)
+            of "Jt": return newPatt(aux n[1], ckJFieldDynamic)
+            of "Backref":
+              return newBackrefPatt(n[1].strVal)
             else: krak n, "Unhandled capture type"
         elif n.len == 3:
           if n[0].eqIdent "Jf":
             result = newPatt(aux n[2], ckJFieldFixed)
+            result[0].capName = n[1].strVal
+          elif n[0].eqIdent "Ref":
+            result = newPatt(aux n[2], ckRef)
             result[0].capName = n[1].strVal
           else: krak n, "Unhandled capture type"
 
