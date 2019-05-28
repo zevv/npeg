@@ -35,7 +35,7 @@ import macros
 import json
 import npeg/[common,patt,stack,codegen,capture,buildpatt,grammar,dot]
 
-export NPegException, Parser, MatchResult
+export NPegException, Parser, MatchResult, contains
 
 
 # Create a parser for a PEG grammar

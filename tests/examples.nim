@@ -220,3 +220,22 @@ Location: https://nim.org/
     let c = r.captures
     doAssert c == @["añyóng", "♜♞♝♛♚♝♞♜", "оживлённым"]
 
+  ######################################################################
+
+  test "Back references":
+
+    let p = peg "doc":
+      S <- *Space
+      doc <- +word * "<<" * Ref("sep", sep) * S * >heredoc * Backref("sep") * S * +word
+      word <- +Alpha * S
+      sep <- +Alpha
+      heredoc <- +(1 - Backref("sep"))
+
+    let d = """This is a <<EOT here document
+    with multiple lines EOT end"""
+
+    let r = p.match(d)
+    doAssert r.ok
+    doAssert r.captures[0] == "here document\n    with multiple lines "
+
+

@@ -169,6 +169,7 @@ template skel(cases: untyped, ip: NimNode, capture: NimNode) =
       inc ip
     
     template opBackrefFn(refName: string, iname="") =
+      # This is a proc because we do not want to export 'contains'
       if refName in refs:
         let s2 = refs[refName]
         trace iname, "backref " & refName & ":\"" & s2 & "\""
