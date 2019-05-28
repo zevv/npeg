@@ -200,48 +200,53 @@ NPeg patterns and grammars can be composed from the following parts:
 
 Atoms:
 
-   0            # matches always and consumes nothing
-   1            # matches any character
-   n            # matches exactly n characters
-  'x'           # matches literal character 'x'
-  "xyz"         # matches literal string "xyz"
- i"xyz"         # matches literal string, case insensitive
-  {'x'..'y'}    # matches any character in the range from 'x'..'y'
-  {'x','y','z'} # matches any character from the set
+   0              # matches always and consumes nothing
+   1              # matches any character
+   n              # matches exactly n characters
+  'x'             # matches literal character 'x'
+  "xyz"           # matches literal string "xyz"
+ i"xyz"           # matches literal string, case insensitive
+  {'x'..'y'}      # matches any character in the range from 'x'..'y'
+  {'x','y','z'}   # matches any character from the set
 
 Operators:
 
-   P1 * P2      # concatenation
-   P1 | P2      # ordered choice
-   P1 - P2      # matches P1 if P2 does not match
-  (P)           # grouping
-  !P            # matches everything but P
-  &P            # matches P without consuming input
-  ?P            # matches P zero or one times
-  *P            # matches P zero or more times
-  +P            # matches P one or more times
-  @P            # search for P
-   P[n]         # matches P n times
-   P[m..n]      # matches P m to n times
+   P1 * P2        # concatenation
+   P1 | P2        # ordered choice
+   P1 - P2        # matches P1 if P2 does not match
+  (P)             # grouping
+  !P              # matches everything but P
+  &P              # matches P without consuming input
+  ?P              # matches P zero or one times
+  *P              # matches P zero or more times
+  +P              # matches P one or more times
+  @P              # search for P
+   P[n]           # matches P n times
+   P[m..n]        # matches P m to n times
 
-String captures:
+String captures:  
 
-  >P            # Captures the string matching  P 
+  >P              # Captures the string matching  P 
 
 Json captures:
 
-  Js(P)         # Produces a JString from the string matching  P 
-  Ji(P)         # Produces a JInteger from the string matching  P 
-  Jf(P)         # Produces a JFloat from the string matching  P 
-  Ja()          # Produces a new JArray
-  Jo()          # Produces a new JObject
-  Jt("tag", P)  # Stores capture  P  in the field "tag" of the outer JObject
-  Jt(P)         # Stores the second Json capture of  P  in the outer JObject
-                # using the first Json capure of  P  as the tag.
+  Js(P)           # Produces a JString from the string matching  P 
+  Ji(P)           # Produces a JInteger from the string matching  P 
+  Jf(P)           # Produces a JFloat from the string matching  P 
+  Ja()            # Produces a new JArray
+  Jo()            # Produces a new JObject
+  Jt("tag", P)    # Stores capture P in the field "tag" of the outer JObject
+  Jt(P)           # Stores the second Json capture of P in the outer JObject
+                  # using the first Json capure of P as the tag.
+
+Back references:
+
+  Ref("tag", P)   # Create a named reference to pattern P
+  Backref("tag")  # Matches the named reference
 
 Error handling:
 
-  E"msg"        # Raise an execption with the given message
+  E"msg"          # Raise an execption with the given message
 ```
 
 In addition to the above, NPeg provides the following built-in shortcuts for
@@ -530,6 +535,32 @@ After the parsing finished, the `words` table will now contain
 ```nim
 {"two": 2, "three": 3, "one": 1, "four": 4}
 ```
+
+
+### Backreferences
+
+Backreferences allow NPeg to match an exact string that matched earlier in the grammar. This
+can be useful to match repetitions of the same word, or for example to match here-documents
+in programming languages.
+
+For this, NPeg offers the following two patterns:
+
+* The `Ref("tag", P)` pattern creates a named reference which can be matched later
+  in the grammar.
+
+* The pattern `Backref("tag")` matches the contents of the named reference that earlier
+  been stored by the `Ref()` pattern.
+
+For example, the following rule will match only a string which will have the 
+same character in the first and last position:
+
+```
+patt Ref("c", 1) * *(1 - Backref("c")) * Backref("c") * !1
+```
+
+The first part of the rule `Ref(" ", 1)` will match any character, and store this
+in the named reference `c`. The second part will match a sequence of zero or more
+characters that do not match reference `c`, followed by reference `c`.
 
 
 ## Some notes on using PEGs
