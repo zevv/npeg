@@ -117,8 +117,8 @@ suite "unit tests":
     doAssert a.match("abcabc").ok
   
   test "backref":
-    doAssert patt(Ref("sep", Alpha) * *(1 - Backref("sep")) * Backref("sep") * !1).match("abbbba").ok
-    doAssert patt(Ref("sep", Alpha) * *(1 - Backref("sep")) * Backref("sep") * !1).match("abbbbc").ok == false
+    doAssert patt(R("sep", Alpha) * *(1 - R("sep")) * R("sep") * !1).match("abbbba").ok
+    doAssert patt(R("sep", Alpha) * *(1 - R("sep")) * R("sep") * !1).match("abbbbc").ok == false
 
   test "raise exception 1":
     let a = patt E"boom"

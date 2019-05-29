@@ -94,14 +94,14 @@ proc parsePatt*(name: string, nn: NimNode, grammar: Grammar = nil, dot: Dot = ni
             of "Ja": return newPatt(aux n[1], ckJArray)
             of "Jo": return newPatt(aux n[1], ckJObject)
             of "Jt": return newPatt(aux n[1], ckJFieldDynamic)
-            of "Backref":
+            of "R":
               return newBackrefPatt(n[1].strVal)
             else: krak n, "Unhandled capture type"
         elif n.len == 3:
           if n[0].eqIdent "Jf":
             result = newPatt(aux n[2], ckJFieldFixed)
             result[0].capName = n[1].strVal
-          elif n[0].eqIdent "Ref":
+          elif n[0].eqIdent "R":
             result = newPatt(aux n[2], ckRef)
             result[0].capName = n[1].strVal
           else: krak n, "Unhandled capture type"

@@ -226,10 +226,10 @@ Location: https://nim.org/
 
     let p = peg "doc":
       S <- *Space
-      doc <- +word * "<<" * Ref("sep", sep) * S * >heredoc * Backref("sep") * S * +word
+      doc <- +word * "<<" * R("sep", sep) * S * >heredoc * R("sep") * S * +word
       word <- +Alpha * S
       sep <- +Alpha
-      heredoc <- +(1 - Backref("sep"))
+      heredoc <- +(1 - R("sep"))
 
     let d = """This is a <<EOT here document
     with multiple lines EOT end"""

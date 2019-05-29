@@ -241,8 +241,8 @@ Json captures:
 
 Back references:
 
-  Ref("tag", P)   # Create a named reference to pattern P
-  Backref("tag")  # Matches the named reference
+  R("tag", P)     # Create a named reference for pattern P
+  R("tag")        # Matches the given named reference
 
 Error handling:
 
@@ -539,26 +539,26 @@ After the parsing finished, the `words` table will now contain
 
 ### Backreferences
 
-Backreferences allow NPeg to match an exact string that matched earlier in the grammar. This
-can be useful to match repetitions of the same word, or for example to match here-documents
-in programming languages.
+Backreferences allow NPeg to match an exact string that matched earlier in the
+grammar. This can be useful to match repetitions of the same word, or for
+example to match so called here-documents in programming languages.
 
-For this, NPeg offers the following two patterns:
+For this, NPeg offers the `R` operator with the following two uses:
 
-* The `Ref("tag", P)` pattern creates a named reference which can be matched later
-  in the grammar.
+* The `R(name, P)` pattern creates a named reference for pattern `P` which can
+  be refered to by name in other places in the grammar.
 
-* The pattern `Backref("tag")` matches the contents of the named reference that earlier
-  been stored by the `Ref()` pattern.
+* The pattern `R(name)` matches the contents of the named reference that
+  earlier been stored with `R(name, P)` pattern.
 
 For example, the following rule will match only a string which will have the 
 same character in the first and last position:
 
 ```
-patt Ref("c", 1) * *(1 - Backref("c")) * Backref("c") * !1
+patt R("c", 1) * *(1 - R("c")) * R("c") * !1
 ```
 
-The first part of the rule `Ref(" ", 1)` will match any character, and store this
+The first part of the rule `R("c", 1)` will match any character, and store this
 in the named reference `c`. The second part will match a sequence of zero or more
 characters that do not match reference `c`, followed by reference `c`.
 
