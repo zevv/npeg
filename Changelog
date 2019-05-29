@@ -1,4 +1,10 @@
 
+- Added safeguards to prevent grammars growing out of bounds
+- Added graphviz .dot debugging output for parser debugging
+- Added `matchLen` and `matchMax` fields to `NPegException`
+- Improved error handling
+- Improved documentation
+
 0.10.0
 ======
 
