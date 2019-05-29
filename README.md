@@ -171,48 +171,19 @@ performance and/or code size matters, it pays to experiment with different
 orderings and measure the results.
 
 Repetitive inlining of rules might cause the grammar to grow too large,
-resulting in a huge executable size. To prevent this, NPeg checks the size of
-the grammar, and if it thinks it is too large it will fail compilation with the
-error message:
+resulting in a huge executable size and slow compilation.
 
-```
-NPeg: grammar too complex
-```
+NPeg tries to mitigate this in two ways:
 
-At this time the upper limit is 4096 rules, this might become a configurable
-number in a future release.
+* Patterns that are too large will not be inlined, even if the above ordering
+  rules apply.
 
-For example, the following grammar will not compile because recursive inlining
-will cause it to expand to a parser with more then 4^6 = 4096 rules:
+* NPeg checks the size of the total grammar, and if it thinks it is too large
+  it will fail compilation with the error message `NPeg: grammar too complex`
 
-```
-let p = peg "z":
-  f <- 1
-  e <- f * f * f * f
-  d <- e * e * e * e
-  c <- d * d * d * d
-  b <- c * c * c * c
-  a <- b * b * b * b
-  z <- a * a * a * a
-```
-
-The fix is to change the order of the rules so that instead of inlining NPeg
-will use a calling mechanism:
-
-```
-let p = peg "z":
-  z <- a * a * a * a
-  a <- b * b * b * b
-  b <- c * c * c * c
-  c <- d * d * d * d
-  d <- e * e * e * e
-  e <- f * f * f * f
-  f <- 1
-```
-
-When in doubt check the generated parser instructions by compiling with the
-`-d:npegTrace` flag - see the section Tracing and Debugging for more
-information.
+When in doubt, check the generated parser instructions by compiling with the
+`-d:npegTrace` or `-d:npegDumpDot` flags - see the section Tracing and
+Debugging for more information.
 
 
 ## Syntax
