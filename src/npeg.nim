@@ -33,7 +33,7 @@
 import tables
 import macros
 import json
-import npeg/[common,patt,stack,codegen,capture,buildpatt,grammar]
+import npeg/[common,patt,stack,codegen,capture,buildpatt,grammar,dot]
 
 export NPegException, Parser, MatchResult
 
@@ -41,7 +41,9 @@ export NPegException, Parser, MatchResult
 # Create a parser for a PEG grammar
 
 macro peg*(name: string, n: untyped): untyped =
-  var grammar = parseGrammar(n)
+  var dot = newDot(name.strVal)
+  var grammar = parseGrammar(n, dot)
+  dot.dump()
   grammar.link(name.strVal()).genCode()
 
 

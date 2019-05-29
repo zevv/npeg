@@ -1,7 +1,7 @@
 
 import tables
 import macros
-import npeg/[common,patt,buildpatt]
+import npeg/[common,patt,buildpatt,dot]
 
 
 proc add*(grammar: var Grammar, name: string, patt: Patt) =
@@ -58,13 +58,13 @@ proc newGrammar*(): Grammar =
   result = newTable[string, Patt]()
 
 
-proc parseGrammar*(ns: NimNode): Grammar =
+proc parseGrammar*(ns: NimNode, dot: Dot): Grammar =
   var grammar = newGrammar()
   for n in ns:
     if n.kind == nnkInfix and n[0].kind == nnkIdent and
        n[1].kind == nnkIdent and n[0].eqIdent("<-"):
       let name = n[1].strVal
-      var patt = parsePatt(name, n[2], grammar)
+      var patt = parsePatt(name, n[2], grammar, dot)
       if n.len == 4:
         patt = newPatt(patt, ckAction)
         patt[patt.high].capAction = n[3]

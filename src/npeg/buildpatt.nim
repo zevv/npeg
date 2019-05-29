@@ -2,7 +2,7 @@
 import tables
 import macros
 import strutils
-import npeg/[common,codegen,patt]
+import npeg/[common,codegen,patt,dot]
 
 #
 # The complete PEG syntax parsed by parsePatt(). In PEG. How meta.
@@ -58,7 +58,7 @@ const builtins = {
 
 # Recursively compile a PEG rule to a Pattern
 
-proc parsePatt*(name: string, nn: NimNode, grammar: Grammar = nil): Patt =
+proc parsePatt*(name: string, nn: NimNode, grammar: Grammar = nil, dot: Dot = nil): Patt =
 
   proc aux(n: NimNode): Patt =
 
@@ -137,13 +137,16 @@ proc parsePatt*(name: string, nn: NimNode, grammar: Grammar = nil): Patt =
         else: krak n, "syntax error"
 
       of nnkIdent:
-        let name = n.strVal
-        if name in builtins:
-          return builtins[name]
-        elif name in grammar:
-          return grammar[name]
+        let name2 = n.strVal
+        if name2 in builtins:
+          dot.add(name, name2, "builtin")
+          return builtins[name2]
+        elif name2 in grammar:
+          dot.add(name, name2, "inline")
+          return grammar[name2]
         else:
-          return newCallPatt(name)
+          dot.add(name, name2, "call")
+          return newCallPatt(name2)
 
       of nnkCurly:
         var cs: CharSet
@@ -172,6 +175,7 @@ proc parsePatt*(name: string, nn: NimNode, grammar: Grammar = nil): Patt =
         krak n, "syntax error"
 
   result = aux(nn)
+  dot.addPatt(name, result.len)
   
   when npegTrace:
     for i in result.mitems:
@@ -179,5 +183,4 @@ proc parsePatt*(name: string, nn: NimNode, grammar: Grammar = nil): Patt =
         i.name = name
       else:
         i.name = " " & i.name
-
 
