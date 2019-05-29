@@ -17,10 +17,10 @@ const colors = {
 proc newDot*(name: string): Dot =
   return Dot(name: name, edges: initTable[string, bool]())
 
-
 proc add*(d: Dot, n1, n2: string, meth: string) =
-  let l = "  " & n1 & " -> " & n2 & " [ color=" & colors[meth] & "];"
-  d.edges[l] = true
+  if d != nil:
+    let l = "  " & n1 & " -> " & n2 & " [ color=" & colors[meth] & "];"
+    d.edges[l] = true
 
 proc addPatt*(d: Dot, name: string, len: int) =
   if d != nil:
