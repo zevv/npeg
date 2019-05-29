@@ -691,17 +691,11 @@ each grammar in the code and write it to the given directory.
 
 ![graph](/doc/example-graph.png)
 
-Edge colors represent the rule relation:
+* Edge colors represent the rule relation:
+  grey=inline, blue=call, green=builtin
 
-* Grey: inlined
-* Blue: called
-* Green: builtin
-
-Rule colors represent the relative size/complexity of a rule.
-
-* Black: < 10
-* Orange: 10..100
-* Red: > 100
+* Rule colors represent the relative size/complexity of a rule:
+  black=<10, orange=10..100, red=>100
 
 Large rules result in larger generated code and slow compile times. Rule size can
 generally be decreased by changing the rule order in a grammar to allow NPeg to
