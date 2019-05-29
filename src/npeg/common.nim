@@ -6,7 +6,7 @@ import tables
 
 const
   PATT_LEN_MAX* = 4096
-  INLINE_MAX_LEN* = 100
+  INLINE_MAX_LEN* = 50
   RETSTACK_MAX* = 1024
   BACKSTACK_MAX* = 1024
 
