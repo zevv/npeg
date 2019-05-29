@@ -1,9 +1,12 @@
 
+0.11.0
+======
+
+- Added support for named backreferences
 - Added safeguards to prevent grammars growing out of bounds
-- Added graphviz .dot debugging output for parser debugging
+- Added Graphviz .dot debugging output for parser debugging
 - Added `matchLen` and `matchMax` fields to `NPegException`
-- Improved error handling
-- Improved documentation
+- Improved pattern syntax error messages
 
 0.10.0
 ======
