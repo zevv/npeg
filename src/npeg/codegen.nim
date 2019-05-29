@@ -3,10 +3,6 @@ import macros
 import strutils
 import npeg/[common,patt,stack,capture]
 
-const
-  RETSTACK_MAX = 1024
-  BACKSTACK_MAX = 1024
-
 type
 
   RetFrame = int

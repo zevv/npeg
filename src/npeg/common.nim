@@ -2,6 +2,15 @@
 import strutils
 import tables
 
+# Some constants with "sane" values - these will have to be made configurable one day
+
+const
+  PATT_LEN_MAX* = 4096
+  INLINE_MAX_LEN* = 100
+  RETSTACK_MAX* = 1024
+  BACKSTACK_MAX* = 1024
+
+
 type
 
   NPegException* = object of Exception

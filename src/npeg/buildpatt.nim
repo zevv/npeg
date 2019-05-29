@@ -141,7 +141,7 @@ proc parsePatt*(name: string, nn: NimNode, grammar: Grammar = nil, dot: Dot = ni
         if name2 in builtins:
           dot.add(name, name2, "builtin")
           return builtins[name2]
-        elif name2 in grammar:
+        elif name2 in grammar and grammar[name2].len < INLINE_MAX_LEN:
           dot.add(name, name2, "inline")
           return grammar[name2]
         else:

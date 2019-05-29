@@ -6,9 +6,6 @@ import tables
 
 import npeg/common
 
-const
-  PATT_LEN_MAX = 4096
-
 
 type
 
