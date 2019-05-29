@@ -166,20 +166,19 @@ more control over the generated parser:
   `P2` will be generated as a subroutine which gets called from `P1`. This will
   reduce code size, but might also result in a slower parser.
 
-The parser size and performance depends on many factors; when performance
-and/or code size matters, it pays to experiment with different orderings and
-measure the results.
-
 Repetitive inlining of rules might cause the grammar to grow too large,
-resulting in a huge executable size and slow compilation.
-
-NPeg tries to mitigate this in two ways:
+resulting in a huge executable size and slow compilation. NPeg tries to
+mitigate this in two ways:
 
 * Patterns that are too large will not be inlined, even if the above ordering
   rules apply.
 
 * NPeg checks the size of the total grammar, and if it thinks it is too large
   it will fail compilation with the error message `NPeg: grammar too complex`
+
+The parser size and performance depends on many factors; when performance
+and/or code size matters, it pays to experiment with different orderings and
+measure the results.
 
 When in doubt, check the generated parser instructions by compiling with the
 `-d:npegTrace` or `-d:npegDumpDot` flags - see the section Tracing and
