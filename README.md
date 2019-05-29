@@ -166,9 +166,9 @@ more control over the generated parser:
   `P2` will be generated as a subroutine which gets called from `P1`. This will
   reduce code size, but might also result in a slower parser.
 
-The exact parser size and performance behavior depends on many factors; when
-performance and/or code size matters, it pays to experiment with different
-orderings and measure the results.
+The parser size and performance depends on many factors; when performance
+and/or code size matters, it pays to experiment with different orderings and
+measure the results.
 
 Repetitive inlining of rules might cause the grammar to grow too large,
 resulting in a huge executable size and slow compilation.
