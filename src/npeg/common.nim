@@ -14,6 +14,8 @@ const
 type
 
   NPegException* = object of Exception
+    matchLen*: int
+    matchMax*: int
   
   CapFrameType* = enum cftOpen, cftClose
   

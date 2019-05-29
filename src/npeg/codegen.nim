@@ -179,7 +179,10 @@ template skel(cases: untyped, ip: NimNode, capture: NimNode) =
 
     template opErrFn(msg: string, iname="") =
       trace iname, "err " & msg
-      raise newException(NPegException, "Parsing error at #" & $si & ": expected \"" & msg & "\"")
+      var e = newException(NPegException, "Parsing error at #" & $si & ": expected \"" & msg & "\"")
+      e.matchLen = si
+      e.matchMax = simax
+      raise e
 
     while true:
 

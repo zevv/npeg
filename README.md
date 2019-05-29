@@ -601,6 +601,10 @@ can this not be matched the `E"word"` matches instead, raising an exception:
 Error: unhandled exception: Parsing error at #14: expected "word" [NPegException]
 ```
 
+The `NPegException` type contains the same two fields as `MatchResult` to indicate
+where in the subject string the match failed: `matchLen` and `matchMax`
+
+
 ### Left recursion
 
 NPeg does not support left recursion (this applies to PEGs in general). For

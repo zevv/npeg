@@ -116,8 +116,17 @@ suite "unit tests":
       r1 <- "abc"
     doAssert a.match("abcabc").ok
 
-  test "raise exception":
+  test "raise exception 1":
     let a = patt E"boom"
     expect NPegException:
       doAssert a.match("abcabc").ok
+
+  test "raise exception 2":
+    let a = patt 4 * E"boom"
+    try:
+      doAssert a.match("abcabc").ok
+    except NPegException:
+      let e = (ref NPegException)getCurrentException()
+      doAssert e.matchLen == 4
+      doAssert e.matchMax == 4
 
