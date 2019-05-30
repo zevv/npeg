@@ -633,8 +633,15 @@ Error: unhandled exception: Parsing error at #14: expected "word" [NPegException
 ```
 
 The `NPegException` type contains the same two fields as `MatchResult` to indicate
-where in the subject string the match failed: `matchLen` and `matchMax`
+where in the subject string the match failed: `matchLen` and `matchMax`:
 
+```nim
+let a = patt 4 * E"boom"
+try:
+  doAssert a.match("12345").ok
+except NPegException as e:
+  echo "Parsing failed at position ", e.matchMax
+```
 
 ### Left recursion
 
