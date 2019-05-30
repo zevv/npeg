@@ -57,13 +57,13 @@ macro patt*(n: untyped): untyped =
 
 
 proc match*(p: Parser, s: string): MatchResult =
-  p.fn(s)
+  p.fn(p, s)
 
 
 when defined(windows) or defined(posix):
   proc matchFile*(p: Parser, fname: string): MatchResult =
     let s = readFile(fname)
-    result = p.fn(s)
+    result = p.fn(p, s)
 
 # Return all plain string captures from the match result
 
