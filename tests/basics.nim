@@ -129,8 +129,7 @@ suite "unit tests":
     let a = patt 4 * E"boom"
     try:
       doAssert a.match("abcabc").ok
-    except NPegException:
-      let e = (ref NPegException)getCurrentException()
+    except NPegException as e:
       doAssert e.matchLen == 4
       doAssert e.matchMax == 4
 
