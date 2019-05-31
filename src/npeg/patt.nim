@@ -154,8 +154,9 @@ proc toSet(p: Patt, cs: var Charset): bool =
 
 
 proc checkSanity(p: Patt) =
-  if p.len >= PATT_LEN_MAX:
-    error "NPeg: grammar too complex"
+  if p.len >= npegPattMaxLen:
+    error "NPeg: grammar too complex, (" & $p.len & " > " & $npegPattMaxLen & ").\n" &
+          "If you think this is a mistake, increase the maximum size with -d:npegPattMaxLen=N"
 
 
 ### Atoms

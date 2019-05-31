@@ -58,9 +58,9 @@ template skel(cases: untyped, ip: NimNode, capture: NimNode) =
       si: int
       simax: int
       refs = initTable[string, string]()
-      retStack = initStack[RetFrame]("return", 8, RETSTACK_MAX)
+      retStack = initStack[RetFrame]("return", 8, npegRetStackSize)
       capStack = initStack[CapFrame]("capture", 8)
-      backStack = initStack[BackFrame]("backtrace", 8, BACKSTACK_MAX)
+      backStack = initStack[BackFrame]("backtrace", 8, npegBackStackSize)
 
     # Debug trace. Slow and expensive
 

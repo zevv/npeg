@@ -5,10 +5,10 @@ import tables
 # Some constants with "sane" values - these will have to be made configurable one day
 
 const
-  PATT_LEN_MAX* = 4096
-  INLINE_MAX_LEN* = 50
-  RETSTACK_MAX* = 1024
-  BACKSTACK_MAX* = 1024
+  npegPattMaxLen* {.intdefine.} = 4096
+  npegInlineMaxLen* {.intdefine.} = 50
+  npegRetStackSize* {.intdefine.} = 1024
+  npegBackStackSize* {.intdefine.} = 1024
 
 
 type

@@ -176,6 +176,9 @@ mitigate this in two ways:
 * NPeg checks the size of the total grammar, and if it thinks it is too large
   it will fail compilation with the error message `NPeg: grammar too complex`
 
+Check the section "Compile-time configuration" below for more details about too
+complex grammars.
+
 The parser size and performance depends on many factors; when performance
 and/or code size matters, it pays to experiment with different orderings and
 measure the results.
@@ -427,8 +430,9 @@ any matches which were invalidated by backtracking. Only when parsing has fully
 succeeded it creates a `seq[string]` of all matched parts, which is then
 returned in the `MatchData.captures` field.
 
-In the example, the `>` capture prefix is added to the `word` rule, causing all
-the matched words to be appended to the result capture `seq[string]`
+In the example, the `>` capture prefix is added to the `word` and `number`
+rules, causing the matched words and numbers to be appended to the result
+capture `seq[string]`:
 
 ```nim
 let parser = peg "pairs":
@@ -780,6 +784,35 @@ of columns:
 ```
 
 The exact meaning of the IR instructions is not discussed here.
+
+
+## Compile-time configuration
+
+NPeg has a number of configurable setting which can be configured at compile
+time by passing flags to the compiler. The default values should be ok in most
+cases, but if you ever run into one of those limits you are free to configure
+those to your liking:
+
+* `-d:npegPattMaxLen=N` This is the maximum allowed length of NPeg's internal
+  representation of a parser, before it gets translated to Nim code. The reason
+  to check for an upper limit is that some grammars can grow exponentially by
+  inlining of patterns, resulting in slow compile times and oversized
+  executable size. (default: 4096)
+
+* `-d:npegInlineMaxLen=N` This is the maximum allowed length of a pattern to be
+  inlined. Inlining generally results in a faster parser, but also increases
+  code size. It is valid to set this value to 0; in that case NPeg will never
+  inline patterns and use a calling mechanism instead, this will result in the
+  smallest code size. (default: 50)
+
+* `-d:npegRetStackSize=N` Maximum allowed depth of the return stack for the
+  parser. The default value should be high enough for practical purposes, the
+  stack depth is only limited to detect invalid grammars. (default: 1024)
+
+* `-d:npegBackStackSize=N` Maximum allowed depth of the backtrace stack for the
+  parser. The default value should be high enough for practical purposes, the
+  stack depth is only limited to detect invalid grammars. (default: 1024)
+
 
 
 ## Examples
