@@ -50,7 +50,7 @@ proc fixCaptures*(s: string, capStack: var Stack[CapFrame], fm: FixMethod): Capt
     else:
       let i2 = stack.pop()
       assert result[i2].ck == c.ck
-      result[i2].s = ($s)[result[i2].si..<c.si]
+      result[i2].s = s[result[i2].si..<c.si]
       result[i2].len = result.len - i2 - 1
   assert stack.top == 0
 
