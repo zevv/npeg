@@ -701,7 +701,7 @@ NPeg can generate a graphical representation of a grammar to show the relations
 between rules. The generated output is a `.dot` file which can be processed by
 the Graphviz tool to generate an actual image file.
 
-When compiled with `-d:npegDotDir=<PATH>`, npeg will generate a `.dot` file for
+When compiled with `-d:npegDotDir=<PATH>`, NPeg will generate a `.dot` file for
 each grammar in the code and write it to the given directory.
 
 ![graph](/doc/example-graph.png)
