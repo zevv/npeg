@@ -20,7 +20,7 @@ let s = peg "JSON":
   False          <- "false"
   Null           <- "null"
 
-  UnicodeEscape  <- 'u' * {'0'..'9','A'..'F','a'..'f'}{4}
+  UnicodeEscape  <- 'u' * {'0'..'9','A'..'F','a'..'f'}[4]
   Escape         <- '\\' * ({ '{', '"', '|', '\\', 'b', 'f', 'n', 'r', 't' } | UnicodeEscape)
   StringBody     <- ?Escape * *( +( {'\x20'..'\xff'} - {'"'} - {'\\'}) * *Escape) 
   String         <- ?S * '"' * StringBody * '"' * ?S
