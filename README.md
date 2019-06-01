@@ -3,7 +3,8 @@
 NPeg is a pure Nim pattern matching library. It provides macros to compile
 patterns and grammars (PEGs) to Nim procedures which will parse a string and
 collect selected parts of the input. PEGs are not unlike regular expressions,
-but offer more power and flexibility, and have less ambiguities.
+but offer more power and flexibility, and have less ambiguities. (More about 
+PEGs on [wikipedia](https://en.wikipedia.org/wiki/Parsing_expression_grammar))
 
 Some use cases where NPeg is useful are configuration or data file parsers,
 robust protocol implementations, input validation, lexing of programming
