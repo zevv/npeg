@@ -338,7 +338,7 @@ patterns.
 
 - Grouping: `(P)`
 
-  Brackets are used to group patterns similar to normal mathematical expressions.
+  Brackets are used to group patterns similar to normal arithmetic expressions.
 
 
 - Not-predicate: `!P`
@@ -817,7 +817,7 @@ those to your liking:
 
 ## Examples
 
-### Parsing mathematical expressions
+### Parsing arithmetic expressions
 
 ```nim
 let parser = peg "line":
