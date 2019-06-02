@@ -506,12 +506,24 @@ Note that for code block captures, the Nim code gets executed during parsing,
 When a grammar rule ends with a colon `:`, the next indented block in the
 grammar is interpreted as Nim code, which gets executed when the rule has been
 matched. Any string captures that were made inside the rule are available to
-the Nim code in the `capture[]` seq. For convenience there is some syntactic
-sugar performed on the code block which allows to use fake variables `$1` to
-`$9` to be used to access the elements of the `capture[]` seq. (Note that due
-to Nims operator precedence, the dollar-variables might need parentheses or
-different ordering in some cases, for example `$1.parseInt` should be written
-as `parseInt($1)`)
+the Nim code in the injected variable `capture[]` of type `seq[Capture]`:
+
+```
+type Capture =
+  s*: string      # The captured string
+  si*: int        # The index of the captured string in the subject
+```
+
+For convenience there is syntactic sugar available in the code block which
+allows to use fake variables `$1` to `$9` to be used to access the captured
+strings. Some important notes about this notation:
+
+- Offset difference: The first capture string from `capture[0]` is available in
+  the fake variable `$1`.
+
+- Operator precedence: the dollar-variables might need parentheses or different
+  ordering in some cases, for example `$1.parseInt` should be written as
+  `parseInt($1)`)
 
 Code block captures consume all embedded string captures, so these captures
 will no longer be available after matching.

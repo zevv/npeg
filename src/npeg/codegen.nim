@@ -27,12 +27,13 @@ type
 # This macro translates `$1`.. into `capture[0]`.. for use in code block captures
 
 proc mkDollarCaptures(n: NimNode): NimNode =
-  if n.kind == nnkNilLit:
+  if n.kind == nnkPrefix and
+       n[0].kind == nnkIdent and n[0].eqIdent("$") and
+       n[1].kind == nnkIntLit:
+    let i = int(n[1].intVal-1)
+    result = newDotExpr(nnkBracketExpr.newTree(ident("capture"), newLit(i)), ident "s")
+  elif n.kind == nnkNilLit:
     result = nnkDiscardStmt.newTree(newEmptyNode())
-  elif n.kind == nnkPrefix and
-     n[0].kind == nnkIdent and n[0].eqIdent("$") and
-     n[1].kind == nnkIntLit:
-    result = nnkBracketExpr.newTree(newIdentNode("capture"), newLit(int(n[1].intVal-1)))
   else:
     result = copyNimNode(n)
     for nc in n:

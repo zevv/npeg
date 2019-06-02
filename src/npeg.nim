@@ -68,7 +68,8 @@ when defined(windows) or defined(posix):
 # Return all plain string captures from the match result
 
 proc captures*(mr: MatchResult): seq[string] =
-  collectCaptures(mr.cs)
+  for cap in collectCaptures(mr.cs):
+    result.add cap.s
 
 
 # Return a tree with Json captures from the match result

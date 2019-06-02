@@ -1,14 +1,15 @@
 
 import json
 import strutils
+import sequtils
 import npeg/[stack,common]
 
 type
 
   Capture* = object
     ck: CapKind
-    si: int
-    s: string
+    si*: int
+    s*: string
     name: string
     len: int
 
@@ -59,10 +60,8 @@ proc fixCaptures*(s: string, capStack: var Stack[CapFrame], fm: FixMethod): Capt
   capStack.top = iFrom
 
 
-proc collectCaptures*(caps: Captures): seq[string] =
-  for cap in caps:
-    if cap.ck == ckStr:
-      result.add cap.s
+proc collectCaptures*(caps: Captures): Captures =
+  result = caps.filterIt(it.ck == ckStr)
 
 
 proc collectCapturesRef*(caps: Captures): Ref =
