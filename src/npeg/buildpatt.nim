@@ -42,17 +42,17 @@ type Grammar* = TableRef[string, Patt]
 #
 
 const builtins = {
-  "Alnum":  newPatt({'A'..'Z','a'..'z','0'..'9'}), # Alphanumeric characters
-  "Alpha":  newPatt({'A'..'Z','a'..'z'}),          # Alphabetic characters
-  "Blank":  newPatt({' ','\t'}),                   # Space and tab
-  "Cntrl":  newPatt({'\x00'..'\x1f','\x7f'}),      # Control characters
-  "Digit":  newPatt({'0'..'9'}),                   # Digits
-  "Graph":  newPatt({'\x21'..'\x7e'}),             # Visible characters
-  "Lower":  newPatt({'a'..'z'}),                   # Lowercase characters
-  "Print":  newPatt({'\x21'..'\x7e',' '}),         # Visible characters and spaces
-  "Space":  newPatt({'\9'..'\13',' '}),            # Whitespace characters
-  "Upper":  newPatt({'A'..'Z'}),                   # Uppercase characters
-  "Xdigit": newPatt({'A'..'F','a'..'f','0'..'9'}), # Hexadecimal digits
+  "Alnum":  {'A'..'Z','a'..'z','0'..'9'}, # Alphanumeric characters
+  "Alpha":  {'A'..'Z','a'..'z'},          # Alphabetic characters
+  "Blank":  {' ','\t'},                   # Space and tab
+  "Cntrl":  {'\x00'..'\x1f','\x7f'},      # Control characters
+  "Digit":  {'0'..'9'},                   # Digits
+  "Graph":  {'\x21'..'\x7e'},             # Visible characters
+  "Lower":  {'a'..'z'},                   # Lowercase characters
+  "Print":  {'\x21'..'\x7e',' '},         # Visible characters and spaces
+  "Space":  {'\9'..'\13',' '},            # Whitespace characters
+  "Upper":  {'A'..'Z'},                   # Uppercase characters
+  "Xdigit": {'A'..'F','a'..'f','0'..'9'}, # Hexadecimal digits
 }.toTable()
 
 
@@ -144,7 +144,7 @@ proc parsePatt*(name: string, nn: NimNode, grammar: Grammar = nil, dot: Dot = ni
         let name2 = n.strVal
         if name2 in builtins:
           dot.add(name, name2, "builtin")
-          return builtins[name2]
+          return newPatt(builtins[name2])
         elif name2 in grammar and grammar[name2].len < npegInlineMaxLen:
           dot.add(name, name2, "inline")
           return grammar[name2]
