@@ -1,4 +1,11 @@
 
+0.12.0
+======
+
+- Documentation updates
+- Made some error bounds compile-time configurable
+- Fix for more strict Nim compiler checks
+
 0.11.0
 ======
 
