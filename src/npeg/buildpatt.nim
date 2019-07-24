@@ -98,12 +98,9 @@ proc parsePatt*(name: string, nn: NimNode, grammar: Grammar = nil, dot: Dot = ni
               return newBackrefPatt(n[1].strVal)
             else: krak n, "Unhandled capture type"
         elif n.len == 3:
-          if n[0].eqIdent "Jf":
-            result = newPatt(aux n[2], ckJFieldFixed)
-            result[0].capName = n[1].strVal
-          elif n[0].eqIdent "R":
-            result = newPatt(aux n[2], ckRef)
-            result[0].capName = n[1].strVal
+          if n[0].eqIdent "Jf": result = newPatt(aux n[2], ckJFieldFixed, n[1].strVal)
+          elif n[0].eqIdent "A": result = newPatt(aux n[2], ckAST, n[1].strVal)
+          elif n[0].eqIdent "R": result = newPatt(aux n[2], ckRef, n[1].strVal)
           else: krak n, "Unhandled capture type"
 
       of nnkPrefix:

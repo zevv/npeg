@@ -45,6 +45,7 @@ type
         capKind*: CapKind
         capAction*: NimNode
         capName*: string
+        capId*: BiggestInt
       of opErr:
         msg*: string
       of opFail, opReturn, opAny, opNop:
@@ -174,6 +175,10 @@ proc newPatt*(p: Patt, ck: CapKind): Patt =
   result.add Inst(op: opCapOpen, capKind: ck)
   result.add p
   result.add Inst(op: opCapClose, capKind: ck)
+
+proc newPatt*(p: Patt, ck: CapKind, name: string): Patt =
+  result = newPatt(p, ck)
+  result[0].capName = name
 
 proc newCallPatt*(label: string): Patt =
   result.add Inst(op: opCall, callLabel: label)

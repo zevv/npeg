@@ -21,7 +21,7 @@ type
   
   CapKind* = enum
     ckStr,          # Plain string capture
-    ckJString,         # JSON string capture
+    ckJString,      # JSON string capture
     ckJInt,         # JSON Int capture
     ckJFloat,       # JSON Float capture
     ckJArray,       # JSON Array
@@ -30,6 +30,7 @@ type
     ckJFieldDynamic,# JSON Object field with dynamic tag
     ckAction,       # Action capture, executes Nim code at match time
     ckRef           # Reference
+    ckAST,          # Abstract syntax tree capture
     ckClose,        # Closes capture
 
   CapFrame* = tuple

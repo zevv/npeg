@@ -33,6 +33,7 @@
 import tables
 import macros
 import json
+import strutils
 import npeg/[common,patt,stack,codegen,capture,buildpatt,grammar,dot]
 
 export NPegException, Parser, MatchResult, contains
@@ -77,4 +78,16 @@ proc captures*(mr: MatchResult): seq[string] =
 proc capturesJson*(mr: MatchResult): JsonNode =
   collectCapturesJson(mr.cs)
 
+
+# Return a tree with AST captures from the match result
+
+proc capturesAST*(mr: MatchResult): ASTNode =
+  collectCapturesAST(mr.cs)
+
+proc `$`*(a: ASTNode): string =
+  proc aux(a: ASTNode, s: var string, d: int=0) =
+    s &= indent(a.id & " " & a.val, d) & "\n"
+    for k in a.kids:
+      aux(k, s, d+1)
+  aux(a, result)
 

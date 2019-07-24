@@ -6,10 +6,15 @@ import npeg/[stack,common]
 
 type
 
-  Capture* = object
-    ck: CapKind
+  Capture* = ref object
+    case ck: CapKind
+    of ckStr, ckJString, ckJInt, ckJFloat, ckRef:
+      s*: string
+    of ckAST:
+      kids: Captures
+    else:
+      discard
     si*: int
-    s*: string
     name: string
     len: int
 
@@ -18,6 +23,10 @@ type
   FixMethod* = enum
     FixAll, FixOpen
 
+  ASTNode* = ref object
+    id*: string
+    val*: string
+    kids*: seq[ASTNode]
 
 # Convert all closed CapFrames on the capture stack to a list of Captures, all
 # consumed frames are removed from the CapStack
@@ -51,7 +60,8 @@ proc fixCaptures*(s: string, capStack: var Stack[CapFrame], fm: FixMethod): Capt
     else:
       let i2 = stack.pop()
       assert result[i2].ck == c.ck
-      result[i2].s = s[result[i2].si..<c.si]
+      if c.ck == ckStr or c.ck == ckJString or c.ck == ckJInt or c.ck == ckJFloat or c.ck == ckRef:
+        result[i2].s = s[result[i2].si..<c.si]
       result[i2].len = result.len - i2 - 1
   assert stack.top == 0
 
@@ -85,7 +95,7 @@ proc collectCapturesJson*(cs: Captures): JsonNode =
         of ckJArray: result = newJArray()
         of ckJFieldDynamic: result = newJArray()
         of ckJObject: result = newJObject()
-        of ckStr, ckJFieldFixed, ckAction, ckClose, ckRef: discard
+        of ckStr, ckJFieldFixed, ckAction, ckClose, ckRef, ckAST: discard
       
       let nextParentNode = 
         if result != nil and result.kind in { JArray, JObject }: result
@@ -110,4 +120,30 @@ proc collectCapturesJson*(cs: Captures): JsonNode =
   result = aux(0, cs.len-1, nil)
   if result == nil:
     result = newJNull()
+
+
+proc collectCapturesAST*(cs: Captures): ASTNode =
+
+  proc aux(iStart, iEnd: int, parent: ASTNode, d: int=0): ASTnode =
+
+    var i = iStart
+    while i <= iEnd:
+      let cap = cs[i]
+      inc i
+      case cap.ck:
+        of ckStr:
+          assert(parent != nil)
+          parent.val = cap.s
+        of ckAST:
+          var child = ASTNode(id: cap.name)
+          discard aux(i, i+cap.len-1, child, d+1)
+          if parent != nil:
+            parent.kids.add(child)
+          else:
+            result = child
+          i += cap.len 
+        else: discard
+
+  result = aux(0, cs.len-1, nil)
+
 
