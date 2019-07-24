@@ -231,6 +231,10 @@ String captures:
 
   >P              # Captures the string matching  P 
 
+AST captures (Experimental)
+
+  A("Id", P)      # Stores all captures of P in AST node `Id`
+
 Json captures:
 
   Js(P)           # Produces a JString from the string matching  P 
@@ -450,6 +454,70 @@ The resulting list of captures is now:
 @["one", "1", "two", "2", "three", "3", "four", "4"]
 ```
 
+
+### AST (Abstract Syntax Tree) captures
+
+Note: AST captures are an experimental feature, the implementation or API might
+change in the future.
+
+Npeg has a simple mechanism for storing captures in a tree data structure,
+allowing building of abstract syntax trees straight from the parser.
+
+The basic AST node has the following layout:
+
+```nim
+ASTNode* = ref object
+  id*: string           # user assigned AST node ID
+  val*: string          # string capture
+  kids*: seq[ASTNode]   # child nodes
+```
+
+To parse a subject and capture strings into a tree of `ASTNode`s, use the
+`A(id, p)` operator:
+
+- The `A(id, p)` operator creates a new `ASTNode` with the given identifier
+- The first string capture (`>`) inside pattern `p` will be assigned to the 
+  `val` field of the AST node
+- All nested `ASTnode`s in pattern `p` will be added to the nodes `kids` seq.
+
+The following snippet shows an example of creating an AST from arithmetic
+expressions while properly handling operator precedence;
+
+```nim
+type Kind* = enum kInt, kAdd, kSub, kMul, kDiv
+
+let s = peg "line":
+  line     <- exp * !1
+  number   <- A(kInt, >+Digit)
+  add      <- A(kAdd, term * '+' * exp)
+  sub      <- A(kSub, term * '-' * exp)
+  mul      <- A(kMul, factor * '*' * term)
+  divi     <- A(kDiv, factor * '/' * term)
+  exp      <- add | sub | term
+  term     <- mul | divi | factor
+  factor   <- number | '(' * exp * ')'
+
+let r = s.match("1+2*(3+4+9)+5*6")
+let ast = r.capturesAST()
+echo ast
+```
+
+This will generate an AST tree with the following layout:
+
+```
+       +
+      / \
+     1  _+_
+       /   \
+      /     *
+     *     / \
+    / \   5   6
+   2   +
+      / \
+     3   +
+        / \
+       4   9
+```
 
 ### Json captures
 
