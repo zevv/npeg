@@ -457,7 +457,7 @@ The resulting list of captures is now:
 
 ### AST (Abstract Syntax Tree) captures
 
-Note: AST captures are an experimental feature, the implementation or API might
+Note: AST captures is an experimental feature, the implementation or API might
 change in the future.
 
 Npeg has a simple mechanism for storing captures in a tree data structure,
@@ -507,7 +507,8 @@ This will generate an AST tree with the following layout:
 ```
        +
       / \
-     1  _+_
+     1   + 
+        / \
        /   \
       /     *
      *     / \
