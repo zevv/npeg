@@ -1,5 +1,4 @@
 
-import strutils
 import tables
 
 type

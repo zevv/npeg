@@ -1,5 +1,4 @@
 
-import capture
 import macros
 import strutils
 import tables

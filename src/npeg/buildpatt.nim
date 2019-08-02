@@ -1,8 +1,7 @@
 
 import tables
 import macros
-import strutils
-import npeg/[common,codegen,patt,dot]
+import npeg/[common,patt,dot]
 
 #
 # The complete PEG syntax parsed by parsePatt(). In PEG. How meta.
