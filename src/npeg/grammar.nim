@@ -58,7 +58,7 @@ proc newGrammar*(): Grammar =
   result = newTable[string, Patt]()
 
 
-proc parseGrammar*(ns: NimNode, dot: Dot): Grammar =
+proc parseGrammar*(ns: NimNode, dot: Dot=nil): Grammar =
   var grammar = newGrammar()
   for n in ns:
     if n.kind == nnkInfix and n[0].kind == nnkIdent and
@@ -75,3 +75,7 @@ proc parseGrammar*(ns: NimNode, dot: Dot): Grammar =
       error "Expected PEG rule (name <- ...)", n
   grammar
 
+proc `$`*(g: Grammar): string =
+  for name, patt in g:
+    result.add name & ":\n"
+    result.add $patt

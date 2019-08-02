@@ -99,10 +99,10 @@ proc dumpString*(s: string, o:int=0, l:int=1024): string =
 
 # Create string representation of a pattern
 
-proc dump*(p: Patt, symtab: SymTab = nil) =
+proc tostring*(p: Patt, symtab: SymTab = nil): string =
   for n, i in p.pairs:
     if symTab != nil and n in symTab:
-      echo "\n" & symtab.get(n) & ":"
+      result &= "\n" & symtab.get(n) & ":" & "\n"
     var args: string
     case i.op:
       of opStr, opIStr:
@@ -128,7 +128,19 @@ proc dump*(p: Patt, symtab: SymTab = nil) =
     when npegTrace:
       l.add alignLeft($i.name, 15)
     l.add $i.op & args
-    echo l
+    result &= l & "\n"
+
+# Dump pattern
+
+proc dump*(p: Patt, symtab: SymTab = nil) =
+  echo toString(p, symtab)
+
+
+# Convert pattern to string
+
+proc `$`*(p: Patt): string =
+  toString(p, nil)
+
 
 # Some tests on patterns
 
