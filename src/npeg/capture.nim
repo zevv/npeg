@@ -31,7 +31,7 @@ type
 # Convert all closed CapFrames on the capture stack to a list of Captures, all
 # consumed frames are removed from the CapStack
 
-proc fixCaptures*(s: string, capStack: var Stack[CapFrame], fm: FixMethod): Captures =
+proc fixCaptures*(s: Subject, capStack: var Stack[CapFrame], fm: FixMethod): Captures =
 
   assert capStack.top > 0
   assert capStack.peek.cft == cftCLose
@@ -60,8 +60,9 @@ proc fixCaptures*(s: string, capStack: var Stack[CapFrame], fm: FixMethod): Capt
     else:
       let i2 = stack.pop()
       assert result[i2].ck == c.ck
+
       if c.ck in { ckStr, ckJString, ckJBool, ckJInt, ckJFloat, ckRef }:
-        result[i2].s = s[result[i2].si..<c.si]
+        result[i2].s = s.slice(result[i2].si, c.si)
       result[i2].len = result.len - i2 - 1
   assert stack.top == 0
 

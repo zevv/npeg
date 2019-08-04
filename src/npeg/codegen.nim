@@ -20,8 +20,9 @@ type
     matchMax*: int
     cs*: Captures
 
+
   Parser*[T] = object
-    fn*: proc(s: string, userdata: var T): MatchResult
+    fn*: proc(s: Subject, userdata: var T): MatchResult
 
 
 # This macro translates `$1`.. into `capture[0]`.. for use in code block captures
@@ -52,7 +53,7 @@ template skel(T: untyped, cases: untyped, ip: NimNode, userdata: NimNode, captur
 
   {.push hint[XDeclaredButNotUsed]: off.}
 
-  let match = proc(s: string, userdata: var T): MatchResult =
+  let match = proc(s: Subject, userdata: var T): MatchResult =
 
     # The parser state
 

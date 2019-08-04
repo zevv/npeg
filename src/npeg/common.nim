@@ -44,11 +44,13 @@ type
     key*: string
     val*: string
 
+  Subject* = openArray[char]
+
 const npegTrace* = defined(npegTrace)
 
 
 
-proc subStrCmp*(s: string, slen: int, si: int, s2: string): bool =
+proc subStrCmp*(s: Subject, slen: int, si: int, s2: string): bool =
   if si > slen - s2.len:
     return false
   for i in 0..<s2.len:
@@ -57,13 +59,18 @@ proc subStrCmp*(s: string, slen: int, si: int, s2: string): bool =
   return true
 
 
-proc subIStrCmp*(s: string, slen: int, si: int, s2: string): bool =
+proc subIStrCmp*(s: Subject, slen: int, si: int, s2: string): bool =
   if si > slen - s2.len:
     return false
   for i in 0..<s2.len:
     if s[si+i].toLowerAscii != s2[i].toLowerAscii:
       return false
   return true
+
+
+proc slice*(s: Subject, iFrom, iTo: int): string =
+  for i in iFrom..<iTo:
+    result.add s[i]
 
 
 type

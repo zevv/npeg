@@ -65,10 +65,10 @@ macro patt*(n: untyped): untyped =
 
 # Match a subject string
 
-proc match*[T](p: Parser, s: string, userdata: var T): MatchResult =
+proc match*[T](p: Parser, s: Subject, userdata: var T): MatchResult =
   p.fn(s, userdata)
 
-proc match*(p: Parser, s: string): MatchResult =
+proc match*(p: Parser, s: Subject): MatchResult =
   var b: bool
   p.fn(s, b)
 
