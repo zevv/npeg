@@ -89,6 +89,7 @@ proc parsePatt*(name: string, nn: NimNode, grammar: Grammar = nil, dot: Dot = ni
           case n[0].strVal:
             of "Js": return newPatt(aux n[1], ckJString)
             of "Ji": return newPatt(aux n[1], ckJInt)
+            of "Jb": return newPatt(aux n[1], ckJBool)
             of "Jf": return newPatt(aux n[1], ckJFloat)
             of "Ja": return newPatt(aux n[1], ckJArray)
             of "Jo": return newPatt(aux n[1], ckJObject)

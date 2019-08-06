@@ -8,7 +8,7 @@ type
 
   Capture* = ref object
     case ck: CapKind
-    of ckStr, ckJString, ckJInt, ckJFloat, ckRef:
+    of ckStr, ckJString, ckJBool, ckJInt, ckJFloat, ckRef:
       s*: string
     of ckAST:
       kids: Captures
@@ -60,7 +60,7 @@ proc fixCaptures*(s: string, capStack: var Stack[CapFrame], fm: FixMethod): Capt
     else:
       let i2 = stack.pop()
       assert result[i2].ck == c.ck
-      if c.ck == ckStr or c.ck == ckJString or c.ck == ckJInt or c.ck == ckJFloat or c.ck == ckRef:
+      if c.ck in { ckStr, ckJString, ckJBool, ckJInt, ckJFloat, ckRef }:
         result[i2].s = s[result[i2].si..<c.si]
       result[i2].len = result.len - i2 - 1
   assert stack.top == 0
@@ -90,6 +90,11 @@ proc collectCapturesJson*(cs: Captures): JsonNode =
 
       case cap.ck:
         of ckJString: result = newJString cap.s
+        of ckJBool:
+          case cap.s:
+            of "true": result = newJBool true
+            of "false": result = newJBool false
+            else: raise newException(NPegException, "Error parsing Json bool")
         of ckJInt: result = newJInt parseInt(cap.s)
         of ckJFloat: result = newJFloat parseFloat(cap.s)
         of ckJArray: result = newJArray()

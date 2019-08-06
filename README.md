@@ -275,6 +275,7 @@ Json captures:
   Js(P)           # Produces a JString from the string matching  P 
   Ji(P)           # Produces a JInteger from the string matching  P 
   Jf(P)           # Produces a JFloat from the string matching  P 
+  Jb(P)           # Produces a JBool from the string matching  P 
   Ja()            # Produces a new JArray
   Jo()            # Produces a new JObject
   Jt("tag", P)    # Stores capture P in the field "tag" of the outer JObject

@@ -1,4 +1,7 @@
 
+- Added AST capture type for building simple abstract syntax trees
+- Added Jb() capture for Json booleans
+
 0.13.0
 ======
 

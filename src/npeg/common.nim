@@ -22,6 +22,7 @@ type
   CapKind* = enum
     ckStr,          # Plain string capture
     ckJString,      # JSON string capture
+    ckJBool,        # JSON Bool capture
     ckJInt,         # JSON Int capture
     ckJFloat,       # JSON Float capture
     ckJArray,       # JSON Array
