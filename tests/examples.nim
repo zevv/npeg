@@ -236,4 +236,159 @@ Location: https://nim.org/
     doAssert r.ok
     doAssert r.captures[0] == "here document\n    with multiple lines "
 
+  ######################################################################
+  
+  test "RFC3986: Uniform Resource Identifier (URI): Generic Syntax":
 
+    type Uri = object
+      scheme: string
+      user: string
+      pass: string
+      host: string
+      path: string
+      port: string
+      query: string
+      fragment: string
+
+    # The grammar below is a literal translation of the ABNF notation of the
+    # RFC. Optimizations can be made to limit backtracking, but this is a nice
+    # example how to create a parser from a RFC protocol description.
+
+    let p = peg(Uri, "URI"):
+
+      URI <- scheme * ":" * hier_part * ?( "?" * query) * ?( "#" * fragment) * !1
+
+      hier_part <- "//" * authority * path_abempty |
+                   path_absolute |
+                   path_rootless |
+                   path_empty
+
+      URI_reference <- uri | relative_ref
+
+      absolute_uri <- scheme * ":" * hier_part * ?( "?" * query)
+
+      relative_ref <- relative_part * ?( "?" * query) * ?( "#" * fragment)
+
+      relative_part <- "//" * authority * path_abempty |
+                       path_absolute |
+                       path_noscheme |
+                       path_empty
+
+      scheme <- >(Alpha * *( Alpha | Digit | "+" | "-" | "." )): userdata.scheme = $1
+
+      authority <- ?(userinfo * "@") * host * ?( ":" * port)
+      userinfo <- >*(unreserved | pct_encoded | sub_delims | ":")
+
+      host <- >(IP_literal | IPv4address | reg_name): userdata.host = $1
+      port <- >*Digit: userdata.port = $1
+
+      IP_literal <- "[" * (IPv6address | IPvFuture) * "]"
+
+      IPvFuture <- "v" * +Xdigit * "." * +(unreserved | sub_delims | ":")
+
+      IPv6address <-                                     (h16 * ":")[6] * ls32 |
+                                                  "::" * (h16 * ":")[5] * ls32 |
+                   ?( h16                     ) * "::" * (h16 * ":")[4] * ls32 |
+                   ?( h16 * (":" * h16)[0..1] ) * "::" * (h16 * ":")[3] * ls32 |
+                   ?( h16 * (":" * h16)[0..2] ) * "::" * (h16 * ":")[2] * ls32 |
+                   ?( h16 * (":" * h16)[0..3] ) * "::" * (h16 * ":")    * ls32 |
+                   ?( h16 * (":" * h16)[0..4] ) * "::" *                  ls32 |
+                   ?( h16 * (":" * h16)[0..5] ) * "::" *                  h16  |
+                   ?( h16 * (":" * h16)[0..6] ) * "::"
+
+      h16 <- Xdigit[1..4]
+      ls32 <- (h16 * ":" * h16) | IPv4address
+      IPv4address <- dec_octet * "." * dec_octet * "." * dec_octet * "." * dec_octet
+
+      dec_octet <- Digit                   | # 0-9
+                  {'1'..'9'} * Digit       | # 10-99
+                  "1" * Digit * Digit      | # 100-199
+                  "2" * {'0'..'4'} * Digit | # 200-249
+                  "25" * {'0'..'5'}          # 250-255
+
+      reg_name <- *(unreserved | pct_encoded | sub_delims)
+
+      path <- path_abempty  | # begins with "/" or is empty
+              path_absolute | # begins with "/" but not "//"
+              path_noscheme | # begins with a non-colon segment
+              path_rootless | # begins with a segment
+              path_empty      # zero characters
+
+      path_abempty  <- >(*( "/" * segment )): userdata.path = $1
+      path_absolute <- >("/" * ?( segment_nz * *( "/" * segment ) )): userdata.path = $1
+      path_noscheme <- >(segment_nz_nc * *( "/" * segment )): userdata.path = $1
+      path_rootless <- >(segment_nz * *( "/" * segment )): userdata.path = $1
+      path_empty    <- 0
+
+      segment       <- *pchar
+      segment_nz    <- +pchar
+      segment_nz_nc <- +( unreserved | pct_encoded | sub_delims | "@" )
+                    # non_zero_length segment without any colon ":"
+
+      pchar         <- unreserved | pct_encoded | sub_delims | ":" | "@"
+
+      query         <- >*( pchar | "|" | "?" ): userdata.query = $1
+
+      fragment      <- >*( pchar | "|" | "?" ): userdata.fragment = $1
+
+      pct_encoded   <- "%" * Xdigit * Xdigit
+
+      unreserved    <- Alpha | Digit | "-" | "." | "_" | "~"
+      reserved      <- gen_delims | sub_delims
+      gen_delims    <- ":" | "|" | "?" | "#" | "[" | "]" | "@"
+      sub_delims    <- "!" | "$" | "&" | "'" | "(" | ")" | "*" | "+" | "," | ";" | "="
+
+    let urls = @[
+      "s3://somebucket/somefile.txt",
+      "scheme://user:pass@xn--mgbh0fb.xn--kgbechtv",
+      "scheme://user:pass@host:81/path?query#fragment",
+      "ScheMe://user:pass@HoSt:81/path?query#fragment",
+      "scheme://HoSt:81/path?query#fragment",
+      "scheme://@HoSt:81/path?query#fragment",
+      "scheme://user:pass@host/path?query#fragment",
+      "scheme://user:pass@host:/path?query#fragment",
+      "scheme://host/path?query#fragment",
+      "scheme://10.0.0.2/p?q#f",
+      "scheme://[vAF.1::2::3]/p?q#f",
+      "scheme:path?query#fragment",
+      "scheme:///path?query#fragment",
+      "scheme://[FEDC:BA98:7654:3210:FEDC:BA98:7654:3210]?query#fragment",
+      "scheme:path#fragment",
+      "scheme:path?#fragment",
+      "ldap://[2001:db8::7]/c=GB?objectClass?one",
+      "http://example.org/hello:12?foo=bar#test",
+      "android-app://org.wikipedia/http/en.m.wikipedia.org/wiki/The_Hitchhiker%27s_Guide_to_the_Galaxy",
+      "ftp://:/p?q#f",
+      "scheme://user:pass@host:000000000081/path?query#fragment",
+      "scheme://user:pass@host:81/path?query#fragment",
+      "ScheMe://user:pass@HoSt:81/path?query#fragment",
+      "scheme://HoSt:81/path?query#fragment",
+      "scheme://@HoSt:81/path?query#fragment",
+      "scheme://user:pass@host/path?query#fragment",
+      "scheme://user:pass@host:/path?query#fragment",
+      "scheme://user:pass@host/path?query#fragment",
+      "scheme://host/path?query#fragment",
+      "scheme://10.0.0.2/p?q#f",
+      "scheme:path?query#fragment",
+      "scheme:///path?query#fragment",
+      "scheme://[FEDC:BA98:7654:3210:FEDC:BA98:7654:3210]?query#fragment",
+      "scheme:path#fragment",
+      "scheme:path?#fragment",
+      "tel:05000",
+      "scheme:path#",
+      "https://thephpleague.com./p?#f",
+      "http://a_.!~*\'(-)n0123Di%25%26:pass;:&=+$,word@www.zend.com",
+      "http://",
+      "http:::/path",
+      "ldap://[2001:db8::7]/c=GB?objectClass?one",
+      "http://example.org/hello:12?foo=bar#test",
+      "android-app://org.wikipedia/http/en.m.wikipedia.org/wiki/The_Hitchhiker%27s_Guide_to_the_Galaxy",
+      "scheme://user:pass@xn--mgbh0fb.xn--kgbechtv",
+    ]
+
+    for s in urls:
+      var uri: Uri
+      let r = p.match(s, uri)
+      if not r.ok:
+        echo s
+        quit 1
