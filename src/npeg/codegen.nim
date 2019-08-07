@@ -34,7 +34,8 @@ proc mkDollarCaptures(n: NimNode): NimNode =
     result = quote do:
       capture[`i`].s
   elif n.kind == nnkNilLit:
-    result = nnkDiscardStmt.newTree(newEmptyNode())
+    result = quote do:
+      discard
   else:
     result = copyNimNode(n)
     for nc in n:
