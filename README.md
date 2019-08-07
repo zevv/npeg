@@ -657,10 +657,11 @@ After the parsing finished, the `words` table will now contain
 {"two": 2, "three": 3, "one": 1, "four": 4}
 ```
 
+
 #### Generic pegs and passing state
 
 Note: This is an experimental feature, the implementation or API might change
-in the future.
+in the future. I'm also looking for a better name for this feature.
 
 Npeg parsers can be instantiated as generics which allows passing of a variable
 of a specific type to the `match()` function, this value is then available

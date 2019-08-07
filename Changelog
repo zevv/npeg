@@ -1,4 +1,5 @@
 
+- Implemented method to pass user variable to code block captures
 - Added AST capture type for building simple abstract syntax trees
 - Added Jb() capture for Json booleans
 
