@@ -31,7 +31,8 @@ proc mkDollarCaptures(n: NimNode): NimNode =
        n[0].kind == nnkIdent and n[0].eqIdent("$") and
        n[1].kind == nnkIntLit:
     let i = int(n[1].intVal-1)
-    result = newDotExpr(nnkBracketExpr.newTree(ident("capture"), newLit(i)), ident "s")
+    result = quote do:
+      capture[`i`].s
   elif n.kind == nnkNilLit:
     result = nnkDiscardStmt.newTree(newEmptyNode())
   else:
