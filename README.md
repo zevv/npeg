@@ -657,6 +657,32 @@ After the parsing finished, the `words` table will now contain
 {"two": 2, "three": 3, "one": 1, "four": 4}
 ```
 
+#### Generic pegs and passing state
+
+Note: This is an experimental feature, the implementation or API might change
+in the future.
+
+Npeg parsers can be instantiated as generics which allows passing of a variable
+of a specific type to the `match()` function, this value is then available
+inside code blocks as the variable named `userdata`. This mitigates the need
+for global variables for storing data in access captures.
+
+The above parser can be rewritten using a generic parser as such:
+
+```nim
+type Dict = Table[string, int]
+
+let parser = peg(Dict, "pairs"):
+  pairs <- pair * *(',' * pair) * !1
+  word <- +Alpha
+  number <- +Digit
+  pair <- >word * '=' * >number:
+    userdata[$1] = parseInt($2)
+
+var words: Dict
+let r = parser.match(data, words)
+```
+
 
 ### Backreferences
 
