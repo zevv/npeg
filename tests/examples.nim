@@ -125,10 +125,7 @@ suite "examples":
         message: string
         headers: Table[string, string]
 
-    var req: Request
-    req.headers = initTable[string, string]()
-
-    let s = peg "http":
+    let s = peg(Request, "http"):
       space       <- ' '
       crlf        <- '\n' * ?'\r'
       url         <- +(Alpha | Digit | '/' | '_' | '.')
@@ -136,15 +133,15 @@ suite "examples":
       header_name <- +(Alpha | '-')
       header_val  <- +(1-{'\n'}-{'\r'})
       proto       <- >(+Alpha):
-        req.proto = $1
+        userdata.proto = $1
       version     <- >(+Digit * '.' * +Digit):
-        req.version = $1
+        userdata.version = $1
       code        <- >+Digit:
-        req.code = parseInt($1)
+        userdata.code = parseInt($1)
       msg         <- >(+(1 - '\r' - '\n')):
-        req.message = $1
+        userdata.message = $1
       header      <- >header_name * ": " * >header_val:
-        req.headers[$1] = $2
+        userdata.headers[$1] = $2
 
       response    <- proto * '/' * version * space * code * space * msg 
       headers     <- *(header * crlf)
@@ -157,7 +154,8 @@ Content-Type: text/html
 Location: https://nim.org/
 """
 
-    let res = s.match(data)
+    var req: Request
+    let res = s.match(data, req)
     doAssert res.ok
     doAssert req.proto == "HTTP"
     doAssert req.version == "1.1"
