@@ -20,8 +20,8 @@ type
     matchMax*: int
     cs*: Captures
 
-  Parser* = object
-    fn*: proc(s: string): MatchResult
+  Parser*[T] = object
+    fn*: proc(s: string, userdata: var T): MatchResult
 
 
 # This macro translates `$1`.. into `capture[0]`.. for use in code block captures
@@ -46,11 +46,11 @@ proc mkDollarCaptures(n: NimNode): NimNode =
 # names from getting mangled so that the code in the `peg` macro can access it.
 # I'd love to hear if there are better solutions for this.
 
-template skel(cases: untyped, ip: NimNode, capture: NimNode) =
+template skel(T: untyped, cases: untyped, ip: NimNode, userdata: NimNode, capture: NimNode) =
 
   {.push hint[XDeclaredButNotUsed]: off.}
 
-  let match = proc(s: string): MatchResult =
+  let match = proc(s: string, userdata: var T): MatchResult =
 
     # The parser state
 
@@ -227,12 +227,12 @@ template skel(cases: untyped, ip: NimNode, capture: NimNode) =
 
   {.pop.}
 
-  Parser(fn: match)
+  Parser[T](fn: match)
 
 
 # Convert the list of parser instructions into a Nim finite state machine
 
-proc genCode*(patt: Patt): NimNode =
+proc genCode*(patt: Patt, T: NimNode): NimNode =
 
   let ipNode = ident("ip")
   var cases = nnkCaseStmt.newTree(ipNode)
@@ -280,7 +280,7 @@ proc genCode*(patt: Patt): NimNode =
     cases.add nnkOfBranch.newTree(newLit(n), call)
 
   cases.add nnkElse.newTree(parseStmt("opFailFn()"))
-  result = getAst skel(cases, ipNode, ident "capture")
+  result = getAst skel(T, cases, ipNode, ident "userdata", ident "capture")
 
   when false:
     echo result.repr

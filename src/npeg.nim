@@ -45,7 +45,13 @@ macro peg*(name: string, n: untyped): untyped =
   var dot = newDot(name.strVal)
   var grammar = parseGrammar(n, dot)
   dot.dump()
-  grammar.link(name.strVal()).genCode()
+  grammar.link(name.strVal()).genCode(bindSym"bool")
+
+macro peg*(T: typedesc, name: string, n: untyped): untyped =
+  var dot = newDot(name.strVal)
+  var grammar = parseGrammar(n, dot)
+  dot.dump()
+  grammar.link(name.strVal()).genCode(T)
 
 
 # Create a parser for a single PEG pattern
@@ -54,17 +60,26 @@ macro patt*(n: untyped): untyped =
   var grammar = newGrammar()
   var patt = parsePatt("anonymous", n, grammar)
   grammar.add("anonymous", patt)
-  grammar.link("anonymous").genCode()
+  grammar.link("anonymous").genCode(bindsym"bool")
 
+
+# Match a subject string
+
+proc match*[T](p: Parser, s: string, userdata: var T): MatchResult =
+  p.fn(s, userdata)
 
 proc match*(p: Parser, s: string): MatchResult =
-  p.fn(s)
+  var b: bool
+  p.fn(s, b)
 
+
+# Match a file
 
 when defined(windows) or defined(posix):
   proc matchFile*(p: Parser, fname: string): MatchResult =
     let s = readFile(fname)
-    result = p.fn(s)
+    var b: bool
+    result = p.fn(s, b)
 
 # Return all plain string captures from the match result
 

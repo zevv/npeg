@@ -21,6 +21,24 @@ suite "captures":
         a = $1
     doAssert p.match("a").ok
     doassert a == "a"
+  
+  test "action captures with typed parser":
+
+    type Thing = object
+      word: string
+      number: int
+
+    let s = peg(Thing, "foo"):
+      foo <- word * number
+      word <- >+Alpha:
+        userdata.word = $1
+      number <- >+Digit:
+        userdata.number = parseInt($1)
+
+    var t = Thing()
+    doAssert s.match("foo123", t).ok == true
+    doAssert t.word == "foo"
+    doAssert t.number == 123
 
   test "JSON captures":
     doAssert patt(Js(1)).match("a").capturesJSon == parseJson(""" "a" """)
