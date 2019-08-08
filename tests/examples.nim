@@ -242,8 +242,7 @@ Location: https://nim.org/
 
     type Uri = object
       scheme: string
-      user: string
-      pass: string
+      userinfo: string
       host: string
       path: string
       port: string
@@ -277,7 +276,8 @@ Location: https://nim.org/
       scheme <- >(Alpha * *( Alpha | Digit | "+" | "-" | "." )): userdata.scheme = $1
 
       authority <- ?(userinfo * "@") * host * ?( ":" * port)
-      userinfo <- >*(unreserved | pct_encoded | sub_delims | ":")
+      userinfo <- >*(unreserved | pct_encoded | sub_delims | ":"):
+        userdata.userinfo = $1
 
       host <- >(IP_literal | IPv4address | reg_name): userdata.host = $1
       port <- >*Digit: userdata.port = $1
@@ -384,6 +384,7 @@ Location: https://nim.org/
       "http://example.org/hello:12?foo=bar#test",
       "android-app://org.wikipedia/http/en.m.wikipedia.org/wiki/The_Hitchhiker%27s_Guide_to_the_Galaxy",
       "scheme://user:pass@xn--mgbh0fb.xn--kgbechtv",
+      "http://download.linuxjournal.com/pdf/get-doc.php?code=2c230d54e20e7cb595c660da48be7622&tcode=epub-301-"
     ]
 
     for s in urls:
