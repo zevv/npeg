@@ -76,10 +76,13 @@ proc match*(p: Parser, s: Subject): MatchResult =
 # Match a file
 
 when defined(windows) or defined(posix):
+  import memfiles
   proc matchFile*(p: Parser, fname: string): MatchResult =
-    let s = readFile(fname)
+    var m = memfiles.open(fname)
+    var a: ptr UncheckedArray[char] = cast[ptr UncheckedArray[char]](m.mem)
     var b: bool
-    result = p.fn(s, b)
+    result = p.fn(toOpenArray(a, 0, m.size-1), b)
+    m.close()
 
 # Return all plain string captures from the match result
 
