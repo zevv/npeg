@@ -66,7 +66,8 @@ macro patt*(n: untyped): untyped =
 # Match a subject string
 
 proc match*[T](p: Parser, s: Subject, userdata: var T): MatchResult =
-  p.fn(s, userdata)
+  var ms = newMatchState();
+  p.fn(ms, s, userdata)
 
 proc match*(p: Parser, s: Subject): MatchResult =
   var userdata: bool # dummy if user does not provide a type
@@ -78,14 +79,15 @@ proc match*(p: Parser, s: Subject): MatchResult =
 when defined(windows) or defined(posix):
   import memfiles
   proc matchFile*[T](p: Parser, fname: string, userdata: var T): MatchResult =
+    var ms = newMatchState();
     var m = memfiles.open(fname)
     var a: ptr UncheckedArray[char] = cast[ptr UncheckedArray[char]](m.mem)
-    result = p.fn(toOpenArray(a, 0, m.size-1), userdata)
+    result = p.fn(ms, toOpenArray(a, 0, m.size-1), userdata)
     m.close()
   
   proc matchFile*(p: Parser, fname: string): MatchResult =
     var userdata: bool # dummy if user does not provide a type
-    matchFile(p, fname, userdata)
+    p.matchFile(fname, userdata)
 
 # Return all plain string captures from the match result
 

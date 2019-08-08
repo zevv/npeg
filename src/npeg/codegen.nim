@@ -6,9 +6,9 @@ import npeg/[common,patt,stack,capture]
 
 type
 
-  RetFrame = int
+  RetFrame* = int
 
-  BackFrame = tuple
+  BackFrame* = tuple
     ip: int
     si: int
     rp: int
@@ -20,9 +20,17 @@ type
     matchMax*: int
     cs*: Captures
 
+  MatchState* = object
+    ip*: int
+    si*: int
+    simax*: int
+    refs*: Table[string, string]
+    retStack*: Stack[RetFrame]
+    capStack*: Stack[CapFrame]
+    backStack*: Stack[BackFrame]
 
   Parser*[T] = object
-    fn*: proc(s: Subject, userdata: var T): MatchResult
+    fn*: proc(ms: var MatchState, s: Subject, userdata: var T): MatchResult
 
 
 # This macro translates `$1`.. into `capture[0]`.. for use in code block captures
@@ -43,39 +51,37 @@ proc mkDollarCaptures(n: NimNode): NimNode =
       result.add mkDollarCaptures(nc)
 
 
+proc newMatchState*(): MatchState =
+  result = MatchState(
+    retStack: initStack[RetFrame]("return", 8, npegRetStackSize),
+    capStack: initStack[CapFrame]("capture", 8),
+    backStack: initStack[BackFrame]("backtrace", 8, npegBackStackSize),
+  )
+
+
 # Template for generating the parsing match proc.
 #
-# Note: Dummy 'ip' and 'capture' nodes are passed into this template to prevent these
-# names from getting mangled so that the code in the `peg` macro can access it.
-# I'd love to hear if there are better solutions for this.
+# Note: Dummy 'ms', 'userdata' and 'capture' nodes are passed into this
+# template to prevent these names from getting mangled so that the code in the
+# `peg` macro can access it.  I'd love to hear if there are better solutions
+# for this.
 
-template skel(T: untyped, cases: untyped, ip: NimNode, userdata: NimNode, capture: NimNode) =
+template skel(T: untyped, cases: untyped, ms: NimNode, s: NimNode, userdata: NimNode, capture: NimNode) =
 
   {.push hint[XDeclaredButNotUsed]: off.}
 
-  let match = proc(s: Subject, userdata: var T): MatchResult =
-
-    # The parser state
-
-    var
-      ip: int
-      si: int
-      simax: int
-      refs = initTable[string, string]()
-      retStack = initStack[RetFrame]("return", 8, npegRetStackSize)
-      capStack = initStack[CapFrame]("capture", 8)
-      backStack = initStack[BackFrame]("backtrace", 8, npegBackStackSize)
+  let match = proc(ms: var MatchState, s: Subject, userdata: var T): MatchResult =
 
     # Debug trace. Slow and expensive
 
     proc doTrace(iname, msg: string) =
       var l: string
-      l.add if ip >= 0: align($ip, 3) else: "   "
-      l.add "|" & align($si, 3)
-      l.add "|" & alignLeft(dumpString($s, si, 24), 24)
+      l.add if ms.ip >= 0: align($ms.ip, 3) else: "   "
+      l.add "|" & align($ms.si, 3)
+      l.add "|" & alignLeft(dumpString($s, ms.si, 24), 24)
       l.add "|" & alignLeft(iname, 15)
       l.add "|" & alignLeft(msg, 30)
-      l.add "|" & alignLeft(repeat("*", backStack.top), 20)
+      l.add "|" & alignLeft(repeat("*", ms.backStack.top), 20)
       echo l
 
     template trace(iname, msg: string) =
@@ -84,127 +90,126 @@ template skel(T: untyped, cases: untyped, ip: NimNode, userdata: NimNode, captur
 
     # State machine instruction handlers
 
-    template opStrFn(s2: string, iname="") =
+    proc opStrFn(ms: var MatchState, s: Subject, s2: string, iname="") =
       trace iname, "str \"" & dumpString(s2) & "\""
-      if subStrCmp(s, s.len, si, s2):
-        inc ip
-        inc si, s2.len
+      if subStrCmp(s, s.len, ms.si, s2):
+        inc ms.ip
+        inc ms.si, s2.len
       else:
-        ip = -1
+        ms.ip = -1
 
-    template opIStrFn(s2: string, iname="") =
+    proc opIStrFn(ms: var MatchState, s: Subject, s2: string, iname="") =
       trace iname, "istr \"" & dumpString(s2) & "\""
-      if subIStrCmp(s, s.len, si, s2):
-        inc ip
-        inc si, s2.len
+      if subIStrCmp(s, s.len, ms.si, s2):
+        inc ms.ip
+        inc ms.si, s2.len
       else:
-        ip = -1
+        ms.ip = -1
 
-    template opSetFn(cs: CharSet, iname="") =
+    proc opSetFn(ms: var MatchState, s: Subject, cs: CharSet, iname="") =
       trace iname, "set " & dumpSet(cs)
-      if si < s.len and s[si] in cs:
-        inc ip
-        inc si
+      if ms.si < s.len and s[ms.si] in cs:
+        inc ms.ip
+        inc ms.si
       else:
-        ip = -1
+        ms.ip = -1
 
-    template opSpanFn(cs: CharSet, iname="") =
+    proc opSpanFn(ms: var MatchState, s: Subject, cs: CharSet, iname="") =
       trace iname, "span " & dumpSet(cs)
-      while si < s.len and s[si] in cs:
-        inc si
-      inc ip
+      while ms.si < s.len and s[ms.si] in cs:
+        inc ms.si
+      inc ms.ip
 
-    template opNopFn(iname="") =
+    proc opNopFn(ms: var MatchState, s: Subject, iname="") =
       trace iname, "nop"
-      inc ip
+      inc ms.ip
 
-    template opAnyFn(iname="") =
+    proc opAnyFn(ms: var MatchState, s: Subject, iname="") =
       trace iname, "any"
-      if si < s.len:
-        inc ip
-        inc si
+      if ms.si < s.len:
+        inc ms.ip
+        inc ms.si
       else:
-        ip = -1
+        ms.ip = -1
 
-    template opChoiceFn(n: int, iname="") =
+    proc opChoiceFn(ms: var MatchState, s: Subject, n: int, iname="") =
       trace iname, "choice -> " & $n
-      push(backstack, (ip:n, si:si, rp:retStack.top, cp:capStack.top))
-      inc ip
+      push(ms.backStack, (ip:n, si:ms.si, rp:ms.retStack.top, cp:ms.capStack.top))
+      inc ms.ip
 
-    template opCommitFn(n: int, iname="") =
+    proc opCommitFn(ms: var MatchState, s: Subject, n: int, iname="") =
       trace iname, "commit -> " & $n
-      discard pop(backStack)
-      ip = n
+      discard pop(ms.backStack)
+      ms.ip = n
 
-    template opPartCommitFn(n: int, iname="") =
+    proc opPartCommitFn(ms: var MatchState, s: Subject, n: int, iname="") =
       trace iname, "pcommit -> " & $n
-      update(backStack, si, si)
-      update(backStack, cp, capStack.top)
-      ip = n
+      update(ms.backStack, si, ms.si)
+      update(ms.backStack, cp, ms.capStack.top)
+      ms.ip = n
 
-    template opCallFn(label: string, offset: int, iname="") =
-      trace iname, "call -> " & label & ":" & $(ip+offset)
-      push(retStack, ip+1)
-      ip += offset
+    proc opCallFn(ms: var MatchState, s: Subject, label: string, offset: int, iname="") =
+      trace iname, "call -> " & label & ":" & $(ms.ip+offset)
+      push(ms.retStack, ms.ip+1)
+      ms.ip += offset
 
-    template opJumpFn(label: string, offset: int, iname="") =
-      trace iname, "jump -> " & label & ":" & $(ip+offset)
-      ip += offset
+    proc opJumpFn(ms: var MatchState, s: Subject, label: string, offset: int, iname="") =
+      trace iname, "jump -> " & label & ":" & $(ms.ip+offset)
+      ms.ip += offset
 
-    template opCapOpenFn(n: int, capname: string, iname="") =
+    proc opCapOpenFn(ms: var MatchState, s: Subject, n: int, capname: string, iname="") =
       let ck = CapKind(n)
-      trace iname, "capopen " & $ck & " -> " & $si
-      push(capStack, (cft: cftOpen, si: si, ck: ck, name: capname))
-      inc ip
-    
-    template opCapCloseFn(n: int, actionCode: untyped, iname="") =
+      trace iname, "capopen " & $ck & " -> " & $ms.si
+      push(ms.capStack, (cft: cftOpen, si: ms.si, ck: ck, name: capname))
+      inc ms.ip
+
+    template opCapCloseFn(ms: MatchState, s: Subject, n: int, actionCode: untyped, iname="") =
       let ck = CapKind(n)
-      trace iname, "capclose " & $ck & " -> " & $si
-      push(capStack, (cft: cftClose, si: si, ck: ck, name: ""))
+      trace iname, "capclose " & $ck & " -> " & $ms.si
+      push(ms.capStack, (cft: cftClose, si: ms.si, ck: ck, name: ""))
       if ck == ckAction:
-        let cs = fixCaptures(s, capStack, FixOpen)
+        let cs = fixCaptures(s, ms.capStack, FixOpen)
         let capture {.inject.} = collectCaptures(cs)
         block:
           actionCode
       elif ck == ckRef:
-        let cs = fixCaptures(s, capStack, FixOpen)
+        let cs = fixCaptures(s, ms.capStack, FixOpen)
         let r = collectCapturesRef(cs)
-        refs[r.key] = r.val
-      inc ip
-    
-    template opBackrefFn(refName: string, iname="") =
-      # This is a proc because we do not want to export 'contains'
-      if refName in refs:
-        let s2 = refs[refName]
+        ms.refs[r.key] = r.val
+      inc ms.ip
+
+    proc opBackrefFn(ms: var MatchState, s: Subject, refName: string, iname="") =
+      if refName in ms.refs:
+        let s2 = ms.refs[refName]
         trace iname, "backref " & refName & ":\"" & s2 & "\""
-        if subStrCmp(s, s.len, si, s2):
-          inc ip
-          inc si, s2.len
+        if subStrCmp(s, s.len, ms.si, s2):
+          inc ms.ip
+          inc ms.si, s2.len
         else:
-          ip = -1
+          ms.ip = -1
       else:
         raise newException(NPegException, "Unknown back reference '" & refName & "'")
 
-    template opReturnFn(iname="") =
+    template opReturnFn(ms: MatchState, s: Subject, iname="") =
       trace iname, "return"
-      if retStack.top == 0:
+      if ms.retStack.top == 0:
         trace iname, "done"
         result.ok = true
         break
-      ip = pop(retStack)
+      ms.ip = pop(ms.retStack)
 
-    template opFailFn(iname="") =
+    template opFailFn(ms: MatchState, s: Subject, iname="") =
       trace iname, "fail"
-      if backStack.top == 0:
+      if ms.backStack.top == 0:
         trace iname, "error"
         break
-      (ip, si, retStack.top, capStack.top) = pop(backStack)
+      (ms.ip, ms.si, ms.retStack.top, ms.capStack.top) = pop(ms.backStack)
 
-    template opErrFn(msg: string, iname="") =
+    proc opErrFn(ms: var MatchState, s: Subject, msg: string, iname="") =
       trace iname, "err " & msg
-      var e = newException(NPegException, "Parsing error at #" & $si & ": expected \"" & msg & "\"")
-      e.matchLen = si
-      e.matchMax = simax
+      var e = newException(NPegException, "Parsing error at #" & $ms.si & ": expected \"" & msg & "\"")
+      e.matchLen = ms.si
+      e.matchMax = ms.simax
       raise e
 
     while true:
@@ -217,16 +222,16 @@ template skel(T: untyped, cases: untyped, ip: NimNode, userdata: NimNode, captur
       # Keep track of the highest string index we ever reached, this is a good
       # indication of the location of errors when parsing fails
 
-      if si > simax:
-        simax = si
+      if ms.si > ms.simax:
+        ms.simax = ms.si
 
     # When the parsing machine is done, close the capture stack and collect all
     # the captures in the match result
 
-    result.matchLen = si
-    result.matchMax = simax
-    if result.ok and capStack.top > 0:
-      result.cs = fixCaptures(s, capStack, FixAll)
+    result.matchLen = ms.si
+    result.matchMax = ms.simax
+    if result.ok and ms.capStack.top > 0:
+      result.cs = fixCaptures(s, ms.capStack, FixAll)
 
   {.pop.}
 
@@ -237,12 +242,17 @@ template skel(T: untyped, cases: untyped, ip: NimNode, userdata: NimNode, captur
 
 proc genCode*(patt: Patt, T: NimNode): NimNode =
 
-  let ipNode = ident("ip")
-  var cases = nnkCaseStmt.newTree(ipNode)
+  let msNode = ident("ms")
+  let sNode = ident("s")
+
+  var cases = quote do:
+    case ms.ip
 
   for n, i in patt.pairs:
 
     let call = nnkCall.newTree(ident($i.op & "Fn"))
+    call.add msNode
+    call.add sNode
 
     case i.op:
       of opStr, opIStr:
@@ -282,8 +292,8 @@ proc genCode*(patt: Patt, T: NimNode): NimNode =
 
     cases.add nnkOfBranch.newTree(newLit(n), call)
 
-  cases.add nnkElse.newTree(parseStmt("opFailFn()"))
-  result = getAst skel(T, cases, ipNode, ident "userdata", ident "capture")
+  cases.add nnkElse.newTree(parseStmt("opFailFn(ms, s)"))
+  result = getAst skel(T, cases, msNode, sNode, ident "userdata", ident "capture")
 
   when false:
     echo result.repr
