@@ -69,20 +69,23 @@ proc match*[T](p: Parser, s: Subject, userdata: var T): MatchResult =
   p.fn(s, userdata)
 
 proc match*(p: Parser, s: Subject): MatchResult =
-  var b: bool
-  p.fn(s, b)
+  var userdata: bool # dummy if user does not provide a type
+  p.match(s, userdata)
 
 
 # Match a file
 
 when defined(windows) or defined(posix):
   import memfiles
-  proc matchFile*(p: Parser, fname: string): MatchResult =
+  proc matchFile[T]*(p: Parser, fname: string, userdata: var T): MatchResult =
     var m = memfiles.open(fname)
     var a: ptr UncheckedArray[char] = cast[ptr UncheckedArray[char]](m.mem)
-    var b: bool
-    result = p.fn(toOpenArray(a, 0, m.size-1), b)
+    result = p.fn(toOpenArray(a, 0, m.size-1), userdata)
     m.close()
+  
+  proc matchFile*(p: Parser, fname: string): MatchResult =
+    var userdata: bool # dummy if user does not provide a type
+    matchFile(p, fname, userdata)
 
 # Return all plain string captures from the match result
 
