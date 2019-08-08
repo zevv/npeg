@@ -77,7 +77,7 @@ proc match*(p: Parser, s: Subject): MatchResult =
 
 when defined(windows) or defined(posix):
   import memfiles
-  proc matchFile[T]*(p: Parser, fname: string, userdata: var T): MatchResult =
+  proc matchFile*[T](p: Parser, fname: string, userdata: var T): MatchResult =
     var m = memfiles.open(fname)
     var a: ptr UncheckedArray[char] = cast[ptr UncheckedArray[char]](m.mem)
     result = p.fn(toOpenArray(a, 0, m.size-1), userdata)

@@ -83,7 +83,6 @@ to parse a subject:
 
 ```nim
 proc match(p: Parser, s: string) = MatchResult
-proc match(p: Parser, s: cstring) = MatchResult
 proc matchFile(p: Parser, fname: string) = MatchResult
 ```
 
