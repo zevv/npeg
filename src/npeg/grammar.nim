@@ -54,6 +54,10 @@ proc link*(grammar: Grammar, initial_name: string): Patt =
     result.dump(symTab)
 
 
+proc doImport(g: Grammar, name: string) =
+  echo "import ", name
+
+
 proc newGrammar*(): Grammar =
   result = newTable[string, Patt]()
 
@@ -61,7 +65,12 @@ proc newGrammar*(): Grammar =
 proc parseGrammar*(ns: NimNode, dot: Dot=nil): Grammar =
   var grammar = newGrammar()
   for n in ns:
-    if n.kind == nnkInfix and n[0].kind == nnkIdent and
+    if n.kind == nnkImportStmt:
+      if n[0].kind == nnkIdent:
+        grammar.doImport(n[0].strVal)
+      elif n[0].kind == nnkDotExpr:
+        grammar.doImport(n[0][0].strVal & "." & n[0][1].strVal)
+    elif n.kind == nnkInfix and n[0].kind == nnkIdent and
        n[1].kind == nnkIdent and n[0].eqIdent("<-"):
       let name = n[1].strVal
       var patt = parsePatt(name, n[2], grammar, dot)
@@ -69,7 +78,6 @@ proc parseGrammar*(ns: NimNode, dot: Dot=nil): Grammar =
         patt = newPatt(patt, ckAction)
         patt[patt.high].capAction = n[3]
       grammar.add(n[1].strVal, patt)
- 
     else:
       echo n.astGenRepr
       error "Expected PEG rule (name <- ...)", n
