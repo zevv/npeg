@@ -1,15 +1,30 @@
 
 import tables
 import macros
+import strutils
 import npeg/[common,patt,buildpatt,dot]
 
 
-proc add*(grammar: var Grammar, name: string, patt: Patt) =
+# Global instance of pattern library. This is itself a grammar where all
+# patterns are stored with qualified names in the form of <libname>.<pattname>.
+# At grammar link time all unresolved patterns are looked up from this global
+# table.
 
+var gPattLib* {.compileTime.} = newTable[string, Patt]()
+
+
+proc add*(grammar: Grammar, name: string, patt: Patt) =
   if name in grammar:
     error "Redefinition of rule '" & name & "'"
-
   grammar[name] = patt
+
+
+proc tryImport(grammar: Grammar, name: string): bool =
+  if name in gPattLib:
+    grammar.add name, gPattLib[name]
+    when npegTrace:
+      echo "importing ", name
+    return true
 
 
 # Link a list of patterns into a grammar, which is itself again a valid
@@ -35,7 +50,7 @@ proc link*(grammar: Grammar, initial_name: string): Patt =
 
     for i in patt:
       if i.op == opCall and i.callLabel notin symTab:
-        if i.callLabel notin grammar:
+        if i.callLabel notin grammar and not grammar.tryImport(i.callLabel):
           error "Npeg: rule \"" & name & "\" is referencing undefined rule \"" & i.callLabel & "\""
         emit i.callLabel
 
@@ -54,10 +69,6 @@ proc link*(grammar: Grammar, initial_name: string): Patt =
     result.dump(symTab)
 
 
-proc doImport(g: Grammar, name: string) =
-  echo "import ", name
-
-
 proc newGrammar*(): Grammar =
   result = newTable[string, Patt]()
 
@@ -65,12 +76,7 @@ proc newGrammar*(): Grammar =
 proc parseGrammar*(ns: NimNode, dot: Dot=nil): Grammar =
   var grammar = newGrammar()
   for n in ns:
-    if n.kind == nnkImportStmt:
-      if n[0].kind == nnkIdent:
-        grammar.doImport(n[0].strVal)
-      elif n[0].kind == nnkDotExpr:
-        grammar.doImport(n[0][0].strVal & "." & n[0][1].strVal)
-    elif n.kind == nnkInfix and n[0].kind == nnkIdent and
+    if n.kind == nnkInfix and n[0].kind == nnkIdent and
        n[1].kind == nnkIdent and n[0].eqIdent("<-"):
       let name = n[1].strVal
       var patt = parsePatt(name, n[2], grammar, dot)
@@ -82,6 +88,7 @@ proc parseGrammar*(ns: NimNode, dot: Dot=nil): Grammar =
       echo n.astGenRepr
       error "Expected PEG rule (name <- ...)", n
   grammar
+
 
 proc `$`*(g: Grammar): string =
   for name, patt in g:

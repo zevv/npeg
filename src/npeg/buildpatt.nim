@@ -64,6 +64,17 @@ proc parsePatt*(name: string, nn: NimNode, grammar: Grammar = nil, dot: Dot = ni
     template krak(n: NimNode, msg: string) =
       error "NPeg: " & msg & ": " & n.repr & "\n"
 
+    template inlineOrCall(name2: string) =
+      if name2 in builtins:
+        dot.add(name, name2, "builtin")
+        return newPatt(builtins[name2])
+      elif name2 in grammar and grammar[name2].len < npegInlineMaxLen:
+        dot.add(name, name2, "inline")
+        return grammar[name2]
+      else:
+        dot.add(name, name2, "call")
+        return newCallPatt(name2)
+
     case n.kind:
 
       of nnKPar, nnkStmtList:
@@ -138,16 +149,10 @@ proc parsePatt*(name: string, nn: NimNode, grammar: Grammar = nil, dot: Dot = ni
         else: krak n, "syntax error"
 
       of nnkIdent:
-        let name2 = n.strVal
-        if name2 in builtins:
-          dot.add(name, name2, "builtin")
-          return newPatt(builtins[name2])
-        elif name2 in grammar and grammar[name2].len < npegInlineMaxLen:
-          dot.add(name, name2, "inline")
-          return grammar[name2]
-        else:
-          dot.add(name, name2, "call")
-          return newCallPatt(name2)
+        inlineOrCall(n.strVal)
+
+      of nnkDotExpr:
+        inlineOrCall(n[0].strVal & "." & n[1].strVal)
 
       of nnkCurly:
         var cs: CharSet
