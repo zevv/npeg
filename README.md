@@ -222,6 +222,45 @@ When in doubt check the generated parser instructions by compiling with the
 information.
 
 
+#### Grammar libraries for reuse and composability
+
+For simple grammars it is usually fine to build all patterns from scratch from
+atoms and operators, but for more complex grammars it makes sense to define
+reusable patterns as basic building blocks.
+
+For this, NPeg keeps track of a global library of patterns. The `grammar` macro
+can be used to add rules to this library. All patterns in the library will be
+stored with a *qualified* identifier in the form `libraryname.patternname`, by
+which they can be refered to at a later time.
+
+For example, the following fragment defines three rules in the library with the
+name `number`. The rules will be stored in the global library and are referred
+to in the peg by their qualified names `number.dec`, `number.hex` and
+`number.oct`:
+
+```nim
+grammar "number":
+  dec <- {'1'..'9'} * *{'0'..'9'}
+  hex <- i"0x" * +{'0'..'9','a'..'f','A'..'F'}
+  oct <- '0' * *{'0'..'9'}
+
+let p = peg "line":
+  line <- int * *("," * int)
+  int <- number.dec | number.hex | number.oct
+
+let r = p.match("123,0x42,0644")
+```
+
+NPeg offers a number of pre-defined libraries for your convenience, these can
+be found in the `npeg/lib` directory. A library an be imported with the regular
+Nim `import` statement, all rules defined in the imported file will then be
+added to NPegs global pattern library. For example:
+
+```
+import npeg/lib/uri
+```
+
+
 ## Syntax
 
 The NPeg syntax is similar to normal PEG notation, but some changes were made
@@ -495,7 +534,7 @@ The resulting list of captures is now:
 Note: AST captures is an experimental feature, the implementation or API might
 change in the future.
 
-Npeg has a simple mechanism for storing captures in a tree data structure,
+NPeg has a simple mechanism for storing captures in a tree data structure,
 allowing building of abstract syntax trees straight from the parser.
 
 The basic AST node has the following layout:
@@ -662,7 +701,7 @@ After the parsing finished, the `words` table will now contain
 Note: This is an experimental feature, the implementation or API might change
 in the future. I'm also looking for a better name for this feature.
 
-Npeg parsers can be instantiated as generics which allows passing of a variable
+NPeg parsers can be instantiated as generics which allows passing of a variable
 of a specific type to the `match()` function, this value is then available
 inside code blocks as the variable named `userdata`. This mitigates the need
 for global variables for storing data in access captures.
