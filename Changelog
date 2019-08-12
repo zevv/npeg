@@ -2,6 +2,7 @@
 master, not yet released
 ========================
 
+- Added global pattern library
 - matchFile() now uses memfiles/mmap for zero copy parsers
 - Implemented method to pass user variable to code block captures
 - Added AST capture type for building simple abstract syntax trees
