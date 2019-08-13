@@ -157,20 +157,27 @@ template skel(T: untyped, cases: untyped, ip: NimNode, userdata: NimNode, captur
       push(capStack, (cft: cftOpen, si: si, ck: ck, name: capname))
       inc ip
     
-    template opCapCloseFn(n: int, actionCode: untyped, iname="") =
+    template opCapCloseFn(n: int, actionCode: untyped, iname="") {.dirty.} =
+      # This template is dirty to avoid name mangling
       let ck = CapKind(n)
       trace iname, s, "capclose " & $ck & " -> " & $si
       push(capStack, (cft: cftClose, si: si, ck: ck, name: ""))
       if ck == ckAction:
-        let cs = fixCaptures(s, capStack, FixOpen)
-        let capture {.inject.} = collectCaptures(cs)
-        block:
+        proc fn(capture: Captures, userdata: var T): bool =
+          result = true
           actionCode
+        let capture = collectCaptures(fixCaptures(s, capStack, FixOpen))
+        let ok = fn(capture, userdata)
+        if ok:
+          inc ip
+        else:
+          ip = -1
       elif ck == ckRef:
-        let cs = fixCaptures(s, capStack, FixOpen)
-        let r = collectCapturesRef(cs)
+        let r = collectCapturesRef(fixCaptures(s, capStack, FixOpen))
         refs[r.key] = r.val
-      inc ip
+        inc ip
+      else:
+        inc ip
     
     template opBackrefFn(refName: string, iname="") =
       # This is a proc because we do not want to export 'contains'

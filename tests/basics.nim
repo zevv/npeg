@@ -1,4 +1,5 @@
 import unittest
+import strutils
 import npeg
   
 {.push warning[Spacing]: off.}
@@ -133,3 +134,13 @@ suite "unit tests":
       doAssert e.matchLen == 4
       doAssert e.matchMax == 4
 
+  test "user validation":
+    let p = peg "line":
+      line <- uint8 * "," * uint8 * !1
+      uint8 <- >+Digit:
+        let v = parseInt($1)
+        return v>=0 and v<=255
+    doAssert p.match("10,10").ok
+    doAssert p.match("0,255").ok
+    doAssert not p.match("10,300").ok
+    doAssert not p.match("300,10").ok

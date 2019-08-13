@@ -695,6 +695,22 @@ After the parsing finished, the `words` table will now contain
 {"two": 2, "three": 3, "one": 1, "four": 4}
 ```
 
+#### Custom match validations
+
+Code block captures can be used for additional validation of a captured string:
+the code block can return a boolean value (which defaults to `true`) to
+indicate if the match should succeed or fail. Failing matches are handled as if
+the capture itself failed and will result in the usual backtracking.
+
+For example, the following rule will check if a passed number is a valid
+`uint8` number:
+
+```
+   uint8 <- >Digit[1..3]:
+     let v = parseInt($a)
+     return v>=0 and v<=255
+```
+
 
 #### Generic pegs and passing state
 
