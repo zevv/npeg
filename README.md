@@ -874,21 +874,21 @@ stall and go into an infinite loop.
 
 ### UTF-8 / Unicode
 
-At this time NPeg has no native support for UTF-8 and/or unicode, as I am not
-sure what exactly would be required. If you have any specific needs or ideas,
-let me know and we can discuss the details.
+NPeg has no built-in support for unicode or UTF-8, but is able to parse UTF-8
+documents just as like any other string. NPeg comes with a simple utf8 grammar
+library which should simplify common operations like matching a single code
+point. The following grammar splits an UTF-8 document into separate
+characters/glyphs by using the `utf8.any` rule:
 
-That said, it is at this time perfectly possible to parse UTF-8 in NPeg by
-explicitly making the UTF-8 encoding part of the grammar. The following rule
-`utf8` will match any UTF-8 multi byte sequence:
- 
-```
-cont <- {128..191}
+```nim
+import npeg/lib/utf8
 
-utf8 <- {0..127} |
-        {194..223} * cont[1] |
-        {224..239} * cont[2] |
-        {240..244} * cont[3]
+let p = peg "line":
+  line <- +char
+  char <- >utf8.any
+
+let r = p.match("γνωρίζω")
+echo r.captures()   # --> @["γ", "ν", "ω", "ρ", "ί", "ζ", "ω"]
 ```
 
 
