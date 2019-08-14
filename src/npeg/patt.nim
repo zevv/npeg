@@ -53,6 +53,7 @@ type
         refName*: string
     when npegTrace:
       name*: string
+      pegRepr*: string
 
   Patt* = seq[Inst]
 
@@ -99,47 +100,37 @@ proc dumpString*(s: string|Subject, o:int=0, l:int=1024): string =
 
 # Create string representation of a pattern
 
-proc tostring*(p: Patt, symtab: SymTab = nil): string =
-  for n, i in p.pairs:
-    if symTab != nil and n in symTab:
-      result &= "\n" & symtab.get(n) & ":" & "\n"
-    var args: string
-    case i.op:
-      of opStr, opIStr:
-        args = " \"" & dumpString(i.str) & "\""
-      of opSet, opSpan:
-        args = " '" & dumpset(i.cs) & "'"
-      of opChoice, opCommit, opPartCommit:
-        args = " " & $(n+i.offset)
-      of opCall, opJump:
-        args = " " & $(n+i.callOffset) & " " & i.callLabel
-      of opErr:
-        args = " " & i.msg
-      of opCapOpen, opCapClose:
-        args = " " & $i.capKind
-        if i.capAction != nil:
-          args &= ": " & i.capAction.repr.indent(23)
-      of opBackref:
-        args = " " & i.refName
-      of opFail, opReturn, opNop, opAny:
-        discard
-    var l: string
-    l.add align($n, 4) & ": "
-    when npegTrace:
-      l.add alignLeft($i.name, 15)
-    l.add $i.op & args
-    result &= l & "\n"
+when npegTrace:
 
-# Dump pattern
-
-proc dump*(p: Patt, symtab: SymTab = nil) =
-  echo toString(p, symtab)
-
-
-# Convert pattern to string
-
-proc `$`*(p: Patt): string =
-  toString(p, nil)
+  proc dump*(p: Patt, symtab: SymTab = nil) =
+    for n, i in p.pairs:
+      if symTab != nil and n in symTab:
+        echo "\n" & symtab.get(n) & ":"
+      var args: string
+      case i.op:
+        of opStr, opIStr:
+          args = " \"" & dumpString(i.str) & "\""
+        of opSet, opSpan:
+          args = " '" & dumpset(i.cs) & "'"
+        of opChoice, opCommit, opPartCommit:
+          args = " " & $(n+i.offset)
+        of opCall, opJump:
+          args = " " & $(n+i.callOffset) & " " & i.callLabel
+        of opErr:
+          args = " " & i.msg
+        of opCapOpen, opCapClose:
+          args = " " & $i.capKind
+          if i.capAction != nil:
+            args &= ": " & i.capAction.repr.indent(23)
+        of opBackref:
+          args = " " & i.refName
+        of opFail, opReturn, opNop, opAny:
+          discard
+      var l: string
+      echo align($n, 4) & ": " &
+           alignLeft($i.name, 15) &
+           alignLeft($i.op & args, 20) &
+           " " & i.pegRepr
 
 
 # Some tests on patterns

@@ -933,23 +933,23 @@ let parser = peg "line":
 discard parser.match("one two")
 ```
 
-will output the following intermediate representation at compile time.  From
+will output the following intermediate representation at compile time. From
 the IR it can be seen that the `space` rule has been inlined in the `line`
 rule, but that the `word` rule has been emitted as a subroutine which gets
 called from `line`:
 
 ```
 line:
-   0: line           opCall word:6
-   1: line           opChoice 5
-   2:  space         opStr " "
-   3: line           opCall word:6
-   4: line           opPartCommit 2
+   0: line           opCall 6 word        word
+   1: line           opChoice 5           *(space * word)
+   2:  space         opStr " "            ' '
+   3: line           opCall 6 word        word
+   4: line           opPartCommit 2       *(space * word)
    5:                opReturn
 
 word:
-   6: word           opSet '{'a'-'z'}'
-   7: word           opSpan '{'a'-'z'}'
+   6: word           opSet '{'a'..'z'}'   {'a' .. 'z'}
+   7: word           opSpan '{'a'..'z'}'  +{'a' .. 'z'}
    8:                opReturn
 ```
 
