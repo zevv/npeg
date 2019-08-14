@@ -182,11 +182,4 @@ proc parsePatt*(name: string, nn: NimNode, grammar: Grammar = nil, dot: Dot = ni
 
   result = aux(nn)
   dot.addPatt(name, result.len)
-  
-  when npegTrace:
-    for i in result.mitems:
-      if i.name == "":
-        i.name = name
-      else:
-        i.name = " " & i.name
 

@@ -118,7 +118,7 @@ proc tostring*(p: Patt, symtab: SymTab = nil): string =
       of opCapOpen, opCapClose:
         args = " " & $i.capKind
         if i.capAction != nil:
-          args &= ": " & i.capAction.repr
+          args &= ": " & i.capAction.repr.indent(23)
       of opBackref:
         args = " " & i.refName
       of opFail, opReturn, opNop, opAny:
@@ -169,7 +169,6 @@ proc checkSanity(p: Patt) =
   if p.len >= npegPattMaxLen:
     error "NPeg: grammar too complex, (" & $p.len & " > " & $npegPattMaxLen & ").\n" &
           "If you think this is a mistake, increase the maximum size with -d:npegPattMaxLen=N"
-
 
 ### Atoms
 

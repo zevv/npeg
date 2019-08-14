@@ -1,7 +1,6 @@
 
 import tables
 import macros
-import strutils
 import npeg/[common,patt,buildpatt,dot]
 
 
@@ -13,11 +12,26 @@ import npeg/[common,patt,buildpatt,dot]
 var gPattLib* {.compileTime.} = newTable[string, Patt]()
 
 
-proc add*(grammar: Grammar, name: string, patt: Patt) =
+#
+# Add rule to a grammer
+#
+
+proc add*(grammar: Grammar, name: string, patt1: Patt) =
   if name in grammar:
     error "Redefinition of rule '" & name & "'"
+  var patt = patt1
+  when npegTrace:
+    for i in patt.mitems:
+      if i.name == "":
+        i.name = name
+      else:
+        i.name = " " & i.name
   grammar[name] = patt
 
+
+#
+# Try to import the given rule from the pattern library
+#
 
 proc tryImport(grammar: Grammar, name: string): bool =
   if name in gPattLib:
