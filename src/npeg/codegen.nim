@@ -292,7 +292,7 @@ proc genCode*(patt: Patt, T: NimNode): NimNode =
   cases.add nnkElse.newTree(parseStmt("opFailFn()"))
   result = getAst skel(T, cases, ipNode, ident "userdata", ident "capture")
 
-  when false:
+  when defined(npegExpand):
     echo result.repr
 
 

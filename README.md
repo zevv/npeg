@@ -1011,6 +1011,11 @@ those to your liking:
   parser. The default value should be high enough for practical purposes, the
   stack depth is only limited to detect invalid grammars. (default: 1024)
 
+* `-d:npegTrace`: Enable compile time and run time tracing. Please refer to the 
+  section 'Tracing' for more details
+
+* `-d:npegExpand`: Dump the generated Nim code for all parsers defined in the
+  program. Ment for Npeg development debugging purposes only.
 
 
 ## Examples
