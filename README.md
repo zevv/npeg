@@ -1070,17 +1070,7 @@ grammar will parse a HTTP response document and extract structured data from
 the document into a Nim object:
 
 ```nim
-
-# Example HTTP response data
-
-const data = """
-HTTP/1.1 301 Moved Permanently
-Content-Length: 162
-Content-Type: text/html
-Location: https://nim.org/
-"""
-
-# Nim object in which the parsed data will be copied
+import npeg, strutils, tables
 
 type
   Request = object
@@ -1090,12 +1080,9 @@ type
     message: string
     headers: Table[string, string]
 
-var req: Request
-req.headers = initTable[string, string]()
-
 # HTTP grammar (simplified)
 
-let parser = peg "http":
+let parser = peg(Request, "http"):
   space       <- ' '
   crlf        <- '\n' * ?'\r'
   url         <- +(Alpha | Digit | '/' | '_' | '.')
@@ -1103,15 +1090,15 @@ let parser = peg "http":
   header_name <- +(Alpha | '-')
   header_val  <- +(1-{'\n'}-{'\r'})
   proto       <- >+Alpha:
-    req.proto = $1
+    userdata.proto = $1
   version     <- >(+Digit * '.' * +Digit):
-    req.version = $1
+    userdata.version = $1
   code        <- >+Digit:
-    req.code = parseInt($1)
+    userdata.code = parseInt($1)
   msg         <- >(+(1 - '\r' - '\n')):
-    req.message = $1
+    userdata.message = $1
   header      <- >header_name * ": " * >header_val:
-    req.headers[$1] = $2
+    userdata.headers[$1] = $2
   response    <- proto * '/' * version * space * code * space * msg
   headers     <- *(header * crlf)
   http        <- response * crlf * headers * eof
@@ -1119,8 +1106,16 @@ let parser = peg "http":
 
 # Parse the data and print the resulting table
 
-let res = parser.match(data)
-echo req
+const data = """
+HTTP/1.1 301 Moved Permanently
+Content-Length: 162
+Content-Type: text/html
+Location: https://nim.org/
+"""
+
+var request: Request
+let res = parser.match(data, request)
+echo request
 ```
 
 The resulting data:
