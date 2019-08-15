@@ -554,7 +554,7 @@ matched. Any string captures that were made inside the rule are available to
 the Nim code in the injected variable `capture[]` of type `seq[Capture]`:
 
 ```
-type Capture =
+type Capture = object
   s*: string      # The captured string
   si*: int        # The index of the captured string in the subject
 ```
