@@ -1058,6 +1058,9 @@ those to your liking:
 * `-d:npegExpand`: Dump the generated Nim code for all parsers defined in the
   program. Ment for Npeg development debugging purposes only.
 
+* `-d:npegDebug`: Enable more debug info. Ment for Npeg development debugging
+  purposes only.
+
 
 ## Examples
 
