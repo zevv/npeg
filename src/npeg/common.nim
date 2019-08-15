@@ -9,6 +9,7 @@ const
   npegInlineMaxLen* {.intdefine.} = 50
   npegRetStackSize* {.intdefine.} = 1024
   npegBackStackSize* {.intdefine.} = 1024
+  npegDebug* = defined(npegDebug)
   npegTrace* = defined(npegTrace)
   npegExpand* = defined(npegExpand)
 
@@ -97,25 +98,6 @@ type
   Patt* = seq[Inst]
 
   Grammar* = TableRef[string, Patt]
-
-
-# This is the global instance of pattern library. This is itself a grammar
-# where all patterns are stored with qualified names in the form of
-# <libname>.<pattname>.  At grammar link time all unresolved patterns are
-# looked up from this global table.
-
-var gPattLib* {.compileTime.} = newTable[string, Patt]()
-
-#
-# Try to import the given rule from the pattern library into a grammar
-#
-
-proc tryImport*(grammar: Grammar, name: string): bool =
-  if name in gPattLib:
-    grammar.add name, gPattLib[name]
-    when npegTrace:
-      echo "importing ", name
-    return true
 
 
 #

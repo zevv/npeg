@@ -34,7 +34,7 @@ import tables
 import macros
 import json
 import strutils
-import npeg/[common,codegen,capture,buildpatt,grammar,dot]
+import npeg/[common,codegen,capture,buildpatt,grammar,dot,lib]
 
 export NPegException, Parser, MatchResult, contains
 
@@ -64,24 +64,12 @@ macro patt*(n: untyped): untyped =
   grammar.link("anonymous").genCode(bindsym"bool")
 
 
-# Define a grammar for storage in the global library. The rule names and all
-# unqualified identifiers in the grammar are expanded to qualified names in the
-# form <libname>.<pattname> to make sure they are easily resolved when they are
-# later imported by other grammars.
+# Define a grammar for storage in the global library.
 
 macro grammar*(libNameNode: string, n: untyped) =
   let grammar = parseGrammar(n)
   let libName = libNameNode.strval
-  for pattname, patt in grammar.pairs:
-    var pattname2 = libName & "." & pattname
-    var patt2: Patt
-    for i in patt.items:
-      var i2 = i
-      if i2.op == opCall:
-        if "." notin i2.callLabel:
-          i2.callLabel = libName & "." & i2.callLabel
-      patt2.add i2
-    gPattLib.add(pattname2, patt2)
+  libStore(libName, grammar)
 
 
 # Match a subject string
@@ -132,4 +120,7 @@ proc `$`*(a: ASTNode): string =
     for k in a.kids:
       aux(k, s, d+1)
   aux(a, result)
+
+
+import npeg/builtins
 

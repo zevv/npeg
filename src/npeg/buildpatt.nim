@@ -1,7 +1,7 @@
 
 import tables
 import macros
-import npeg/[common,patt,dot]
+import npeg/[common,patt,dot,lib]
 
 #
 # The complete PEG syntax parsed by parsePatt(). In PEG. How meta.
@@ -33,24 +33,6 @@ import npeg/[common,patt,dot]
 #  grammar     <- *rule * !1
 #
 
-#
-# Builtins. These correspond to POSIX character classes
-#
-
-const builtins = {
-  "Alnum":  {'A'..'Z','a'..'z','0'..'9'}, # Alphanumeric characters
-  "Alpha":  {'A'..'Z','a'..'z'},          # Alphabetic characters
-  "Blank":  {' ','\t'},                   # Space and tab
-  "Cntrl":  {'\x00'..'\x1f','\x7f'},      # Control characters
-  "Digit":  {'0'..'9'},                   # Digits
-  "Graph":  {'\x21'..'\x7e'},             # Visible characters
-  "Lower":  {'a'..'z'},                   # Lowercase characters
-  "Print":  {'\x21'..'\x7e',' '},         # Visible characters and spaces
-  "Space":  {'\9'..'\13',' '},            # Whitespace characters
-  "Upper":  {'A'..'Z'},                   # Uppercase characters
-  "Xdigit": {'A'..'F','a'..'f','0'..'9'}, # Hexadecimal digits
-}.toTable()
-
 
 # Shadow the given name in the grammar by creating an unique new name,
 # and moving the original rule
@@ -59,8 +41,8 @@ var gShadowId = 0
 proc shadow(grammar: Grammar, name: string): string =
   inc gShadowId
   let name2 = name & "-" & $gShadowId
-  when npegTrace:
-    echo "Shadowing ", name, " -> ", name2
+  when npegDebug:
+    echo "  shadow ", name, " -> ", name2
   grammar[name2] = grammar[name]
   grammar.del name
   return name2
@@ -70,6 +52,9 @@ proc shadow(grammar: Grammar, name: string): string =
 
 proc parsePatt*(name: string, nn: NimNode, grammar: Grammar, dot: Dot = nil): Patt =
 
+  when npegDebug:
+    echo "parse ", name, " <- ", nn.repr
+
   proc aux(n: NimNode): Patt =
 
     template krak(n: NimNode, msg: string) =
@@ -77,14 +62,11 @@ proc parsePatt*(name: string, nn: NimNode, grammar: Grammar, dot: Dot = nil): Pa
 
     template inlineOrCall(name2: string) =
 
-      # Try to import symbol so we might be able to inline or shadow it
-      discard grammar.tryImport(name2)
+      # Try to import symbol early so we might be able to inline or shadow it
+      if name2 notin grammar:
+        discard libImport(name2, grammar)
 
-      if name2 in builtins:
-        dot.add(name, name2, "builtin")
-        result = newPatt(builtins[name2])
-
-      elif name == name2:
+      if name == name2:
         if name in grammar:
           let nameShadowed = grammar.shadow(name)
           result = newCallPatt(nameShadowed)
@@ -92,10 +74,14 @@ proc parsePatt*(name: string, nn: NimNode, grammar: Grammar, dot: Dot = nil): Pa
           error "Trying to shadow undefined rule '" & name & "'"
 
       elif name2 in grammar and grammar[name2].len < npegInlineMaxLen:
+        when npegDebug:
+          echo "  inline ", name2
         dot.add(name, name2, "inline")
         result = grammar[name2]
 
       else:
+        when npegDebug:
+          echo "  call ", name2
         dot.add(name, name2, "call")
         result = newCallPatt(name2)
 

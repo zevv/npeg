@@ -1,7 +1,7 @@
 
 import tables
 import macros
-import npeg/[common,patt,buildpatt,dot]
+import npeg/[common,patt,buildpatt,dot,lib]
 
 
 
@@ -46,7 +46,7 @@ proc link*(grammar: Grammar, initial_name: string, dot: Dot = nil): Patt =
 
     for i in patt:
       if i.op == opCall and i.callLabel notin symTab:
-        if i.callLabel notin grammar and not grammar.tryImport(i.callLabel):
+        if i.callLabel notin grammar and not libImport(i.callLabel, grammar):
           error "Npeg: rule \"" & name & "\" is referencing undefined rule \"" & i.callLabel & "\""
         dot.add(name, i.callLabel, "call")
         emit i.callLabel
