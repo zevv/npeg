@@ -257,7 +257,7 @@ subject that should be matched.
 
 - Integer literal: `0` / `1` / `n`
 
-  The int literal atom `N` matches exactly n number of bytes. `0` always matches,
+  The int literal atom `n` matches exactly n number of bytes. `0` always matches,
   but does not consume any data.
 
 
