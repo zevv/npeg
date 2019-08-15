@@ -1,7 +1,7 @@
 
 import tables
 import macros
-import npeg/[common,patt,buildpatt,dot,lib]
+import npeg/[common,patt,parsepatt,dot,lib]
 
 
 

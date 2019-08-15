@@ -34,7 +34,7 @@ import tables
 import macros
 import json
 import strutils
-import npeg/[common,codegen,capture,buildpatt,grammar,dot,lib]
+import npeg/[common,codegen,capture,parsepatt,grammar,dot,lib]
 
 export NPegException, Parser, MatchResult, contains
 
