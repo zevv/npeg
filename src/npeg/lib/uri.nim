@@ -8,10 +8,7 @@ grammar "uri":
 
   URI <- scheme * ":" * hier_part * ?( "?" * query) * ?( "#" * fragment) * !1
 
-  hier_part <- "//" * authority * path_abempty |
-               path_absolute |
-               path_rootless |
-               path_empty
+  hier_part <- "//" * authority * path
 
   URI_reference <- uri | relative_ref
 

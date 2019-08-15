@@ -33,9 +33,6 @@ import npeg/[common,patt,dot]
 #  grammar     <- *rule * !1
 #
 
-type Grammar* = TableRef[string, Patt]
-
-
 #
 # Builtins. These correspond to POSIX character classes
 #
@@ -55,6 +52,20 @@ const builtins = {
 }.toTable()
 
 
+# Shadow the given name in the grammar by creating an unique new name,
+# and moving the original rule
+
+var gShadowId = 0
+proc shadow(grammar: Grammar, name: string): string =
+  inc gShadowId
+  let name2 = name & "-" & $gShadowId
+  when npegTrace:
+    echo "Shadowing ", name, " -> ", name2
+  grammar[name2] = grammar[name]
+  grammar.del name
+  return name2
+
+
 # Recursively compile a PEG rule to a Pattern
 
 proc parsePatt*(name: string, nn: NimNode, grammar: Grammar, dot: Dot = nil): Patt =
@@ -65,12 +76,25 @@ proc parsePatt*(name: string, nn: NimNode, grammar: Grammar, dot: Dot = nil): Pa
       error "NPeg: " & msg & ": " & n.repr & "\n"
 
     template inlineOrCall(name2: string) =
+
+      # Try to import symbol so we might be able to inline or shadow it
+      discard grammar.tryImport(name2)
+
       if name2 in builtins:
         dot.add(name, name2, "builtin")
         result = newPatt(builtins[name2])
+
+      elif name == name2:
+        if name in grammar:
+          let nameShadowed = grammar.shadow(name)
+          result = newCallPatt(nameShadowed)
+        else:
+          error "Trying to shadow undefined rule '" & name & "'"
+
       elif name2 in grammar and grammar[name2].len < npegInlineMaxLen:
         dot.add(name, name2, "inline")
         result = grammar[name2]
+
       else:
         dot.add(name, name2, "call")
         result = newCallPatt(name2)

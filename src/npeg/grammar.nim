@@ -22,17 +22,6 @@ proc add*(grammar: Grammar, name: string, patt1: Patt) =
   grammar[name] = patt
 
 
-#
-# Try to import the given rule from the pattern library
-#
-
-proc tryImport(grammar: Grammar, name: string): bool =
-  if name in gPattLib:
-    grammar.add name, gPattLib[name]
-    when npegTrace:
-      echo "importing ", name
-    return true
-
 
 # Link a list of patterns into a grammar, which is itself again a valid
 # pattern. Start with the initial rule, add all other non terminals and fixup
@@ -83,14 +72,19 @@ proc newGrammar*(): Grammar =
 proc parseGrammar*(ns: NimNode, dot: Dot=nil): Grammar =
   var grammar = newGrammar()
   for n in ns:
-    if n.kind == nnkInfix and n[0].kind == nnkIdent and
-       n[1].kind == nnkIdent and n[0].eqIdent("<-"):
-      let name = n[1].strVal
+    if n.kind == nnkInfix and n[0].kind == nnkIdent and n[0].eqIdent("<-"):
+      var name: string
+      if n[1].kind == nnkIdent:
+        name = n[1].strVal
+      elif n[1].kind == nnkDotExpr:
+        name = n[1][0].strVal & "." & n[1][1].strVal
+      else:
+        error "Expected PEG rule name", n
       var patt = parsePatt(name, n[2], grammar, dot)
       if n.len == 4:
         patt = newPatt(patt, ckAction)
         patt[patt.high].capAction = n[3]
-      grammar.add(n[1].strVal, patt)
+      grammar.add(name, patt)
     else:
       echo n.astGenRepr
       error "Expected PEG rule (name <- ...)", n

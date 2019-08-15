@@ -260,6 +260,42 @@ added to NPegs global pattern library. For example:
 import npeg/lib/uri
 ```
 
+#### Library overriding / shadowing
+
+To allow the user to add custom captures to imported grammars or rules, it is
+possible to *override* or *shadow* an existing rule in a grammer.
+
+Overriding will replace the rule from the library with the provided new rule,
+allowing the caller to change parts of an imported grammar. A overridden rule
+is allowed to reference the original rule by name, which will cause the new
+rule to *shadow* the original rule. This will effectively rename the original
+rule and replace it with the newly defined rule which will call the original
+refered rule.
+
+For example, the following snippet will reuse the grammar from the `uri`
+library and capture some parts of the URI in a nim object:
+
+```nim
+import npeg/lib/uri
+
+type Uri = object
+  host: string
+  scheme: string
+  path: string
+  port: int
+
+var myUri: Uri
+
+let parser = peg "line":
+  line <- uri.URI
+  uri.scheme <- >uri.scheme: myUri.scheme = $1
+  uri.host <- >uri.host:     myUri.host = $1
+  uri.port <- >uri.port:     myUri.port = parseInt($1)
+  uri.path <- >uri.path:     myUri.path = $1
+
+echo parser.match("http://nim-lang.org:8080/one/two/three")
+echo myUri  # --> (host: "nim-lang.org", scheme: "http", path: "/one/two/three", port: 8080)
+```
 
 ## Syntax
 

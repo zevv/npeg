@@ -96,6 +96,8 @@ type
 
   Patt* = seq[Inst]
 
+  Grammar* = TableRef[string, Patt]
+
 
 # This is the global instance of pattern library. This is itself a grammar
 # where all patterns are stored with qualified names in the form of
@@ -104,7 +106,21 @@ type
 
 var gPattLib* {.compileTime.} = newTable[string, Patt]()
 
+#
+# Try to import the given rule from the pattern library into a grammar
+#
 
+proc tryImport*(grammar: Grammar, name: string): bool =
+  if name in gPattLib:
+    grammar.add name, gPattLib[name]
+    when npegTrace:
+      echo "importing ", name
+    return true
+
+
+#
+# Misc helper functions
+#
 
 proc subStrCmp*(s: Subject, slen: int, si: int, s2: string): bool =
   if si > slen - s2.len:

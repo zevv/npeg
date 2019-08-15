@@ -2,6 +2,7 @@
 master, not yet released
 ========================
 
+- Added shadowing
 - Added custom match validation
 - Added global pattern library support
 - Proc matchFile() now uses memfiles/mmap for zero copy parsers

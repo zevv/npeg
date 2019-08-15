@@ -75,7 +75,6 @@ when npegTrace:
           args = " " & i.refName
         of opFail, opReturn, opNop, opAny:
           discard
-      var l: string
       echo align($n, 4) & ": " &
            alignLeft($i.name, 15) &
            alignLeft($i.op & args, 20) &
