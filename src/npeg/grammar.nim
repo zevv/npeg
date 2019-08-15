@@ -27,7 +27,7 @@ proc add*(grammar: Grammar, name: string, patt1: Patt) =
 # pattern. Start with the initial rule, add all other non terminals and fixup
 # opCall addresses
 
-proc link*(grammar: Grammar, initial_name: string): Patt =
+proc link*(grammar: Grammar, initial_name: string, dot: Dot = nil): Patt =
 
   if initial_name notin grammar:
     error "inital rule '" & initial_name & "' not found"
@@ -48,6 +48,7 @@ proc link*(grammar: Grammar, initial_name: string): Patt =
       if i.op == opCall and i.callLabel notin symTab:
         if i.callLabel notin grammar and not grammar.tryImport(i.callLabel):
           error "Npeg: rule \"" & name & "\" is referencing undefined rule \"" & i.callLabel & "\""
+        dot.add(name, i.callLabel, "call")
         emit i.callLabel
 
   emit initial_name

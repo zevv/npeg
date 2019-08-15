@@ -1,5 +1,6 @@
 
 import tables
+import strutils
 
 type
   Dot* = ref object
@@ -13,12 +14,16 @@ const colors = {
   "builtin": "green"
 }.toTable()
 
+
+proc escape(s: string): string =
+  return s.replace(".", "_").replace("-", "_")
+
 proc newDot*(name: string): Dot =
   return Dot(name: name, edges: initTable[string, bool]())
 
 proc add*(d: Dot, n1, n2: string, meth: string) =
   if d != nil:
-    let l = "  " & n1 & " -> " & n2 & " [ color=" & colors[meth] & "];"
+    let l = "  " & n1.escape & " -> " & n2.escape & " [ color=" & colors[meth] & "];"
     d.edges[l] = true
 
 proc addPatt*(d: Dot, name: string, len: int) =
@@ -26,7 +31,8 @@ proc addPatt*(d: Dot, name: string, len: int) =
     var color = "black"
     if len > 10: color = "orange"
     if len > 100: color = "red"
-    d.nodes.add "  " & name & " [ fillcolor=lightgrey color=" & color & " label=\"" & name & "/" & $len & "\"];"
+    d.nodes.add "  " & name.escape &
+                " [ fillcolor=lightgrey color=" & color & " label=\"" & name & "/" & $len & "\"];"
 
 proc dump*(d: Dot) =
   const npegDotDir {.strdefine.}: string = ""

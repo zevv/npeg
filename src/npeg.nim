@@ -43,14 +43,16 @@ export NPegException, Parser, MatchResult, contains
 macro peg*(name: string, n: untyped): untyped =
   var dot = newDot(name.strVal)
   var grammar = parseGrammar(n, dot)
+  let code = grammar.link(name.strVal(), dot).genCode(bindSym"bool")
   dot.dump()
-  grammar.link(name.strVal()).genCode(bindSym"bool")
+  code
 
 macro peg*(T: typedesc, name: string, n: untyped): untyped =
   var dot = newDot(name.strVal)
   var grammar = parseGrammar(n, dot)
+  let code = grammar.link(name.strVal(), dot).genCode(T)
   dot.dump()
-  grammar.link(name.strVal()).genCode(T)
+  code
 
 
 # Create a parser for a single PEG pattern
