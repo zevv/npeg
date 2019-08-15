@@ -41,7 +41,7 @@ proc parsePatt*(name: string, nn: NimNode, grammar: Grammar, dot: Dot = nil): Pa
           let nameShadowed = grammar.shadow(name)
           result = newCallPatt(nameShadowed)
         else:
-          error "Trying to shadow undefined rule '" & name & "'"
+          error "Rule '" & name & "' calls itself"
 
       elif name2 in grammar and grammar[name2].len < npegInlineMaxLen:
         when npegDebug:
