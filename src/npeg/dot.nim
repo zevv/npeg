@@ -11,7 +11,6 @@ type
 const colors = {
   "inline": "grey60",
   "call": "blue",
-  "builtin": "green"
 }.toTable()
 
 
