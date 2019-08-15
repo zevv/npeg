@@ -6,57 +6,6 @@ import tables
 import npeg/common
 
 
-type
-
-  Opcode* = enum
-    opStr,          # Matching: Literal string or character
-    opIStr,         # Matching: Literal string or character, case insensitive
-    opSet,          # Matching: Character set and/or range
-    opAny,          # Matching: Any character
-    opNop,          # Matching: Always matches, consumes nothing
-    opSpan          # Matching: Match a sequence of 0 or more character sets
-    opChoice,       # Flow control: stores current position
-    opCommit,       # Flow control: commit previous choice
-    opPartCommit,   # Flow control: optimized commit/choice pair
-    opCall,         # Flow control: call another rule
-    opJump,         # Flow control: jump to target
-    opReturn,       # Flow control: return from earlier call
-    opFail,         # Fail: unwind stack until last frame
-    opCapOpen,      # Capture open
-    opCapClose,     # Capture close
-    opBackref       # Back reference
-    opErr,          # Error handler
-
-  CharSet* = set[char]
-
-  Inst* = object
-    case op*: Opcode
-      of opChoice, opCommit, opPartCommit:
-        offset*: int
-      of opStr, opIStr:
-        str*: string
-      of opCall, opJump:
-        callLabel*: string
-        callOffset*: int
-      of opSet, opSpan:
-        cs*: CharSet
-      of opCapOpen, opCapClose:
-        capKind*: CapKind
-        capAction*: NimNode
-        capName*: string
-        capId*: BiggestInt
-      of opErr:
-        msg*: string
-      of opFail, opReturn, opAny, opNop:
-        discard
-      of opBackref:
-        refName*: string
-    when npegTrace:
-      name*: string
-      pegRepr*: string
-
-  Patt* = seq[Inst]
-
 
 # Create a short and friendly text representation of a character set.
 

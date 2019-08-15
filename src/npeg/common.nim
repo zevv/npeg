@@ -9,7 +9,8 @@ const
   npegInlineMaxLen* {.intdefine.} = 50
   npegRetStackSize* {.intdefine.} = 1024
   npegBackStackSize* {.intdefine.} = 1024
-
+  npegTrace* = defined(npegTrace)
+  npegExpand* = defined(npegExpand)
 
 type
 
@@ -46,7 +47,62 @@ type
 
   Subject* = openArray[char]
 
-const npegTrace* = defined(npegTrace)
+  Opcode* = enum
+    opStr,          # Matching: Literal string or character
+    opIStr,         # Matching: Literal string or character, case insensitive
+    opSet,          # Matching: Character set and/or range
+    opAny,          # Matching: Any character
+    opNop,          # Matching: Always matches, consumes nothing
+    opSpan          # Matching: Match a sequence of 0 or more character sets
+    opChoice,       # Flow control: stores current position
+    opCommit,       # Flow control: commit previous choice
+    opPartCommit,   # Flow control: optimized commit/choice pair
+    opCall,         # Flow control: call another rule
+    opJump,         # Flow control: jump to target
+    opReturn,       # Flow control: return from earlier call
+    opFail,         # Fail: unwind stack until last frame
+    opCapOpen,      # Capture open
+    opCapClose,     # Capture close
+    opBackref       # Back reference
+    opErr,          # Error handler
+
+  CharSet* = set[char]
+
+  Inst* = object
+    case op*: Opcode
+      of opChoice, opCommit, opPartCommit:
+        offset*: int
+      of opStr, opIStr:
+        str*: string
+      of opCall, opJump:
+        callLabel*: string
+        callOffset*: int
+      of opSet, opSpan:
+        cs*: CharSet
+      of opCapOpen, opCapClose:
+        capKind*: CapKind
+        capAction*: NimNode
+        capName*: string
+        capId*: BiggestInt
+      of opErr:
+        msg*: string
+      of opFail, opReturn, opAny, opNop:
+        discard
+      of opBackref:
+        refName*: string
+    when npegTrace:
+      name*: string
+      pegRepr*: string
+
+  Patt* = seq[Inst]
+
+
+# This is the global instance of pattern library. This is itself a grammar
+# where all patterns are stored with qualified names in the form of
+# <libname>.<pattname>.  At grammar link time all unresolved patterns are
+# looked up from this global table.
+
+var gPattLib* {.compileTime.} = newTable[string, Patt]()
 
 
 

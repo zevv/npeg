@@ -57,7 +57,7 @@ const builtins = {
 
 # Recursively compile a PEG rule to a Pattern
 
-proc parsePatt*(name: string, nn: NimNode, grammar: Grammar = nil, dot: Dot = nil): Patt =
+proc parsePatt*(name: string, nn: NimNode, grammar: Grammar, dot: Dot = nil): Patt =
 
   proc aux(n: NimNode): Patt =
 

@@ -4,13 +4,6 @@ import macros
 import npeg/[common,patt,buildpatt,dot]
 
 
-# Global instance of pattern library. This is itself a grammar where all
-# patterns are stored with qualified names in the form of <libname>.<pattname>.
-# At grammar link time all unresolved patterns are looked up from this global
-# table.
-
-var gPattLib* {.compileTime.} = newTable[string, Patt]()
-
 
 #
 # Add rule to a grammer
