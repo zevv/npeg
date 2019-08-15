@@ -3,6 +3,7 @@ import npeg
 import json
 import strutils
 import tables
+import npeg/lib/uri
 
 {.push warning[Spacing]: off.}
 
@@ -20,6 +21,20 @@ suite "examples":
       lower <- {'a'..'z'}
       ident <- +lower
     doAssert p2.match("lowercaseword").ok
+
+  ######################################################################
+
+  test "shadowing":
+    
+    let parser = peg "line":
+      line <- uri.URI
+      uri.scheme <- >uri.scheme
+      uri.host <- >uri.host
+      uri.port <- >+Digit
+      uri.path <- >uri.path
+    
+    let r = parser.match("http://nim-lang.org:8080/one/two/three")
+    doAssert r.captures == @["http", "nim-lang.org", "8080", "/one/two/three"]
 
   ######################################################################
 
