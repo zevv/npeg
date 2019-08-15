@@ -150,9 +150,6 @@ let parser = peg "ident":
 doAssert parser.match("lowercaseword").ok
 ```
 
-
-#### Ordering of rules in a grammar
-
 The order in which the grammar patterns are defined affects the generated parser.
 Although NPeg could always reorder, this is a design choice to give the user
 more control over the generated parser:
@@ -165,137 +162,6 @@ more control over the generated parser:
   `P2` will be generated as a subroutine which gets called from `P1`. This will
   reduce code size, but might also result in a slower parser.
 
-Repetitive inlining of rules might cause the grammar to grow too large,
-resulting in a huge executable size and slow compilation. NPeg tries to
-mitigate this in two ways:
-
-* Patterns that are too large will not be inlined, even if the above ordering
-  rules apply.
-
-* NPeg checks the size of the total grammar, and if it thinks it is too large
-  it will fail compilation with the error message `NPeg: grammar too complex`
-
-Check the section "Compile-time configuration" below for more details about too
-complex grammars.
-
-The parser size and performance depends on many factors; when performance
-and/or code size matters, it pays to experiment with different orderings and
-measure the results.
-
-When in doubt, check the generated parser instructions by compiling with the
-`-d:npegTrace` or `-d:npegDumpDot` flags - see the section Tracing and
-Debugging for more information.
-
-At this time the upper limit is 4096 rules, this might become a configurable
-number in a future release.
-
-For example, the following grammar will not compile because recursive inlining
-will cause it to expand to a parser with more then 4^6 = 4096 rules:
-
-```
-let p = peg "z":
-  f <- 1
-  e <- f * f * f * f
-  d <- e * e * e * e
-  c <- d * d * d * d
-  b <- c * c * c * c
-  a <- b * b * b * b
-  z <- a * a * a * a
-```
-
-The fix is to change the order of the rules so that instead of inlining NPeg
-will use a calling mechanism:
-
-```
-let p = peg "z":
-  z <- a * a * a * a
-  a <- b * b * b * b
-  b <- c * c * c * c
-  c <- d * d * d * d
-  d <- e * e * e * e
-  e <- f * f * f * f
-  f <- 1
-```
-
-When in doubt check the generated parser instructions by compiling with the
-`-d:npegTrace` flag - see the section Tracing and Debugging for more
-information.
-
-
-#### Grammar libraries for reuse and composability
-
-For simple grammars it is usually fine to build all patterns from scratch from
-atoms and operators, but for more complex grammars it makes sense to define
-reusable patterns as basic building blocks.
-
-For this, NPeg keeps track of a global library of patterns. The `grammar` macro
-can be used to add rules to this library. All patterns in the library will be
-stored with a *qualified* identifier in the form `libraryname.patternname`, by
-which they can be refered to at a later time.
-
-For example, the following fragment defines three rules in the library with the
-name `number`. The rules will be stored in the global library and are referred
-to in the peg by their qualified names `number.dec`, `number.hex` and
-`number.oct`:
-
-```nim
-grammar "number":
-  dec <- {'1'..'9'} * *{'0'..'9'}
-  hex <- i"0x" * +{'0'..'9','a'..'f','A'..'F'}
-  oct <- '0' * *{'0'..'9'}
-
-let p = peg "line":
-  line <- int * *("," * int)
-  int <- number.dec | number.hex | number.oct
-
-let r = p.match("123,0x42,0644")
-```
-
-NPeg offers a number of pre-defined libraries for your convenience, these can
-be found in the `npeg/lib` directory. A library an be imported with the regular
-Nim `import` statement, all rules defined in the imported file will then be
-added to NPegs global pattern library. For example:
-
-```
-import npeg/lib/uri
-```
-
-#### Library overriding / shadowing
-
-To allow the user to add custom captures to imported grammars or rules, it is
-possible to *override* or *shadow* an existing rule in a grammer.
-
-Overriding will replace the rule from the library with the provided new rule,
-allowing the caller to change parts of an imported grammar. A overridden rule
-is allowed to reference the original rule by name, which will cause the new
-rule to *shadow* the original rule. This will effectively rename the original
-rule and replace it with the newly defined rule which will call the original
-refered rule.
-
-For example, the following snippet will reuse the grammar from the `uri`
-library and capture some parts of the URI in a nim object:
-
-```nim
-import npeg/lib/uri
-
-type Uri = object
-  host: string
-  scheme: string
-  path: string
-  port: int
-
-var myUri: Uri
-
-let parser = peg "line":
-  line <- uri.URI
-  uri.scheme <- >uri.scheme: myUri.scheme = $1
-  uri.host <- >uri.host:     myUri.host = $1
-  uri.port <- >uri.port:     myUri.port = parseInt($1)
-  uri.path <- >uri.path:     myUri.path = $1
-
-echo parser.match("http://nim-lang.org:8080/one/two/three")
-echo myUri  # --> (host: "nim-lang.org", scheme: "http", path: "/one/two/three", port: 8080)
-```
 
 ## Syntax
 
@@ -799,6 +665,145 @@ patt R("c", 1) * *(1 - R("c")) * R("c") * !1
 The first part of the rule `R("c", 1)` will match any character, and store this
 in the named reference `c`. The second part will match a sequence of zero or more
 characters that do not match reference `c`, followed by reference `c`.
+
+
+## More about grammars
+
+
+### Ordering of rules in a grammar
+
+Repetitive inlining of rules might cause a grammar to grow too large, resulting
+in a huge executable size and slow compilation. NPeg tries to mitigate this in
+two ways:
+
+* Patterns that are too large will not be inlined, even if the above ordering
+  rules apply.
+
+* NPeg checks the size of the total grammar, and if it thinks it is too large
+  it will fail compilation with the error message `NPeg: grammar too complex`
+
+Check the section "Compile-time configuration" below for more details about too
+complex grammars.
+
+The parser size and performance depends on many factors; when performance
+and/or code size matters, it pays to experiment with different orderings and
+measure the results.
+
+When in doubt, check the generated parser instructions by compiling with the
+`-d:npegTrace` or `-d:npegDumpDot` flags - see the section Tracing and
+Debugging for more information.
+
+At this time the upper limit is 4096 rules, this might become a configurable
+number in a future release.
+
+For example, the following grammar will not compile because recursive inlining
+will cause it to expand to a parser with more then 4^6 = 4096 rules:
+
+```
+let p = peg "z":
+  f <- 1
+  e <- f * f * f * f
+  d <- e * e * e * e
+  c <- d * d * d * d
+  b <- c * c * c * c
+  a <- b * b * b * b
+  z <- a * a * a * a
+```
+
+The fix is to change the order of the rules so that instead of inlining NPeg
+will use a calling mechanism:
+
+```
+let p = peg "z":
+  z <- a * a * a * a
+  a <- b * b * b * b
+  b <- c * c * c * c
+  c <- d * d * d * d
+  d <- e * e * e * e
+  e <- f * f * f * f
+  f <- 1
+```
+
+When in doubt check the generated parser instructions by compiling with the
+`-d:npegTrace` flag - see the section Tracing and Debugging for more
+information.
+
+
+### Composing grammars with libraries
+
+For simple grammars it is usually fine to build all patterns from scratch from
+atoms and operators, but for more complex grammars it makes sense to define
+reusable patterns as basic building blocks.
+
+For this, NPeg keeps track of a global library of patterns. The `grammar` macro
+can be used to add rules to this library. All patterns in the library will be
+stored with a *qualified* identifier in the form `libraryname.patternname`, by
+which they can be refered to at a later time.
+
+For example, the following fragment defines three rules in the library with the
+name `number`. The rules will be stored in the global library and are referred
+to in the peg by their qualified names `number.dec`, `number.hex` and
+`number.oct`:
+
+```nim
+grammar "number":
+  dec <- {'1'..'9'} * *{'0'..'9'}
+  hex <- i"0x" * +{'0'..'9','a'..'f','A'..'F'}
+  oct <- '0' * *{'0'..'9'}
+
+let p = peg "line":
+  line <- int * *("," * int)
+  int <- number.dec | number.hex | number.oct
+
+let r = p.match("123,0x42,0644")
+```
+
+NPeg offers a number of pre-defined libraries for your convenience, these can
+be found in the `npeg/lib` directory. A library an be imported with the regular
+Nim `import` statement, all rules defined in the imported file will then be
+added to NPegs global pattern library. For example:
+
+```
+import npeg/lib/uri
+```
+
+
+### Library rule overriding/shadowing
+
+To allow the user to add custom captures to imported grammars or rules, it is
+possible to *override* or *shadow* an existing rule in a grammer.
+
+Overriding will replace the rule from the library with the provided new rule,
+allowing the caller to change parts of an imported grammar. A overridden rule
+is allowed to reference the original rule by name, which will cause the new
+rule to *shadow* the original rule. This will effectively rename the original
+rule and replace it with the newly defined rule which will call the original
+refered rule.
+
+For example, the following snippet will reuse the grammar from the `uri`
+library and capture some parts of the URI in a nim object:
+
+```nim
+import npeg/lib/uri
+
+type Uri = object
+  host: string
+  scheme: string
+  path: string
+  port: int
+
+var myUri: Uri
+
+let parser = peg "line":
+  line <- uri.URI
+  uri.scheme <- >uri.scheme: myUri.scheme = $1
+  uri.host <- >uri.host:     myUri.host = $1
+  uri.port <- >uri.port:     myUri.port = parseInt($1)
+  uri.path <- >uri.path:     myUri.path = $1
+
+echo parser.match("http://nim-lang.org:8080/one/two/three")
+echo myUri  # --> (host: "nim-lang.org", scheme: "http", path: "/one/two/three", port: 8080)
+```
 
 
 ## Some notes on using PEGs
