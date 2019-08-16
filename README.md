@@ -116,6 +116,7 @@ The following proc are available to retrieve the captured results:
 ```nim
 proc captures(m: MatchResult): seq[string]
 proc capturesJson(m: MatchResult): JsonNode
+proc capturesAST(m: MatchResult): JsonNode
 ```
 
 
