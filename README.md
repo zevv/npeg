@@ -919,8 +919,8 @@ stall and go into an infinite loop.
 NPeg has no built-in support for unicode or UTF-8, but is able to parse UTF-8
 documents just as like any other string. NPeg comes with a simple utf8 grammar
 library which should simplify common operations like matching a single code
-point. The following grammar splits an UTF-8 document into separate
-characters/glyphs by using the `utf8.any` rule:
+point or character class. The following grammar splits an UTF-8 document into
+separate characters/glyphs by using the `utf8.any` rule:
 
 ```nim
 import npeg/lib/utf8
