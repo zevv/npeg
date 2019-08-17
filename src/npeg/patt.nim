@@ -51,9 +51,9 @@ proc dumpString*(s: string|Subject, o:int=0, l:int=1024): string =
 
 when npegTrace:
 
-  proc dump*(p: Patt, symtab: SymTab = nil) =
+  proc dump*(p: Patt, symtab: SymTab) =
     for n, i in p.pairs:
-      if symTab != nil and n in symTab:
+      if n in symTab:
         echo "\n" & symtab.get(n) & ":"
       var args: string
       case i.op:
@@ -77,7 +77,7 @@ when npegTrace:
           discard
       echo align($n, 4) & ": " &
            alignLeft($i.name, 15) &
-           alignLeft($i.op & args, 20) &
+           alignLeft($i.op & args, 25) &
            " " & i.pegRepr
 
 
