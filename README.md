@@ -108,15 +108,12 @@ MatchResult = object
   is usually a good indication of the location where the matching error
   occured.
 
-There are two different ways to access the matched data, which can be freely
-mixed:
-
-The following proc are available to retrieve the captured results:
+The following procs are available to retrieve the captured results:
 
 ```nim
 proc captures(m: MatchResult): seq[string]
 proc capturesJson(m: MatchResult): JsonNode
-proc capturesAST(m: MatchResult): JsonNode
+proc capturesAST(m: MatchResult): ASTnode
 ```
 
 
