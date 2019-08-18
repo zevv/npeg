@@ -57,27 +57,21 @@ when npegTrace:
         echo "\n" & symtab.get(n) & ":"
       var args: string
       case i.op:
-        of opStr, opIStr:
-          args = " \"" & dumpString(i.str) & "\""
-        of opSet, opSpan:
-          args = " '" & dumpset(i.cs) & "'"
         of opChoice, opCommit, opPartCommit:
           args = " " & $(n+i.offset)
         of opCall, opJump:
-          args = " " & $(n+i.callOffset) & " " & i.callLabel
-        of opErr:
-          args = " " & i.msg
+          args = " " & $(n+i.callOffset)
         of opCapOpen, opCapClose:
           args = " " & $i.capKind
           if i.capAction != nil:
             args &= ": " & i.capAction.repr.indent(23)
         of opBackref:
           args = " " & i.refName
-        of opFail, opReturn, opNop, opAny:
+        else:
           discard
       echo align($n, 4) & ": " &
            alignLeft($i.name, 15) &
-           alignLeft($i.op & args, 25) &
+           alignLeft($i.op & args, 20) &
            " " & i.pegRepr
 
 
