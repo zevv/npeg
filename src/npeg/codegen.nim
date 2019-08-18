@@ -23,6 +23,7 @@ type
 
   Parser*[T] = object
     fn*: proc(s: Subject, userdata: var T): MatchResult
+    charSets: Table[CharSet, int]
 
 
 # This macro translates `$1`.. into `capture[0]`.. for use in code block captures
@@ -279,13 +280,13 @@ proc genCode*(patt: Patt, T: NimNode): NimNode =
         call.add newLit(i.refName)
 
       of opErr:
-        call.add newStrLitNode(i.msg)
+        call.add newLit(i.msg)
 
       of opReturn, opAny, opNop, opFail:
         discard
 
     when npegTrace:
-      call.add newStrLitNode(i.name)
+      call.add newLit(i.name)
 
     cases.add nnkOfBranch.newTree(newLit(n), call)
 
