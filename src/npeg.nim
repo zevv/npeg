@@ -75,7 +75,8 @@ macro grammar*(libNameNode: string, n: untyped) =
 # Match a subject string
 
 proc match*[T](p: Parser, s: Subject, userdata: var T): MatchResult =
-  p.fn(s, userdata)
+  var ms = initMatchState()
+  p.fn(ms, s, userdata)
 
 proc match*(p: Parser, s: Subject): MatchResult =
   var userdata: bool # dummy if user does not provide a type
@@ -89,7 +90,8 @@ when defined(windows) or defined(posix):
   proc matchFile*[T](p: Parser, fname: string, userdata: var T): MatchResult =
     var m = memfiles.open(fname)
     var a: ptr UncheckedArray[char] = cast[ptr UncheckedArray[char]](m.mem)
-    result = p.fn(toOpenArray(a, 0, m.size-1), userdata)
+    var ms = initMatchState()
+    result = p.fn(ms, toOpenArray(a, 0, m.size-1), userdata)
     m.close()
   
   proc matchFile*(p: Parser, fname: string): MatchResult =
