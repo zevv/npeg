@@ -9,7 +9,7 @@ import npeg/common
 
 # Create a short and friendly text representation of a character set.
 
-proc escapeChar(c: char): string =
+proc escapeChar*(c: char): string =
   const escapes = { '\n': "\\n", '\r': "\\r", '\t': "\\t" }.toTable()
   if c in escapes:
     result = escapes[c]
@@ -57,6 +57,8 @@ when npegTrace:
         echo "\n" & symtab.get(n) & ":"
       var args: string
       case i.op:
+        of opChr, opIChr:
+          args = " '" & escapeChar(i.ch) & "'"
         of opChoice, opCommit, opPartCommit:
           args = " " & $(n+i.offset)
         of opCall, opJump:

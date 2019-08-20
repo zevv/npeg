@@ -139,7 +139,7 @@ suite "unit tests":
       line <- uint8 * "," * uint8 * !1
       uint8 <- >+Digit:
         let v = parseInt($1)
-        return v>=0 and v<=255
+        assume(v>=0 and v<=255)
     doAssert p.match("10,10").ok
     doAssert p.match("0,255").ok
     doAssert not p.match("10,300").ok

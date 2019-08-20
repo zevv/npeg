@@ -89,13 +89,12 @@ proc match*(p: Parser, s: Subject): MatchResult =
 proc match*(p: Parser, s: Stream): MatchResult =
   var userdata: bool # dummy if user does not provide a type
   var ms = initMatchState()
-  var buf = newString(8192)
+  var buf: array[3, char]
   while true:
     let l = s.readData(buf[0].addr, buf.len)
+    echo p.fn(ms, toOpenArray(buf, 0, l-1), userdata)
     if l == 0:
       break
-    buf.setLen(l)
-    echo p.fn(ms, buf, userdata)
 
 # Match a file
 

@@ -598,9 +598,10 @@ After the parsing finished, the `words` table will now contain
 #### Custom match validations
 
 Code block captures can be used for additional validation of a captured string:
-the code block can return a boolean value (which defaults to `true`) to
-indicate if the match should succeed or fail. Failing matches are handled as if
-the capture itself failed and will result in the usual backtracking.
+the code block can call the function `validate(bool)` to indicate if the match
+should succeed or fail. Failing matches are handled as if the capture itself
+failed and will result in the usual backtracking. When the `validate()` function
+is not called, the match will succeed implicitly.
 
 For example, the following rule will check if a passed number is a valid
 `uint8` number:
@@ -608,7 +609,7 @@ For example, the following rule will check if a passed number is a valid
 ```
    uint8 <- >Digit[1..3]:
      let v = parseInt($a)
-     return v>=0 and v<=255
+     validate v>=0 and v<=255
 ```
 
 
