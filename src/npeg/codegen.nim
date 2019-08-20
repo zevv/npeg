@@ -75,7 +75,7 @@ template skel(T: untyped, cases: untyped, ms: NimNode, s: NimNode, userdata: Nim
 
     # Debug trace. Slow and expensive
 
-    proc doTrace(iname: string, s: Subject, msg: string) =
+    proc doTrace(iname: string, ms: var MatchState, s: Subject, msg: string) =
       var l: string
       l.add if ms.ip >= 0: align($ms.ip, 3) else: "   "
       l.add "|" & align($ms.si, 3)
@@ -85,30 +85,30 @@ template skel(T: untyped, cases: untyped, ms: NimNode, s: NimNode, userdata: Nim
       l.add "|" & alignLeft(repeat("*", ms.backStack.top), 20)
       echo l
 
-    template trace(iname: string, s: Subject, msg: string) =
+    template trace(iname: string, ms: var MatchState, s: Subject, msg: string) =
       when npegTrace:
-        doTrace(iname, s, msg)
+        doTrace(iname, ms, s, msg)
 
     # State machine instruction handlers
 
-    template opStrFn(ms: var MatchState, s: Subject, s2: string, iname="") =
-      trace iname, s, "str \"" & dumpString(s2) & "\""
-      if subStrCmp(s, s.len, ms.si, s2):
+    template opChrFn(ms: var MatchState, s: Subject, ch: char, iname="") =
+      trace iname, ms, s, "chr \"" & dumpString($ch) & "\""
+      if ms.si < s.len and s[ms.si] == ch:
         inc ms.ip
-        inc ms.si, s2.len
+        inc ms.si
       else:
         ms.ip = -1
 
-    template opIStrFn(ms: var MatchState, s: Subject, s2: string, iname="") =
-      trace iname, s, "istr \"" & dumpString(s2) & "\""
-      if subIStrCmp(s, s.len, ms.si, s2):
+    template opIChrFn(ms: var MatchState, s: Subject, ch: char, iname="") =
+      trace iname, ms, s, "chr \"" & dumpString($ch) & "\""
+      if ms.si < s.len and s[ms.si].toLowerAscii == ch:
         inc ms.ip
-        inc ms.si, s2.len
+        inc ms.si
       else:
         ms.ip = -1
 
     template opSetFn(ms: var MatchState, s: Subject, cs: CharSet, iname="") =
-      trace iname, s, "set " & dumpSet(cs)
+      trace iname, ms, s, "set " & dumpSet(cs)
       if ms.si < s.len and s[ms.si] in cs:
         inc ms.ip
         inc ms.si
@@ -116,17 +116,17 @@ template skel(T: untyped, cases: untyped, ms: NimNode, s: NimNode, userdata: Nim
         ms.ip = -1
 
     template opSpanFn(ms: var MatchState, s: Subject, cs: CharSet, iname="") =
-      trace iname, s, "span " & dumpSet(cs)
+      trace iname, ms, s, "span " & dumpSet(cs)
       while ms.si < s.len and s[ms.si] in cs:
         inc ms.si
       inc ms.ip
 
-    template opNopFn(iname="") =
-      trace iname, s, "nop"
+    template opNopFn(ms: var MatchState, s: Subject, iname="") =
+      trace iname, ms, s, "nop"
       inc ms.ip
 
     template opAnyFn(ms: var MatchState, s: Subject, iname="") =
-      trace iname, s, "any"
+      trace iname, ms, s, "any"
       if ms.si < s.len:
         inc ms.ip
         inc ms.si
@@ -134,40 +134,40 @@ template skel(T: untyped, cases: untyped, ms: NimNode, s: NimNode, userdata: Nim
         ms.ip = -1
 
     template opChoiceFn(ms: var MatchState, s: Subject, n: int, iname="") =
-      trace iname, s, "choice -> " & $n
+      trace iname, ms, s, "choice -> " & $n
       push(ms.backStack, (ip:n, si:ms.si, rp:ms.retStack.top, cp:ms.capStack.top))
       inc ms.ip
 
     template opCommitFn(ms: var MatchState, s: Subject, n: int, iname="") =
-      trace iname, s, "commit -> " & $n
+      trace iname, ms, s, "commit -> " & $n
       discard pop(ms.backStack)
       ms.ip = n
 
     template opPartCommitFn(ms: var MatchState, s: Subject, n: int, iname="") =
-      trace iname, s, "pcommit -> " & $n
+      trace iname, ms, s, "pcommit -> " & $n
       update(ms.backStack, si, ms.si)
       update(ms.backStack, cp, ms.capStack.top)
       ms.ip = n
 
     template opCallFn(ms: var MatchState, s: Subject, label: string, offset: int, iname="") =
-      trace iname, s, "call -> " & label & ":" & $(ms.ip+offset)
+      trace iname, ms, s, "call -> " & label & ":" & $(ms.ip+offset)
       push(ms.retStack, ms.ip+1)
       ms.ip += offset
 
     template opJumpFn(ms: var MatchState, s: Subject, label: string, offset: int, iname="") =
-      trace iname, s, "jump -> " & label & ":" & $(ms.ip+offset)
+      trace iname, ms, s, "jump -> " & label & ":" & $(ms.ip+offset)
       ms.ip += offset
 
     template opCapOpenFn(ms: var MatchState, s: Subject, n: int, capname: string, iname="") =
       let ck = CapKind(n)
-      trace iname, s, "capopen " & $ck & " -> " & $ms.si
+      trace iname, ms, s, "capopen " & $ck & " -> " & $ms.si
       push(ms.capStack, (cft: cftOpen, si: ms.si, ck: ck, name: capname))
       inc ms.ip
     
     template opCapCloseFn(ms: var MatchState, s: Subject, n: int, actionCode: untyped, iname="") {.dirty.} =
       # This template is dirty to avoid name mangling
       let ck = CapKind(n)
-      trace iname, s, "capclose " & $ck & " -> " & $ms.si
+      trace iname, ms, s, "capclose " & $ck & " -> " & $ms.si
       push(ms.capStack, (cft: cftClose, si: ms.si, ck: ck, name: ""))
       if ck == ckAction:
         proc fn(capture: Captures, userdata: var T): bool =
@@ -190,7 +190,7 @@ template skel(T: untyped, cases: untyped, ms: NimNode, s: NimNode, userdata: Nim
       # This is a proc because we do not want to export 'contains'
       if refName in ms.refs:
         let s2 = ms.refs[refName]
-        trace iname, s, "backref " & refName & ":\"" & s2 & "\""
+        trace iname, ms, s, "backref " & refName & ":\"" & s2 & "\""
         if subStrCmp(s, s.len, ms.si, s2):
           inc ms.ip
           inc ms.si, s2.len
@@ -200,22 +200,22 @@ template skel(T: untyped, cases: untyped, ms: NimNode, s: NimNode, userdata: Nim
         raise newException(NPegException, "Unknown back reference '" & refName & "'")
 
     template opReturnFn(ms: var MatchState, s: Subject, iname="") =
-      trace iname, s, "return"
+      trace iname, ms, s, "return"
       if ms.retStack.top == 0:
-        trace iname, s, "done"
+        trace iname, ms, s, "done"
         result.ok = true
         break
       ms.ip = pop(ms.retStack)
 
     template opFailFn(ms: var MatchState, s: Subject, iname="") =
-      trace iname, s, "fail"
+      trace iname, ms, s, "fail"
       if ms.backStack.top == 0:
-        trace iname, s, "error"
+        trace iname, ms, s, "error"
         break
       (ms.ip, ms.si, ms.retStack.top, ms.capStack.top) = pop(ms.backStack)
 
     template opErrFn(ms: var MatchState, s: Subject, msg: string, iname="") =
-      trace iname, s, "err " & msg
+      trace iname, ms, s, "err " & msg
       var e = newException(NPegException, "Parsing error at #" & $ms.si & ": expected \"" & msg & "\"")
       e.matchLen = ms.si
       e.matchMax = ms.simax
@@ -263,8 +263,8 @@ proc genCode*(patt: Patt, T: NimNode): NimNode =
     call.add sNode
 
     case i.op:
-      of opStr, opIStr:
-        call.add newLit(i.str)
+      of opChr, opIChr:
+        call.add newLit(i.ch)
 
       of opSet, opSpan:
         let setNode = nnkCurly.newTree()

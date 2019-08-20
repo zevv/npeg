@@ -49,8 +49,8 @@ type
   Subject* = openArray[char]
 
   Opcode* = enum
-    opStr,          # Matching: Literal string or character
-    opIStr,         # Matching: Literal string or character, case insensitive
+    opChr,          # Matching: Literal string or character
+    opIChr,         # Matching: Literal string or character, case insensitive
     opSet,          # Matching: Character set and/or range
     opAny,          # Matching: Any character
     opNop,          # Matching: Always matches, consumes nothing
@@ -73,8 +73,8 @@ type
     case op*: Opcode
       of opChoice, opCommit, opPartCommit:
         offset*: int
-      of opStr, opIStr:
-        str*: string
+      of opChr, opIChr:
+        ch*: char
       of opCall, opJump:
         callLabel*: string
         callOffset*: int
@@ -109,15 +109,6 @@ proc subStrCmp*(s: Subject, slen: int, si: int, s2: string): bool =
     return false
   for i in 0..<s2.len:
     if s[si+i] != s2[i]:
-      return false
-  return true
-
-
-proc subIStrCmp*(s: Subject, slen: int, si: int, s2: string): bool =
-  if si > slen - s2.len:
-    return false
-  for i in 0..<s2.len:
-    if s[si+i].toLowerAscii != s2[i].toLowerAscii:
       return false
   return true
 

@@ -34,6 +34,7 @@ import tables
 import macros
 import json
 import strutils
+import streams
 import npeg/[common,codegen,capture,parsepatt,grammar,dot,lib]
 
 export NPegException, Parser, MatchResult, contains
@@ -82,6 +83,19 @@ proc match*(p: Parser, s: Subject): MatchResult =
   var userdata: bool # dummy if user does not provide a type
   p.match(s, userdata)
 
+
+# Match a subject stream
+
+proc match*(p: Parser, s: Stream): MatchResult =
+  var userdata: bool # dummy if user does not provide a type
+  var ms = initMatchState()
+  var buf = newString(8192)
+  while true:
+    let l = s.readData(buf[0].addr, buf.len)
+    if l == 0:
+      break
+    buf.setLen(l)
+    echo p.fn(ms, buf, userdata)
 
 # Match a file
 
