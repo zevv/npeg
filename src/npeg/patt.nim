@@ -37,7 +37,7 @@ proc dumpSet*(cs: CharSet): string =
 # Create a friendly version of the given string, escaping not-printables
 # and no longer then `l`
 
-proc dumpString*(s: string|Subject, o:int=0, l:int=1024): string =
+proc dumpString*(s: Subject, o:int=0, l:int=1024): string =
   var i = o
   while i < s.len:
     let a = escapeChar s[i]
