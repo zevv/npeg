@@ -17,24 +17,24 @@ grammar "types":
   # Unsigned decimal
 
   uint    <- +Digit
-  uint8   <- >+uint: return checkRange(uint8,  parseInt, $1)
-  uint16  <- >+uint: return checkRange(uint16, parseInt, $1)
-  uint32  <- >+uint: return checkRange(uint32, parseInt, $1)
-  uint64  <- >+uint: return checkRange(uint64, parseInt, $1)
+  uint8   <- >+uint: validate checkRange(uint8,  parseInt, $1)
+  uint16  <- >+uint: validate checkRange(uint16, parseInt, $1)
+  uint32  <- >+uint: validate checkRange(uint32, parseInt, $1)
+  uint64  <- >+uint: validate checkRange(uint64, parseInt, $1)
 
   # Signed decimal
 
   int     <- ?'-' * uint
-  int8    <- >int: return checkRange(int8,   parseInt, $1)
-  int16   <- >int: return checkRange(int16,  parseInt, $1)
-  int32   <- >int: return checkRange(int32,  parseInt, $1)
-  int64   <- >int: return checkRange(int64,  parseInt, $1)
+  int8    <- >int: validate checkRange(int8,   parseInt, $1)
+  int16   <- >int: validate checkRange(int16,  parseInt, $1)
+  int32   <- >int: validate checkRange(int32,  parseInt, $1)
+  int64   <- >int: validate checkRange(int64,  parseInt, $1)
 
   # Hexadecimal
 
   hex    <- '0' * {'x','X'} * +Digit
-  hex8   <- >+uhex: return checkRange(uint8,  parseHexInt, $1)
-  hex16  <- >+uhex: return checkRange(uint16, parseHexInt, $1)
-  hex32  <- >+uhex: return checkRange(uint32, parseHexInt, $1)
-  hex64  <- >+uhex: return checkRange(uint64, parseHexInt, $1)
+  hex8   <- >+uhex: validate checkRange(uint8,  parseHexInt, $1)
+  hex16  <- >+uhex: validate checkRange(uint16, parseHexInt, $1)
+  hex32  <- >+uhex: validate checkRange(uint32, parseHexInt, $1)
+  hex64  <- >+uhex: validate checkRange(uint64, parseHexInt, $1)
 

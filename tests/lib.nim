@@ -2,12 +2,23 @@ import unittest
 import strutils
 import unicode
 import npeg
+import npeg/lib/types
 import npeg/lib/utf8
 
 {.push warning[Spacing]: off.}
 
 
 suite "unit tests":
+
+  test "types":
+    doAssert     patt(types.uint8).match("0").ok
+    doAssert     patt(types.uint8).match("255").ok
+    doAssert not patt(types.uint8).match("256").ok
+
+    doAssert     patt(types.int8).match("-128").ok
+    doAssert     patt(types.int8).match("127").ok
+    doAssert not patt(types.int8).match("-129").ok
+    doAssert not patt(types.int8).match("128").ok
 
   test "utf8 runes":
     doAssert     patt(utf8.any[4] * !1).match("abcd").ok

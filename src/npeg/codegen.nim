@@ -216,7 +216,7 @@ proc genCode*(patt: Patt, T: NimNode): NimNode =
               push(ms.capStack, (cft: cftClose, si: ms.si, ck: `ck`, name: ""))
               let capture {.inject.} = collectCaptures(fixCaptures(s, ms.capStack, FixOpen))
               var ok = true
-              template assume(o: bool) = ok = o
+              template validate(o: bool) = ok = o
               block:
                 `code`
               if ok:
