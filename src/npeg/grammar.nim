@@ -39,6 +39,8 @@ proc link*(grammar: Grammar, initial_name: string, dot: Dot = nil): Patt =
   # not yet emitted
 
   proc emit(name: string) =
+    if npegDebug:
+      echo "emit ", name
     let patt = grammar[name]
     symTab.add(name, retPatt.len)
     retPatt.add patt

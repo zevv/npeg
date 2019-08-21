@@ -145,7 +145,6 @@ proc genCode*(patt: Patt, T: NimNode): NimNode =
       of opSet:
         let cs = newLit(i.cs)
         quote do:
-          var cs: set[char]
           trace "Set", ms, s, "set " & dumpSet(`cs`)
           if ms.si < s.len and s[ms.si] in `cs`:
             inc ms.ip

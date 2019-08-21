@@ -6,7 +6,7 @@ import tables
 
 const
   npegPattMaxLen* {.intdefine.} = 4096
-  npegInlineMaxLen* {.intdefine.} = 50
+  npegInlineMaxLen* {.intdefine.} = 30
   npegRetStackSize* {.intdefine.} = 1024
   npegBackStackSize* {.intdefine.} = 1024
   npegDebug* = defined(npegDebug)
