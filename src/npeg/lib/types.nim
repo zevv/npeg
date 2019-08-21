@@ -20,7 +20,6 @@ grammar "types":
   uint8   <- >+uint: validate checkRange(uint8,  parseInt, $1)
   uint16  <- >+uint: validate checkRange(uint16, parseInt, $1)
   uint32  <- >+uint: validate checkRange(uint32, parseInt, $1)
-  uint64  <- >+uint: validate checkRange(uint64, parseInt, $1)
 
   # Signed decimal
 
@@ -28,7 +27,6 @@ grammar "types":
   int8    <- >int: validate checkRange(int8,   parseInt, $1)
   int16   <- >int: validate checkRange(int16,  parseInt, $1)
   int32   <- >int: validate checkRange(int32,  parseInt, $1)
-  int64   <- >int: validate checkRange(int64,  parseInt, $1)
 
   # Hexadecimal
 
@@ -36,5 +34,4 @@ grammar "types":
   hex8   <- >+uhex: validate checkRange(uint8,  parseHexInt, $1)
   hex16  <- >+uhex: validate checkRange(uint16, parseHexInt, $1)
   hex32  <- >+uhex: validate checkRange(uint32, parseHexInt, $1)
-  hex64  <- >+uhex: validate checkRange(uint64, parseHexInt, $1)
 

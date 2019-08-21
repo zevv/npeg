@@ -19,6 +19,10 @@ suite "unit tests":
     doAssert     patt(types.int8).match("127").ok
     doAssert not patt(types.int8).match("-129").ok
     doAssert not patt(types.int8).match("128").ok
+    
+    doAssert     patt(types.uint32).match("4294967295").ok
+    doAssert not patt(types.uint32).match("4294967296").ok
+
 
   test "utf8 runes":
     doAssert     patt(utf8.any[4] * !1).match("abcd").ok
