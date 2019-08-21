@@ -2,8 +2,8 @@
 master, not yet released
 ========================
 
-- Added shadowing
-- Added custom match validation
+- Added custom match validation in code block capture
+- Added basic types, utf8 and uri libs
 - Added global pattern library support
 - Proc matchFile() now uses memfiles/mmap for zero copy parsers
 - Implemented method to pass user variable to code block captures
