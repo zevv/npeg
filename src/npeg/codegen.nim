@@ -69,8 +69,6 @@ proc initMatchState*(): MatchState =
 
 template skel(T: untyped, cases: untyped, ms: NimNode, s: NimNode, userdata: NimNode, capture: NimNode) =
 
-  {.push hint[XDeclaredButNotUsed]: off.}
-
   let match = proc(ms: var MatchState, s: Subject, userdata: var T): MatchResult =
 
     # Debug trace. Slow and expensive
@@ -105,8 +103,6 @@ template skel(T: untyped, cases: untyped, ms: NimNode, s: NimNode, userdata: Nim
     result.matchMax = ms.simax
     if result.ok and ms.capStack.top > 0:
       result.cs = fixCaptures(s, ms.capStack, FixAll)
-
-  {.pop.}
 
   Parser[T](fn: match)
 
