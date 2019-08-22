@@ -1,4 +1,9 @@
 
+#
+# This library file is special: it is imported by default, and provides rules
+# which do not live in a separate namespace.
+#
+
 import npeg
 
 grammar "":

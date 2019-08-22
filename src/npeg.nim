@@ -138,5 +138,5 @@ proc `$`*(a: ASTNode): string =
   aux(a, result)
 
 
-import npeg/builtins
+import npeg/lib/core
 
