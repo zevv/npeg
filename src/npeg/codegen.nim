@@ -259,8 +259,9 @@ proc genCode*(patt: Patt, T: NimNode): NimNode =
 
       of opReturn:
         quote do:
-          trace "Return", ms, s, "return"
-          if ms.retStack.top == 0:
+          if ms.retStack.top > 0:
+            trace "Return", ms, s, "return"
+          else:
             trace "Return", ms, s, "done"
             result.ok = true
             break
@@ -282,8 +283,9 @@ proc genCode*(patt: Patt, T: NimNode): NimNode =
 
       of opFail:
         quote do:
-          trace "Fail", ms, s, "fail"
-          if ms.backStack.top == 0:
+          if ms.backStack.top > 0:
+            trace "Fail", ms, s, "fail"
+          else:
             trace "Fail", ms, s, "error"
             break
           (ms.ip, ms.si, ms.retStack.top, ms.capStack.top) = pop(ms.backStack)
@@ -291,8 +293,9 @@ proc genCode*(patt: Patt, T: NimNode): NimNode =
     cases.add nnkOfBranch.newTree(newLit(n), call)
 
   cases.add nnkElse.newTree quote do:
-    trace "Fail", ms, s, "fail"
-    if ms.backStack.top == 0:
+    if ms.backStack.top > 0:
+      trace "Fail", ms, s, "fail"
+    else:
       trace "Fail", ms, s, "error"
       break
     (ms.ip, ms.si, ms.retStack.top, ms.capStack.top) = pop(ms.backStack)
