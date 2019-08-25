@@ -85,7 +85,9 @@ template skel(T: untyped, cases: untyped, ms: NimNode, s: NimNode, userdata: Nim
     # as the match lambda boilerplate:
 
     while true:
+      {.push hint[XDeclaredButNotUsed]: off.}
       cases
+      {.pop.}
 
       # Keep track of the highest string index we ever reached, this is a good
       # indication of the location of errors when parsing fails
