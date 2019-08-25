@@ -79,7 +79,7 @@ template skel(T: untyped, cases: untyped, ms: NimNode, s: NimNode, userdata: Nim
           "|" & align($ms.si, 3) &
           "|" & alignLeft(dumpString(s, ms.si, 24), 24) &
           "|" & alignLeft(msg, 40) &
-          "|" & alignLeft(repeat("*", ms.backStack.top), 20)
+          "|" & repeat("*", ms.backStack.top)
 
     # Parser main loop. `cases` will be filled in by genCode() which uses this template
     # as the match lambda boilerplate:
