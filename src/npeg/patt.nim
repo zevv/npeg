@@ -95,6 +95,10 @@ proc toSet(p: Patt, cs: var Charset): bool =
     if i.op == opIChr:
       cs = { toLowerAscii(i.ch), toUpperAscii(i.ch) }
       return true
+    if i.op == opStr and i.str.len == 1:
+      cs = { i.str[0] }
+    if i.op == opIStr and i.str.len == 1:
+      cs = { toLowerAscii(i.str[0]), toUpperAscii(i.str[0]) }
     if i.op == opAny:
       cs = {low(char)..high(char)}
       return true
@@ -108,14 +112,19 @@ proc checkSanity(p: Patt) =
 ### Atoms
 
 proc newPatt*(s: string, op: Opcode): Patt =
-  for ch in s:
-    case op:
-      of opChr:
+  case op:
+    of opStr:
+      result.add Inst(op: opStr, str: s)
+    of opIStr:
+      result.add Inst(op: opIStr, str: s)
+    of opChr:
+      for ch in s:
         result.add Inst(op: opChr, ch: ch)
-      of opIChr:
+    of opIChr:
+      for ch in s:
         result.add Inst(op: opIChr, ch: ch.toLowerAscii)
-      else:
-        doAssert false
+    else:
+      doAssert false
 
 proc newPatt*(p: Patt, ck: CapKind): Patt =
   result.add Inst(op: opCapOpen, capKind: ck)

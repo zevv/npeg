@@ -138,6 +138,26 @@ proc genCode*(patt: Patt, T: NimNode): NimNode =
           else:
             ms.ip = -1
 
+      of opStr:
+        let s2 = newLit(i.str)
+        quote do:
+          trace "Str", ms, s, "str \"" & dumpString(`s2`) & "\""
+          if subStrCmp(s, s.len, ms.si, `s2`):
+            inc ms.ip
+            inc ms.si, `s2`.len
+          else:
+            ms.ip = -1
+
+      of opIStr:
+        let s2 = newLit(i.str)
+        quote do:
+          trace "Str", ms, s, "str \"" & dumpString(`s2`) & "\""
+          if subIStrCmp(s, s.len, ms.si, `s2`):
+            inc ms.ip
+            inc ms.si, `s2`.len
+          else:
+            ms.ip = -1
+
       of opSet:
         let cs = newLit(i.cs)
         quote do:
