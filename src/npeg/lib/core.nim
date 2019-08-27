@@ -4,6 +4,8 @@
 # which do not live in a separate namespace.
 #
 
+when defined(nimHasUsed): {.used.}
+
 import npeg
 
 grammar "":

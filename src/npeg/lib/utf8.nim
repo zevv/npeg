@@ -2,6 +2,8 @@
 import npeg
 import unicode
 
+when defined(nimHasUsed): {.used.}
+
 grammar "utf8":
 
   cont <- {128..191}

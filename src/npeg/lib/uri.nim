@@ -1,5 +1,7 @@
 import npeg
 
+when defined(nimHasUsed): {.used.}
+
 # The grammar below is a literal translation of the ABNF notation of the
 # RFC. Optimizations can be made to limit backtracking, but this is a nice
 # example how to create a parser from a RFC protocol description.

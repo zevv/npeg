@@ -6,6 +6,8 @@
 import npeg
 import strutils
 
+when defined(nimHasUsed): {.used.}
+
 template checkRange*(T: typedesc, parseFn: untyped, s: string): bool =
   let v = parseFn(s).BiggestInt
   v >= T.low.BiggestInt and v <= T.high.BiggestInt
