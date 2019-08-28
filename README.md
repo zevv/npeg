@@ -728,6 +728,53 @@ When in doubt check the generated parser instructions by compiling with the
 information.
 
 
+### Templates, or parameterised rules
+
+When building more complex grammars you may find yourself duplicating certain
+constructs in patterns over and over again. To avoid code repetition (DRY),
+NPeg provides a simple mechanism to allow the creation of parameterized rules.
+In good Nim-fashion these rules are called "templates". Templates are defined
+just like normal rules, but have a list of arguments, which are referred to in
+the rule. Technically, templates just perform a basic search-and-replace
+operation: every occurence of a named argument is replaced by the exact pattern
+passed to the template when called.
+
+For example, consider the following grammar:
+
+```
+numberList <- +Digit * *( ',' * +Digit)
+wordList <- +Alpha * *( ',' * +Alpha)
+```
+
+This snippet uses a common pattern twice for matching lists: `p * *( ',' * p)`.
+This matches pattern `p`, followed by zero or more occurrences of a comma
+followed by pattern `p`. For example, `numberList` will match the string
+`1,22,3`.
+
+The above example can be parameterized with a template like this:
+
+```
+commaList(item) <- item * *( ',' * item )
+numberList <- commaList(+Digit)
+wordList <- commaList(+Alpha)
+```
+
+Here the template `commaList` is defined, and any occurrence of its argument
+'item' will be replaced with the patterns passed when calling the template.
+This template is used to define the more complex patterns `numberList` and
+`wordList`.
+
+Templates may invoke other templates recursively; for example the above can
+even be further generalized:
+
+```
+list(item, sep) <- item * *( sep * item )
+commaList(item) <- list(item, ',')
+numberList <- commaList(+Digit)
+wordList <- commaList(+Alpha)
+```
+
+
 ### Composing grammars with libraries
 
 For simple grammars it is usually fine to build all patterns from scratch from

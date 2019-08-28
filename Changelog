@@ -2,6 +2,7 @@
 master, not yet released
 ========================
 
+- Added templates / parameterised rules
 - Added custom match validation in code block capture
 - Added basic types, utf8 and uri libs
 - Added global pattern library support

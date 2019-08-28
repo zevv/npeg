@@ -2,7 +2,7 @@
 import tables
 import macros
 import strutils
-import npeg/[common,dot]
+import npeg/[common,dot,patt]
 
 #
 # Create a new grammar
