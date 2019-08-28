@@ -1,6 +1,6 @@
 
-master, not yet released
-========================
+0.14.0
+======
 
 - Added templates / parameterised rules
 - Added custom match validation in code block capture
