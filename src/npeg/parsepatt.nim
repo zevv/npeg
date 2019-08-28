@@ -4,6 +4,17 @@ import macros
 import npeg/[common,patt,dot,grammar]
 
 
+proc applyTemplate(t: Template, arg: NimNode): NimNode =
+  proc aux(n: NimNode): NimNode =
+    if n.kind == nnkIdent and n.strVal in t.args:
+      result = arg[t.args[n.strVal]+1]
+    else:
+      result = copyNimNode(n)
+      for nc in n:
+        result.add aux(nc)
+  result = aux(t.code)
+
+
 # Recursively compile a PEG rule to a Pattern
 
 proc parsePatt*(name: string, nn: NimNode, grammar: Grammar, dot: Dot = nil): Patt =
@@ -62,8 +73,15 @@ proc parsePatt*(name: string, nn: NimNode, grammar: Grammar, dot: Dot = nil): Pa
       of nnkCall:
         if n[0].kind != nnkIdent:
           krak n, "syntax error"
-        if n.len == 2:
-          case n[0].strVal:
+        let name = n[0].strVal
+        if name in grammar.templates:
+          let t = grammar.templates[name]
+          let n2 = applyTemplate(t, n)
+          when npegDebug:
+            echo "template ", name, " = \n  in:  ", n.repr, "\n  out: ", n2.repr
+          result = aux n2
+        elif n.len == 2:
+          case name
             of "Js": result = newPatt(aux n[1], ckJString)
             of "Ji": result = newPatt(aux n[1], ckJInt)
             of "Jb": result = newPatt(aux n[1], ckJBool)
@@ -161,23 +179,35 @@ proc parsePatt*(name: string, nn: NimNode, grammar: Grammar, dot: Dot = nil): Pa
 #
 
 proc parseGrammar*(ns: NimNode, dot: Dot=nil): Grammar =
-  var grammar = newGrammar()
+  result = newGrammar()
+
   for n in ns:
-    if n.kind == nnkInfix and n[0].kind == nnkIdent and n[0].eqIdent("<-"):
-      var name: string
-      if n[1].kind == nnkIdent:
-        name = n[1].strVal
-      elif n[1].kind == nnkDotExpr:
-        name = n[1][0].strVal & "." & n[1][1].strVal
+
+    if n.kind == nnkInfix and n[0].eqIdent("<-"):
+
+      if n[1].kind == nnkIdent or n[1].kind == nnkDotExpr:
+
+        var name: string
+        if n[1].kind == nnkIdent:
+          name = n[1].strVal
+        else:
+          name = n[1][0].strVal & "." & n[1][1].strVal
+        var patt = parsePatt(name, n[2], result, dot)
+        if n.len == 4:
+          patt = newPatt(patt, ckAction)
+          patt[patt.high].capAction = n[3]
+        result.addPatt(name, patt)
+
+      elif n[1].kind == nnkCall:
+        var t = Template(name: n[1][0].strVal, code: n[2])
+        for i in 1..<n[1].len:
+          t.args[n[1][i].strVal] = i-1
+        result.templates[t.name] = t
+
       else:
-        error "Expected PEG rule name", n
-      var patt = parsePatt(name, n[2], grammar, dot)
-      if n.len == 4:
-        patt = newPatt(patt, ckAction)
-        patt[patt.high].capAction = n[3]
-      grammar.addPatt(name, patt)
+        error "Expected PEG rule name but got " & $n[1].kind, n
+
+
     else:
-      echo n.astGenRepr
       error "Expected PEG rule (name <- ...)", n
-  grammar
 

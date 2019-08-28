@@ -101,8 +101,14 @@ type
 
   Patt* = seq[Inst]
 
+  Template* = object
+    name*: string
+    args*: Table[string, int]
+    code*: NimNode
+
   Grammar* = ref object
     patts*: Table[string, Patt]
+    templates*: Table[string, Template]
 
 
 #
@@ -135,6 +141,12 @@ proc slice*(s: Subject, iFrom, iTo: int): string =
   else:
     for i in 0..<len:
       result[i] = s[i+iFrom]
+
+
+proc `$`*(t: Template): string =
+  var args: seq[string]
+  for k, v in t.args: args.add k
+  return t.name & "(" & args.join(", ") & ") = " & t.code.repr
 
 
 type

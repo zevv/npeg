@@ -144,3 +144,10 @@ suite "unit tests":
     doAssert p.match("0,255").ok
     doAssert not p.match("10,300").ok
     doAssert not p.match("300,10").ok
+
+  test "templates":
+    let p = peg "a":
+      list(patt, sep) <- patt * *(sep * patt)
+      commaList(patt) <- list(patt, ",")
+      a <- commaList(>+Digit)
+    doAssert p.match("11,22,3").captures == ["11","22","3"]
