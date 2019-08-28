@@ -20,8 +20,9 @@ suite "unit tests":
     doAssert not patt(types.int8).match("-129").ok
     doAssert not patt(types.int8).match("128").ok
     
-    doAssert     patt(types.uint32).match("4294967295").ok
-    doAssert not patt(types.uint32).match("4294967296").ok
+    when defined(cpu64):
+      doAssert     patt(types.uint32).match("4294967295").ok
+      doAssert not patt(types.uint32).match("4294967296").ok
 
 
   test "utf8 runes":
