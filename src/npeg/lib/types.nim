@@ -4,7 +4,6 @@
 #
 
 import npeg
-import strutils
 
 when defined(nimHasUsed): {.used.}
 

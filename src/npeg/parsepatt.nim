@@ -1,21 +1,7 @@
 
 import tables
 import macros
-import npeg/[common,patt,dot,lib]
-
-
-# Shadow the given name in the grammar by creating an unique new name,
-# and moving the original rule
-
-var gShadowId = 0
-proc shadow(grammar: Grammar, name: string): string =
-  inc gShadowId
-  let name2 = name & "-" & $gShadowId
-  when npegDebug:
-    echo "  shadow ", name, " -> ", name2
-  grammar[name2] = grammar[name]
-  grammar.del name
-  return name2
+import npeg/[common,patt,dot,grammar]
 
 
 # Recursively compile a PEG rule to a Pattern
@@ -33,21 +19,21 @@ proc parsePatt*(name: string, nn: NimNode, grammar: Grammar, dot: Dot = nil): Pa
     template inlineOrCall(name2: string) =
 
       # Try to import symbol early so we might be able to inline or shadow it
-      if name2 notin grammar:
+      if name2 notin grammar.patts:
         discard libImport(name2, grammar)
 
       if name == name2:
-        if name in grammar:
+        if name in grammar.patts:
           let nameShadowed = grammar.shadow(name)
           result = newCallPatt(nameShadowed)
         else:
           error "Rule '" & name & "' calls itself"
 
-      elif name2 in grammar and grammar[name2].len < npegInlineMaxLen:
+      elif name2 in grammar.patts and grammar.patts[name2].len < npegInlineMaxLen:
         when npegDebug:
           echo "  inline ", name2
         dot.add(name, name2, "inline")
-        result = grammar[name2]
+        result = grammar.patts[name2]
 
       else:
         when npegDebug:
@@ -167,4 +153,31 @@ proc parsePatt*(name: string, nn: NimNode, grammar: Grammar, dot: Dot = nil): Pa
 
   result = aux(nn)
   dot.addPatt(name, result.len)
+
+
+#
+# Parse a grammar. A grammar consists of named rules, where each rule is one
+# pattern
+#
+
+proc parseGrammar*(ns: NimNode, dot: Dot=nil): Grammar =
+  var grammar = newGrammar()
+  for n in ns:
+    if n.kind == nnkInfix and n[0].kind == nnkIdent and n[0].eqIdent("<-"):
+      var name: string
+      if n[1].kind == nnkIdent:
+        name = n[1].strVal
+      elif n[1].kind == nnkDotExpr:
+        name = n[1][0].strVal & "." & n[1][1].strVal
+      else:
+        error "Expected PEG rule name", n
+      var patt = parsePatt(name, n[2], grammar, dot)
+      if n.len == 4:
+        patt = newPatt(patt, ckAction)
+        patt[patt.high].capAction = n[3]
+      grammar.addPatt(name, patt)
+    else:
+      echo n.astGenRepr
+      error "Expected PEG rule (name <- ...)", n
+  grammar
 

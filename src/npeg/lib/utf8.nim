@@ -1,6 +1,5 @@
 
 import npeg
-import unicode
 
 when defined(nimHasUsed): {.used.}
 

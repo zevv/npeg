@@ -35,7 +35,7 @@ import macros
 import json
 import strutils
 import streams
-import npeg/[common,codegen,capture,parsepatt,grammar,dot,lib]
+import npeg/[common,codegen,capture,parsepatt,grammar,dot]
 
 export NPegException, Parser, MatchResult, contains
 
@@ -61,7 +61,7 @@ macro peg*(T: typedesc, name: string, n: untyped): untyped =
 macro patt*(n: untyped): untyped =
   var grammar = newGrammar()
   var patt = parsePatt("anonymous", n, grammar)
-  grammar.add("anonymous", patt)
+  grammar.addPatt("anonymous", patt)
   grammar.link("anonymous").genCode(bindsym"bool")
 
 

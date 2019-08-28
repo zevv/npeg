@@ -101,7 +101,8 @@ type
 
   Patt* = seq[Inst]
 
-  Grammar* = TableRef[string, Patt]
+  Grammar* = ref object
+    patts*: Table[string, Patt]
 
 
 #
