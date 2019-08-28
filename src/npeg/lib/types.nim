@@ -29,6 +29,7 @@ grammar "types":
   int8    <- >int: validate checkRange(int8,   parseInt, $1)
   int16   <- >int: validate checkRange(int16,  parseInt, $1)
   int32   <- >int: validate checkRange(int32,  parseInt, $1)
+  int64   <- >int: validate checkRange(int64,  parseInt, $1)
 
   # Hexadecimal
 
