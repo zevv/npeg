@@ -73,13 +73,17 @@ template skel(T: untyped, cases: untyped, ms: NimNode, s: NimNode, userdata: Nim
 
     # Debug trace. Slow and expensive
 
-    proc trace(ms: var MatchState, s: Subject, msg: string) =
+    proc doTrace(ms: var MatchState, s: Subject, msg: string) =
       when npegTrace:
         echo align(if ms.ip >= 0: $ms.ip else: "", 3) &
           "|" & align($ms.si, 3) &
           "|" & alignLeft(dumpString(s, ms.si, 24), 24) &
           "|" & alignLeft(msg, 40) &
           "|" & repeat("*", ms.backStack.top)
+
+    template trace(ms: var MatchState, s: Subject, msg: string) =
+      when npegTrace:
+        doTrace(ms, s, msg)
 
     # Parser main loop. `cases` will be filled in by genCode() which uses this template
     # as the match lambda boilerplate:
