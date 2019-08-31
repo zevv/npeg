@@ -1057,21 +1057,20 @@ of columns:
 6. the backtrace stack depth
 
 ```
-  0|  0|one two                 |line           |call -> word:6                |
-  6|  0|one two                 |word           |set {'a'-'z'}                 |
-  7|  1|ne two                  |word           |span {'a'-'z'}                |
-  8|  3| two                    |               |return                        |
-  1|  3| two                    |line           |choice -> 5                   |
-  2|  3| two                    | space         |str " "                       |*
-  3|  4|two                     |line           |call -> word:6                |*
-  6|  4|two                     |word           |set {'a'-'z'}                 |*
-  7|  5|wo                      |word           |span {'a'-'z'}                |*
-  8|  7|                        |               |return                        |*
-  4|  7|                        |line           |pcommit -> 2                  |*
-  2|  7|                        | space         |str " "                       |*
-   |  7|                        |               |fail                          |*
-  5|  7|                        |               |return                        |
-  5|  7|                        |               |done                          |
+  0|  0|one two                 |line           |call -> word:6                          |
+  6|  0|one two                 |word           |set {'a'..'z'}                          |
+  7|  1|ne two                  |word           |span {'a'..'z'}                         |
+  8|  3| two                    |               |return                                  |
+  1|  3| two                    |line           |choice -> 5                             |
+  2|  3| two                    | space         |chr " "                                 |*
+  3|  4|two                     |line           |call -> word:6                          |*
+  6|  4|two                     |word           |set {'a'..'z'}                          |*
+  7|  5|wo                      |word           |span {'a'..'z'}                         |*
+  8|  7|                        |               |return                                  |*
+  4|  7|                        |line           |pcommit -> 2                            |*
+  2|  7|                        | space         |chr " "                                 |*
+   |  7|                        |               |fail                                    |*
+  5|  7|                        |               |return (done)                           |
 ```
 
 The exact meaning of the IR instructions is not discussed here.
