@@ -140,7 +140,7 @@ suite "examples":
         message: string
         headers: Table[string, string]
 
-    let s = peg(Request, "http"):
+    let s = peg("http", userdata: Request):
       space       <- ' '
       crlf        <- '\n' * ?'\r'
       url         <- +(Alpha | Digit | '/' | '_' | '.')
@@ -268,7 +268,7 @@ Location: https://nim.org/
     # RFC. Optimizations can be made to limit backtracking, but this is a nice
     # example how to create a parser from a RFC protocol description.
 
-    let p = peg(Uri, "URI"):
+    let p = peg("URI", userdata: Uri):
 
       URI <- scheme * ":" * hier_part * ?( "?" * query) * ?( "#" * fragment) * !1
 

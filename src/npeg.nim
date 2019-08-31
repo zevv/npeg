@@ -34,27 +34,27 @@ import tables
 import macros
 import json
 import strutils
-import streams
 import npeg/[common,codegen,capture,parsepatt,grammar,dot]
 
 export NPegException, Parser, MatchResult, contains
 
 # Create a parser for a PEG grammar
 
-proc pegAux(name: string, userDataType: NimNode, n: NimNode): NimNode =
+proc pegAux(name: string, userDataType: NimNode, userDataId: string, n: NimNode): NimNode =
   var dot = newDot(name)
   var grammar = parseGrammar(n, dot)
-  let userDataId = ident("userdata")
-  let code = grammar.link(name, dot).genCode(userDataType, userDataId)
+  let code = grammar.link(name, dot).genCode(userDataType, ident(userDataId))
   dot.dump()
   code
 
-macro peg*(name: string, n: untyped): untyped =
+macro peg*(name: untyped, n: untyped): untyped =
   let userDataType = bindSym("bool")
-  pegAux(name.strVal, userDataType, n)
+  pegAux(name.strVal, userDataType, "userdata", n)
 
-macro peg*(T: typedesc, name: string, n: untyped): untyped =
-  pegAux(name.strVal, T, n)
+macro peg*(name: untyped, userData: untyped, n: untyped): untyped =
+  expectKind(userData, nnkExprColonExpr)
+  expectLen(userData, 2, 2)
+  pegAux name.strVal, userData[1], userData[0].strVal, n
 
 
 # Create a parser for a single PEG pattern
@@ -75,13 +75,13 @@ macro grammar*(libNameNode: string, n: untyped) =
 
 # Match a subject string
 
-proc match*[T](p: Parser, s: Subject, userdata: var T): MatchResult =
+proc match*[T](p: Parser, s: Subject, userData: var T): MatchResult =
   var ms = initMatchState()
-  p.fn(ms, s, userdata)
+  p.fn(ms, s, userData)
 
 proc match*(p: Parser, s: Subject): MatchResult =
-  var userdata: bool # dummy if user does not provide a type
-  p.match(s, userdata)
+  var userData: bool # dummy if user does not provide a type
+  p.match(s, userData)
 
 
 # Match a subject stream
@@ -89,42 +89,30 @@ proc match*(p: Parser, s: Subject): MatchResult =
 when false:
   import streams
   proc match*(p: Parser, s: Stream): MatchResult =
-    var userdata: bool # dummy if user does not provide a type
+    var userData: bool # dummy if user does not provide a type
     var ms = initMatchState()
     var buf: array[3, char]
     while true:
       let l = s.readData(buf[0].addr, buf.len)
-      echo p.fn(ms, toOpenArray(buf, 0, l-1), userdata)
+      echo p.fn(ms, toOpenArray(buf, 0, l-1), userData)
       if l == 0:
         break
 
-# Match a subject stream
-
-proc match*(p: Parser, s: Stream): MatchResult =
-  var userdata: bool # dummy if user does not provide a type
-  var ms = initMatchState()
-  var buf = newString(8192)
-  while true:
-    let l = s.readData(buf[0].addr, buf.len)
-    if l == 0:
-      break
-    buf.setLen(l)
-    echo p.fn(ms, buf, userdata)
 
 # Match a file
 
 when defined(windows) or defined(posix):
   import memfiles
-  proc matchFile*[T](p: Parser, fname: string, userdata: var T): MatchResult =
+  proc matchFile*[T](p: Parser, fname: string, userData: var T): MatchResult =
     var m = memfiles.open(fname)
     var a: ptr UncheckedArray[char] = cast[ptr UncheckedArray[char]](m.mem)
     var ms = initMatchState()
-    result = p.fn(ms, toOpenArray(a, 0, m.size-1), userdata)
+    result = p.fn(ms, toOpenArray(a, 0, m.size-1), userData)
     m.close()
   
   proc matchFile*(p: Parser, fname: string): MatchResult =
-    var userdata: bool # dummy if user does not provide a type
-    matchFile(p, fname, userdata)
+    var userData: bool # dummy if user does not provide a type
+    matchFile(p, fname, userData)
 
 # Return all plain string captures from the match result
 

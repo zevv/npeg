@@ -1,4 +1,10 @@
 
+master
+======
+
+- Generic parser API changed: the peg() macro now needs to explictly
+  pass the userdata identifier.
+
 0.14.1
 ======
 

@@ -28,7 +28,7 @@ suite "captures":
       word: string
       number: int
 
-    let s = peg(Thing, "foo"):
+    let s = peg("foo", userdata: Thing):
       foo <- word * number
       word <- >+Alpha:
         userdata.word = $1

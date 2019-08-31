@@ -618,17 +618,23 @@ For example, the following rule will check if a passed number is a valid
 Note: This is an experimental feature, the implementation or API might change
 in the future. I'm also looking for a better name for this feature.
 
-NPeg parsers can be instantiated as generics which allows passing of a variable
-of a specific type to the `match()` function, this value is then available
-inside code blocks as the variable named `userdata`. This mitigates the need
-for global variables for storing data in access captures.
+NPeg parsers can be instantiated as generics which allows passing of data of a
+specific type to the `match()` function, this value is then available inside
+code blocks as a variable. This mitigates the need for global variables for
+storing data in access captures.
 
-The above parser can be rewritten using a generic parser as such:
+The syntax for defining a generic grammar is as follows:
+
+```
+peg(name, identifier: Type)
+```
+
+For example, the above parser can be rewritten using a generic parser as such:
 
 ```nim
 type Dict = Table[string, int]
 
-let parser = peg(Dict, "pairs"):
+let parser = peg("pairs" userdata: Dict):
   pairs <- pair * *(',' * pair) * !1
   word <- +Alpha
   number <- +Digit
@@ -1177,7 +1183,7 @@ type
 
 # HTTP grammar (simplified)
 
-let parser = peg(Request, "http"):
+let parser = peg("http", userdata: Request):
   space       <- ' '
   crlf        <- '\n' * ?'\r'
   url         <- +(Alpha | Digit | '/' | '_' | '.')
