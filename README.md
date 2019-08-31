@@ -1011,7 +1011,7 @@ call rules instead of inlining them.
 
 ### Tracing
 
-When compiled with `-d:npegTrace`, NPeg will dump its immediate representation
+When compiled with `-d:npegTrace`, NPeg will dump its intermediate representation
 of the compiled PEG, and will dump a trace of the execution during matching.
 These traces can be used for debugging or optimization of a grammar.
 
