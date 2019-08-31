@@ -28,12 +28,12 @@ suite "captures":
       word: string
       number: int
 
-    let s = peg("foo", userdata: Thing):
+    let s = peg("foo", t: Thing):
       foo <- word * number
       word <- >+Alpha:
-        userdata.word = $1
+        t.word = $1
       number <- >+Digit:
-        userdata.number = parseInt($1)
+        t.number = parseInt($1)
 
     var t = Thing()
     doAssert s.match("foo123", t).ok == true
