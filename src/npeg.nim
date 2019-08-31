@@ -78,12 +78,7 @@ macro peg*(name: untyped, n: untyped): untyped =
   ## Construct a parser from the given PEG grammar. `name` is the initial
   ## grammar rule where parsing starts. This macro returns a `Parser` type
   ## which can later be used for matching subjects with the `match()` proc
-  runnableExamples:
-    let p = peg "sum":
-      sum <- number * '+' * number
-      number <- +Digit
   let userDataType = bindSym("bool")
-
   pegAux(name.strVal, userDataType, "userdata", n)
 
 
@@ -95,18 +90,6 @@ macro peg*(name: untyped, userData: untyped, n: untyped): untyped =
   ##
   ## This macro returns a `Parser` type which can later be used for matching
   ## subjects with the `match()` proc
-  runnableExamples:
-    type List = seq[string]
-
-    let p = peg("line", data: List):
-      line <- word * *( ',' * word)
-      word <- >+Alpha:
-        data.add $1
-
-    var l: List
-    discard p.match("one,two,three", l)
-    echo l
-
   expectKind(userData, nnkExprColonExpr)
   pegAux name.strVal, userData[1], userData[0].strVal, n
 
@@ -115,15 +98,9 @@ macro patt*(n: untyped): untyped =
   ## Construct a parser from a single PEG rule. This is similar to the regular
   ## `peg()` macro, but useful for short regexp-like parsers that do not need a
   ## complete grammar.
-  runnableExamples:
-    let p = patt @("Port" * +Space * >+Digit)
-    let r = p.matchFile("/etc/ssh/sshd_config")
-    echo r.captures
-
   quote do:
     peg "anonymous":
       anonymous <- `n`
-
 
 
 macro grammar*(libNameNode: string, n: untyped) =
@@ -132,7 +109,6 @@ macro grammar*(libNameNode: string, n: untyped) =
   let grammar = parseGrammar(n)
   let libName = libNameNode.strval
   libStore(libName, grammar)
-
 
 
 proc match*[T](p: Parser, s: Subject, userData: var T): MatchResult =
