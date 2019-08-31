@@ -1,9 +1,9 @@
 
-master
+0.15.0
 ======
 
-- Generic parser API changed: the peg() macro now needs to explictly
-  pass the userdata identifier.
+- Generic parser API changed: the peg() macro now explicity passes the
+  userdata type and identifier.
 
 0.14.1
 ======
