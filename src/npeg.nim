@@ -29,6 +29,33 @@
 #   (Jos Craaijo)
 #
 
+## Note: This document is rather terse, for the complete NPeg manual please refer
+## to the README.md or the git project page at https://github.com/zevv/npeg
+##   
+## NPeg is a pure Nim pattern matching library. It provides macros to compile
+## patterns and grammars (PEGs) to Nim procedures which will parse a string and
+## collect selected parts of the input. PEGs are not unlike regular
+## expressions, but offer more power and flexibility, and have less ambiguities.
+##
+## Here is a simple example showing the power of NPeg: The macro `peg` compiles a
+## grammar definition into a `parser` object, which is used to match a string and
+## place the key-value pairs into the Nim table `words`:
+
+runnableExamples:
+
+  import npeg, strutils, tables
+
+  var words = initTable[string, int]()
+
+  let parser = peg "pairs":
+    pairs <- pair * *(',' * pair) * !1
+    word <- +Alpha
+    number <- +Digit
+    pair <- >word * '=' * >number:
+      words[$1] = parseInt($2)
+
+  doAssert parser.match("one=1,two=2,three=3,four=4").ok
+
 
 import tables
 import macros
@@ -48,38 +75,77 @@ proc pegAux(name: string, userDataType: NimNode, userDataId: string, n: NimNode)
   code
 
 macro peg*(name: untyped, n: untyped): untyped =
+  ## Construct a parser from the given PEG grammar. `name` is the initial
+  ## grammar rule where parsing starts. This macro returns a `Parser` type
+  ## which can later be used for matching subjects with the `match()` proc
+  runnableExamples:
+    let p = peg "sum":
+      sum <- number * '+' * number
+      number <- +Digit
   let userDataType = bindSym("bool")
+
   pegAux(name.strVal, userDataType, "userdata", n)
 
+
 macro peg*(name: untyped, userData: untyped, n: untyped): untyped =
+  ## Construct a typed parser from the given PEG grammar. `name` is the initial
+  ## grammar rule where parsing starts. The `userdata` takes a colon expression
+  ## with an identifier and a type, this identifier is available in code block
+  ## captions during parsing.
+  ##
+  ## This macro returns a `Parser` type which can later be used for matching
+  ## subjects with the `match()` proc
+  runnableExamples:
+    type List = seq[string]
+
+    let p = peg("line", data: List):
+      line <- word * *( ',' * word)
+      word <- >+Alpha:
+        data.add $1
+
+    var l: List
+    discard p.match("one,two,three", l)
+    echo l
+
   expectKind(userData, nnkExprColonExpr)
-  expectLen(userData, 2, 2)
   pegAux name.strVal, userData[1], userData[0].strVal, n
 
 
-# Create a parser for a single PEG pattern
-
 macro patt*(n: untyped): untyped =
+  ## Construct a parser from a single PEG rule. This is similar to the regular
+  ## `peg()` macro, but useful for short regexp-like parsers that do not need a
+  ## complete grammar.
+  runnableExamples:
+    let p = patt @("Port" * +Space * >+Digit)
+    let r = p.matchFile("/etc/ssh/sshd_config")
+    echo r.captures
+
   quote do:
     peg "anonymous":
       anonymous <- `n`
 
 
-# Define a grammar for storage in the global library.
 
 macro grammar*(libNameNode: string, n: untyped) =
+  ## This macro defines a collection of rules to be stored in NPeg's global
+  ## grammar library.
   let grammar = parseGrammar(n)
   let libName = libNameNode.strval
   libStore(libName, grammar)
 
 
-# Match a subject string
 
 proc match*[T](p: Parser, s: Subject, userData: var T): MatchResult =
+  ## Match a subject string with the given generic parser. The returned
+  ## `MatchResult` contains the result of the match and can be used to query
+  ## any captures.
   var ms = initMatchState()
   p.fn(ms, s, userData)
 
+
 proc match*(p: Parser, s: Subject): MatchResult =
+  ## Match a subject string with the given parser. The returned `MatchResult`
+  ## contains the result of the match and can be used to query any captures.
   var userData: bool # dummy if user does not provide a type
   p.match(s, userData)
 
@@ -114,25 +180,24 @@ when defined(windows) or defined(posix):
     var userData: bool # dummy if user does not provide a type
     matchFile(p, fname, userData)
 
-# Return all plain string captures from the match result
 
 proc captures*(mr: MatchResult): seq[string] =
+  ## Return all plain string captures from the match result
   for cap in collectCaptures(mr.cs):
     result.add cap.s
 
-
-# Return a tree with Json captures from the match result
-
 proc capturesJson*(mr: MatchResult): JsonNode =
+  ## Return the tree with JSON captures from the match result
   collectCapturesJson(mr.cs)
 
 
-# Return a tree with AST captures from the match result
-
 proc capturesAST*(mr: MatchResult): ASTNode =
+  ## Return the tree with AST captures from the match result
   collectCapturesAST(mr.cs)
 
+
 proc `$`*(a: ASTNode): string =
+  # Debug helper to convert an AST tree to representable string
   proc aux(a: ASTNode, s: var string, d: int=0) =
     s &= indent(a.id & " " & a.val, d) & "\n"
     for k in a.kids:
