@@ -60,12 +60,9 @@ macro peg*(T: typedesc, name: string, n: untyped): untyped =
 # Create a parser for a single PEG pattern
 
 macro patt*(n: untyped): untyped =
-  var grammar = newGrammar()
-  var patt = parsePatt("anonymous", n, grammar)
-  grammar.addPatt("anonymous", patt)
-  let userDataType = bindSym("bool")
-  let userDataId = ident("userdata")
-  grammar.link("anonymous").genCode(userDataType, userDataId)
+  quote do:
+    peg "anonymous":
+      anonymous <- `n`
 
 
 # Define a grammar for storage in the global library.
