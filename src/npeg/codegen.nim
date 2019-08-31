@@ -67,9 +67,10 @@ proc initMatchState*(): MatchState =
 # `peg` macro can access it.  I'd love to hear if there are better solutions
 # for this.
 
-template skel(T: untyped, cases: untyped, ms: NimNode, s: NimNode, userdata: NimNode, capture: NimNode) =
+template skel(cases: untyped, ms: NimNode, s: NimNode, capture: NimNode,
+              userDataType: untyped, userDataId: NimNode) =
 
-  let match = proc(ms: var MatchState, s: Subject, userdata: var T): MatchResult =
+  let match = proc(ms: var MatchState, s: Subject, userDataId: var userDataType): MatchResult =
 
     # Debug trace. Slow and expensive
 
@@ -106,12 +107,12 @@ template skel(T: untyped, cases: untyped, ms: NimNode, s: NimNode, userdata: Nim
     if result.ok and ms.capStack.top > 0:
       result.cs = fixCaptures(s, ms.capStack, FixAll)
 
-  Parser[T](fn: match)
+  Parser[userDataType](fn: match)
 
 
 # Convert the list of parser instructions into a Nim finite state machine
 
-proc genCode*(patt: Patt, T: NimNode): NimNode =
+proc genCode*(patt: Patt, userDataType: NimNode, userDataId: NimNode): NimNode =
 
   var cases = quote do:
     case ms.ip
@@ -322,7 +323,8 @@ proc genCode*(patt: Patt, T: NimNode): NimNode =
       break
     (ms.ip, ms.si, ms.retStack.top, ms.capStack.top) = pop(ms.backStack)
 
-  result = getAst skel(T, cases, ident "ms", ident "s", ident "userdata", ident "capture")
+  result = getAst skel(cases, ident "ms", ident "s", ident "capture",
+                       userDataType, userDataId)
 
   when npegExpand:
     echo result.repr
