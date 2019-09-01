@@ -1,6 +1,7 @@
 
 import tables
 import macros
+import strutils
 import npeg/[common,patt,dot,grammar]
 
 
@@ -14,7 +15,7 @@ proc parsePatt*(name: string, nn: NimNode, grammar: Grammar, dot: Dot = nil): Pa
   proc aux(n: NimNode): Patt =
 
     template krak(n: NimNode, msg: string) =
-      error "NPeg: " & msg & ": " & n.repr & "\n", n
+      error "NPeg: error at '" & n.repr & "': " & msg & "\n", n
 
     proc inlineOrCall(name2: string): Patt =
 
@@ -48,7 +49,7 @@ proc parsePatt*(name: string, nn: NimNode, grammar: Grammar, dot: Dot = nil): Pa
         libImportTemplate(name)
       if t != nil:
         if arg.len-1 != t.args.len:
-          krak arg, "Template " & name & " expects " & $(t.args.len) & " arguments"
+          krak arg, "Wrong number of arguments for template " & name & "(" & $(t.args.join(",")) & ")"
         when npegDebug:
           echo "template ", name, " = \n  in:  ", n.repr, "\n  out: ", result.repr
         proc aux(n: NimNode): NimNode =
@@ -99,13 +100,13 @@ proc parsePatt*(name: string, nn: NimNode, grammar: Grammar, dot: Dot = nil): Pa
             of "Jo": result = newPatt(aux n[1], ckJObject)
             of "Jt": result = newPatt(aux n[1], ckJFieldDynamic)
             of "R": result = newBackrefPatt(n[1].strVal)
-            else: krak n, "Unknown template or capture type"
         elif n.len == 3:
           case name
             of "Jf": result = newPatt(aux n[2], ckJFieldFixed, n[1].strVal)
             of "A": result = newPatt(aux n[2], ckAST, n[1].strVal)
             of "R": result = newPatt(aux n[2], ckRef, n[1].strVal)
-            else: krak n, "Unknown template or capture type"
+        if result.len == 0:
+          krak n, "Unknown template or capture '" & name & "'"
 
       of nnkPrefix:
         # Nim combines all prefix chars into one string. Handle prefixes
