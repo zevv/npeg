@@ -53,7 +53,7 @@ proc parsePatt*(name: string, nn: NimNode, grammar: Grammar, dot: Dot = nil): Pa
           echo "template ", name, " = \n  in:  ", n.repr, "\n  out: ", result.repr
         proc aux(n: NimNode): NimNode =
           if n.kind == nnkIdent and n.strVal in t.args:
-            result = arg[t.args[n.strVal]+1]
+            result = arg[ find(t.args, n.strVal)+1 ]
           else:
             result = copyNimNode(n)
             for nc in n:
@@ -209,7 +209,7 @@ proc parseGrammar*(ns: NimNode, dot: Dot=nil): Grammar =
       elif n[1].kind == nnkCall:
         var t = Template(name: n[1][0].strVal, code: n[2])
         for i in 1..<n[1].len:
-          t.args[n[1][i].strVal] = i-1
+          t.args.add n[1][i].strVal
         result.templates[t.name] = t
 
       else:

@@ -103,7 +103,7 @@ type
 
   Template* = ref object
     name*: string
-    args*: Table[string, int]
+    args*: seq[string]
     code*: NimNode
 
   Grammar* = ref object
@@ -144,9 +144,7 @@ proc slice*(s: Subject, iFrom, iTo: int): string =
 
 
 proc `$`*(t: Template): string =
-  var args: seq[string]
-  for k, v in t.args: args.add k
-  return t.name & "(" & args.join(", ") & ") = " & t.code.repr
+  return t.name & "(" & t.args.join(", ") & ") = " & t.code.repr
 
 
 type
