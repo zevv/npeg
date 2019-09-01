@@ -20,3 +20,7 @@ grammar "":
   Space  <- {'\9'..'\13',' '}            # Whitespace characters
   Upper  <- {'A'..'Z'}                   # Uppercase characters
   Xdigit <- {'A'..'F','a'..'f','0'..'9'} # Hexadecimal digits
+
+
+grammar "utils":
+  list(p, sep) <- p * *( sep * p)

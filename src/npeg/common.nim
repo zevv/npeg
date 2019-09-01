@@ -101,7 +101,7 @@ type
 
   Patt* = seq[Inst]
 
-  Template* = object
+  Template* = ref object
     name*: string
     args*: Table[string, int]
     code*: NimNode

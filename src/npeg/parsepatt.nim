@@ -4,17 +4,6 @@ import macros
 import npeg/[common,patt,dot,grammar]
 
 
-proc applyTemplate(t: Template, arg: NimNode): NimNode =
-  proc aux(n: NimNode): NimNode =
-    if n.kind == nnkIdent and n.strVal in t.args:
-      result = arg[t.args[n.strVal]+1]
-    else:
-      result = copyNimNode(n)
-      for nc in n:
-        result.add aux(nc)
-  result = aux(t.code)
-
-
 # Recursively compile a PEG rule to a Pattern
 
 proc parsePatt*(name: string, nn: NimNode, grammar: Grammar, dot: Dot = nil): Patt =
@@ -25,13 +14,13 @@ proc parsePatt*(name: string, nn: NimNode, grammar: Grammar, dot: Dot = nil): Pa
   proc aux(n: NimNode): Patt =
 
     template krak(n: NimNode, msg: string) =
-      error "NPeg: " & msg & ": " & n.repr & "\n"
+      error "NPeg: " & msg & ": " & n.repr & "\n", n
 
-    template inlineOrCall(name2: string) =
+    proc inlineOrCall(name2: string): Patt =
 
       # Try to import symbol early so we might be able to inline or shadow it
       if name2 notin grammar.patts:
-        discard libImport(name2, grammar)
+        discard libImportRule(name2, grammar)
 
       if name == name2:
         if name in grammar.patts:
@@ -52,6 +41,25 @@ proc parsePatt*(name: string, nn: NimNode, grammar: Grammar, dot: Dot = nil): Pa
         dot.add(name, name2, "call")
         result = newCallPatt(name2)
 
+    proc applyTemplate(name: string, arg: NimNode): NimNode =
+      let t = if name in grammar.templates:
+        grammar.templates[name]
+      else:
+        libImportTemplate(name)
+      if t != nil:
+        if arg.len-1 != t.args.len:
+          krak arg, "Template " & name & " expects " & $(t.args.len) & " arguments"
+        when npegDebug:
+          echo "template ", name, " = \n  in:  ", n.repr, "\n  out: ", result.repr
+        proc aux(n: NimNode): NimNode =
+          if n.kind == nnkIdent and n.strVal in t.args:
+            result = arg[t.args[n.strVal]+1]
+          else:
+            result = copyNimNode(n)
+            for nc in n:
+              result.add aux(nc)
+        result = aux(t.code)
+
     case n.kind:
 
       of nnKPar, nnkStmtList:
@@ -71,14 +79,15 @@ proc parsePatt*(name: string, nn: NimNode, grammar: Grammar, dot: Dot = nil): Pa
         result = newPatt($n.intVal.char, opChr)
 
       of nnkCall:
-        if n[0].kind != nnkIdent:
+        var name: string
+        if n[0].kind == nnkIdent:
+          name = n[0].strVal
+        elif n[0].kind == nnkDotExpr:
+          name = n[0][0].strVal & "." & n[0][1].strVal
+        else:
           krak n, "syntax error"
-        let name = n[0].strVal
-        if name in grammar.templates:
-          let t = grammar.templates[name]
-          let n2 = applyTemplate(t, n)
-          when npegDebug:
-            echo "template ", name, " = \n  in:  ", n.repr, "\n  out: ", n2.repr
+        let n2 = applyTemplate(name, n)
+        if n2 != nil:
           result = aux n2
         elif n.len == 2:
           case name
@@ -89,14 +98,14 @@ proc parsePatt*(name: string, nn: NimNode, grammar: Grammar, dot: Dot = nil): Pa
             of "Ja": result = newPatt(aux n[1], ckJArray)
             of "Jo": result = newPatt(aux n[1], ckJObject)
             of "Jt": result = newPatt(aux n[1], ckJFieldDynamic)
-            of "R":
-              result = newBackrefPatt(n[1].strVal)
-            else: krak n, "Unhandled capture type"
+            of "R": result = newBackrefPatt(n[1].strVal)
+            else: krak n, "Unknown template or capture type"
         elif n.len == 3:
-          if n[0].eqIdent "Jf": result = newPatt(aux n[2], ckJFieldFixed, n[1].strVal)
-          elif n[0].eqIdent "A": result = newPatt(aux n[2], ckAST, n[1].strVal)
-          elif n[0].eqIdent "R": result = newPatt(aux n[2], ckRef, n[1].strVal)
-          else: krak n, "Unhandled capture type"
+          case name
+            of "Jf": result = newPatt(aux n[2], ckJFieldFixed, n[1].strVal)
+            of "A": result = newPatt(aux n[2], ckAST, n[1].strVal)
+            of "R": result = newPatt(aux n[2], ckRef, n[1].strVal)
+            else: krak n, "Unknown template or capture type"
 
       of nnkPrefix:
         # Nim combines all prefix chars into one string. Handle prefixes
@@ -133,10 +142,10 @@ proc parsePatt*(name: string, nn: NimNode, grammar: Grammar, dot: Dot = nil): Pa
         else: krak n, "syntax error"
 
       of nnkIdent:
-        inlineOrCall(n.strVal)
+        result = inlineOrCall(n.strVal)
 
       of nnkDotExpr:
-        inlineOrCall(n[0].strVal & "." & n[1].strVal)
+        result = inlineOrCall(n[0].strVal & "." & n[1].strVal)
 
       of nnkCurly:
         var cs: CharSet
@@ -185,8 +194,7 @@ proc parseGrammar*(ns: NimNode, dot: Dot=nil): Grammar =
 
     if n.kind == nnkInfix and n[0].eqIdent("<-"):
 
-      if n[1].kind == nnkIdent or n[1].kind == nnkDotExpr:
-
+      if n[1].kind in { nnkIdent, nnkDotExpr}:
         var name: string
         if n[1].kind == nnkIdent:
           name = n[1].strVal
@@ -206,7 +214,6 @@ proc parseGrammar*(ns: NimNode, dot: Dot=nil): Grammar =
 
       else:
         error "Expected PEG rule name but got " & $n[1].kind, n
-
 
     else:
       error "Expected PEG rule (name <- ...)", n

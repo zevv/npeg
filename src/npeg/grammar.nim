@@ -41,6 +41,8 @@ proc libStore*(libName: string, grammar: Grammar) =
       patt2.add i2
     gPattLib.patts[pattname2] = patt2
 
+  for tname, t in grammar.templates:
+    gPattLib.templates[qualify(tname)] = t
 
 #
 # Add rule to a grammer
@@ -62,12 +64,17 @@ proc addPatt*(grammar: Grammar, name: string, patt1: Patt) =
 # Try to import the given rule from the pattern library into a grammar. Returns
 # true if import succeeded, false if not found.
 
-proc libImport*(name: string, grammar: Grammar): bool =
+proc libImportRule*(name: string, grammar: Grammar): bool =
   if name in gPattLib.patts:
     grammar.addPatt name, gPattLib.patts[name]
     when npegDebug:
       echo "importing ", name
     return true
+
+
+proc libImportTemplate*(name: string): Template =
+  if name in gPattLib.templates:
+    result = gPattLib.templates[name]
 
 
 # Shadow the given name in the grammar by creating an unique new name,
@@ -109,7 +116,7 @@ proc link*(grammar: Grammar, initial_name: string, dot: Dot = nil): Patt =
 
     for i in patt:
       if i.op == opCall and i.callLabel notin symTab:
-        if i.callLabel notin grammar.patts and not libImport(i.callLabel, grammar):
+        if i.callLabel notin grammar.patts and not libImportRule(i.callLabel, grammar):
           error "Npeg: rule \"" & name & "\" is referencing undefined rule \"" & i.callLabel & "\""
         dot.add(name, i.callLabel, "call")
         emit i.callLabel
