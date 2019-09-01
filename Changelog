@@ -1,4 +1,8 @@
 
+master:
+
+- Templates can now also be used in libraries
+
 0.15.0
 ======
 

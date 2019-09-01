@@ -21,6 +21,3 @@ grammar "":
   Upper  <- {'A'..'Z'}                   # Uppercase characters
   Xdigit <- {'A'..'F','a'..'f','0'..'9'} # Hexadecimal digits
 
-
-grammar "utils":
-  list(p, sep) <- p * *( sep * p)

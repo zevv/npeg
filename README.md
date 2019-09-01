@@ -787,10 +787,11 @@ For simple grammars it is usually fine to build all patterns from scratch from
 atoms and operators, but for more complex grammars it makes sense to define
 reusable patterns as basic building blocks.
 
-For this, NPeg keeps track of a global library of patterns. The `grammar` macro
-can be used to add rules to this library. All patterns in the library will be
-stored with a *qualified* identifier in the form `libraryname.patternname`, by
-which they can be refered to at a later time.
+For this, NPeg keeps track of a global library of patterns and templates. The
+`grammar` macro can be used to add rules or templates to this library. All
+patterns in the library will be stored with a *qualified* identifier in the
+form `libraryname.patternname`, by which they can be refered to at a later
+time.
 
 For example, the following fragment defines three rules in the library with the
 name `number`. The rules will be stored in the global library and are referred
