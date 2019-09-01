@@ -1113,6 +1113,28 @@ those to your liking:
   purposes only.
 
 
+## Random stuff and frequently asked questions
+
+
+### Why does NPeg not support regular PEG syntax?
+
+The NPeg syntax is similar, but not exactly the same as the official PEG
+syntax: it uses some different operators, and prefix instead of postfix
+operators. The reason for this is that the NPeg grammar is parsed by a Nim
+macro in order to allow code block captures to embed Nim code, which puts some
+limitations on the available syntax. Also, NPegs operators are chosen so that
+they have the right precedence for PEGs.
+
+
+### Can NPeg be used to parse EBNF grammars?
+
+Almost, but not quite. Although PEGS and EBNF look quite similar, there are
+some subtle but important diferences which do not allow a literal translation
+from EBNF to PEG. Notable differences are left recursion and ordered choice.
+Also, see "From EBNF to PEG" from Roman R. Redziejowski.
+
+
+
 ## Examples
 
 ### Parsing arithmetic expressions
