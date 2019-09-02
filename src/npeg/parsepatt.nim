@@ -114,8 +114,7 @@ proc parsePatt*(name: string, nn: NimNode, grammar: Grammar, dot: Dot = nil): Pa
         let cs = n[0].strVal
         var p = aux n[1]
         for i in 1..cs.len:
-          let c = cs[cs.len-i]
-          case c:
+          case cs[cs.len-i]:
             of '?': p = ?p
             of '+': p = +p
             of '*': p = *p
