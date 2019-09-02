@@ -40,6 +40,12 @@ suite "captures":
     doAssert t.word == "foo"
     doAssert t.number == 123
 
+  test "Capture out of range":
+    expect NPegException:
+      let p = peg "l":
+        l <- 1: echo $1
+      discard p.match("a")
+
   test "JSON captures":
     doAssert patt(Js(1)).match("a").capturesJSon == parseJson(""" "a" """)
     doAssert patt(Jb(+1)).match("true").capturesJSon == parseJson(""" true """)

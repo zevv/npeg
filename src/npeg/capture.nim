@@ -153,3 +153,8 @@ proc collectCapturesAST*(cs: Captures): ASTNode =
   result = aux(0, cs.len-1, nil)
 
 
+proc `[]`*(cs: Captures, i: int): Capture =
+  if i >= cs.len:
+    raise newException(NPegException, "Capture out of range")
+  cs[i]
+

@@ -171,6 +171,7 @@ proc parsePatt*(name: string, nn: NimNode, grammar: Grammar, dot: Dot = nil): Pa
           of "E": result = newErrorPatt(n[1].strval)
           else: krak n, "unhandled string prefix"
       else:
+        echo n.astGenRepr
         krak n, "syntax error"
 
     when npegTrace:
