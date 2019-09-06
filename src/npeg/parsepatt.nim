@@ -2,7 +2,7 @@
 import tables
 import macros
 import strutils
-import npeg/[common,patt,dot,grammar]
+import npeg/[common,patt,dot,grammar,railroad]
 
 
 # Recursively compile a PEG rule to a Pattern
@@ -178,6 +178,10 @@ proc parsePatt*(name: string, nn: NimNode, grammar: Grammar, dot: Dot = nil): Pa
       for i in result.mitems:
         if i.pegRepr == "":
           i.pegRepr = n.repr
+
+  when npegGraph:
+    let rr = parseRailroad(nn, grammar)
+    echo $(rr.wrap(name)) & "\n"
 
   result = aux(nn)
   dot.addPatt(name, result.len)

@@ -12,6 +12,7 @@ const
   npegDebug* = defined(npegDebug)
   npegTrace* = defined(npegTrace)
   npegExpand* = defined(npegExpand)
+  npegGraph* = defined(npegGraph)
 
 type
 
@@ -131,6 +132,45 @@ proc subIStrCmp*(s: Subject, slen: int, si: int, s2: string): bool =
     if s[si+i].toLowerAscii != s2[i].toLowerAscii:
       return false
   return true
+
+# Create a short and friendly text representation of a character set.
+
+proc escapeChar*(c: char): string =
+  const escapes = { '\n': "\\n", '\r': "\\r", '\t': "\\t" }.toTable()
+  if c in escapes:
+    result = escapes[c]
+  elif c >= ' ' and c <= '~':
+    result = $c
+  else:
+    result = "\\x" & tohex(c.int, 2).toLowerAscii
+
+proc dumpSet*(cs: CharSet): string =
+  result.add "{"
+  var c = 0
+  while c <= 255:
+    let first = c
+    while c <= 255 and c.char in cs:
+      inc c
+    if (c - 1 == first):
+      result.add "'" & escapeChar(first.char) & "',"
+    elif c - 1 > first:
+      result.add "'" & escapeChar(first.char) & "'..'" & escapeChar((c-1).char) & "',"
+    inc c
+  if result[result.len-1] == ',': result.setLen(result.len-1)
+  result.add "}"
+
+# Create a friendly version of the given string, escaping not-printables
+# and no longer then `l`
+
+proc dumpString*(s: Subject, o:int=0, l:int=1024): string =
+  var i = o
+  while i < s.len:
+    let a = escapeChar s[i]
+    if result.len >= l-a.len:
+      return
+    result.add a
+    inc i
+
 
 
 proc slice*(s: Subject, iFrom, iTo: int): string =
