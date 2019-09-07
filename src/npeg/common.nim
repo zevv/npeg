@@ -12,7 +12,7 @@ const
   npegDebug* = defined(npegDebug)
   npegTrace* = defined(npegTrace)
   npegExpand* = defined(npegExpand)
-  npegDiagrams* = defined(npegDiagrams)
+  npegGraph* = defined(npegGraph)
 
 type
 

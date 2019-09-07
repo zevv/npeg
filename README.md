@@ -18,8 +18,8 @@ Some NPeg highlights:
 
 - NPeg-generated parsers can be used both at run and at compile time.
 
-- NPeg offers various methods for tracing, optimizing and debugging your
-  parsers.
+- NPeg offers various methods for tracing, graphing, optimizing and debugging
+  your parsers.
 
 ## Quickstart
 
@@ -68,6 +68,7 @@ A brief explanation of the above code:
 * The `word` and `number` in the `pair` rule are captured with the `>`
   operator. The Nim code fragment below this rule is executed for every match,
   and stores the captured word and number in the `words` Nim table.
+
 
 ## Usage
 
@@ -287,6 +288,10 @@ patterns.
 
 - Concatenation: `P1 * P2`
 
+  ```
+  o──[P1]───[P2]──o
+  ```
+
   The pattern `P1 * P2` returns a new pattern that matches only if first `P1` matches,
   followed by `P2`.
 
@@ -294,6 +299,11 @@ patterns.
 
 
 - Ordered choice: `P1 | P2`
+
+  ```
+  o─┬─[P1]─┬─o
+    ╰─[P2]─╯  
+  ```
 
   The pattern `P1 | P2` tries to first match pattern `P1`. If this succeeds,
   matching will proceed without trying `P2`. Only if `P1` can not be matched,
@@ -336,6 +346,11 @@ patterns.
 
 - Optional: `?P`
 
+  ```
+    ╭──»──╮   
+  o─┴─[P]─┴─o
+  ```
+
   The pattern `?P` matches if `P` can be matched zero or more times, so essentially
   succeeds if `P` either matches or not.
 
@@ -344,6 +359,12 @@ patterns.
 
 - Match zero or more times: `*P`
 
+  ```
+    ╭───»───╮  
+  o─┴┬─[P]─┬┴─o
+     ╰──«──╯   
+  ```
+
   The pattern `*P` tries to match as many occurrences of pattern `P` as
   possible - this operator always behaves *greedily*.
 
@@ -351,6 +372,11 @@ patterns.
 
 
 - Match one or more times: `+P`
+
+  ```
+  o─┬─[P]─┬─o
+    ╰──«──╯  
+  ```
 
   The pattern `+P` matches `P` at least once, but also more times. It is equivalent
   to the `P * *P` - this operator always behave *greedily*
@@ -988,7 +1014,32 @@ echo r.captures()   # --> @["γ", "ν", "ω", "ρ", "ί", "ζ", "ω"]
 
 ## Tracing and debugging
 
-### Grammar graph
+### Syntax diagrams
+
+When compiled with `-d:npegGraph`, NPeg will dump syntax diagrams (also known
+as railroad diagrams) for all parsed rules. 
+  
+Syntax diagrams are sometimes helpful to understand or debug a grammar, or to
+get more insight in a grammars' complexity. Note that syntax diagrams can not
+properly represent all of a PEG syntax, as there is no good way to represent
+lookaheads (`&`, `!`) or captures (`'>'`)
+
+```
+                                         ╭───────────────»───────────────╮         
+jobject o──'{'──┬─[jstring]──":"──[JSON]─┴┬─","──[jstring]──":"──[JSON]─┬┴┬──"}"──o
+                │                         ╰──────────────«──────────────╯ │        
+                │╭──»──╮                                                  │        
+                ╰┴─[S]─┴──────────────────────────────────────────────────╯        
+
+                        ╭───────»───────╮         
+jarray o──"["──┬─[JSON]─┴┬─","──[JSON]─┬┴┬──"]"──o
+               │         ╰──────«──────╯ │        
+               │╭──»──╮                  │        
+               ╰┴─[S]─┴──────────────────╯        
+```
+
+
+### Grammar graphs
 
 NPeg can generate a graphical representation of a grammar to show the relations
 between rules. The generated output is a `.dot` file which can be processed by
@@ -1106,6 +1157,8 @@ those to your liking:
 
 * `-d:npegTrace`: Enable compile time and run time tracing. Please refer to the 
   section 'Tracing' for more details
+
+* `-d:npegGraph`: Dump syntax diagrams of all parsed rules at compile time.
 
 * `-d:npegExpand`: Dump the generated Nim code for all parsers defined in the
   program. Ment for Npeg development debugging purposes only.
