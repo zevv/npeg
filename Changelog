@@ -2,6 +2,7 @@
 master:
 
 - Templates can now also be used in libraries
+- Added railroad diagram generation with -d:npegGraph
 
 0.15.0
 ======

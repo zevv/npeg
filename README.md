@@ -1017,27 +1017,26 @@ echo r.captures()   # --> @["γ", "ν", "ω", "ρ", "ί", "ζ", "ω"]
 ### Syntax diagrams
 
 When compiled with `-d:npegGraph`, NPeg will dump syntax diagrams (also known
-as railroad diagrams) for all parsed rules. 
-  
+as railroad diagrams) for all parsed rules.
+
 Syntax diagrams are sometimes helpful to understand or debug a grammar, or to
 get more insight in a grammars' complexity. Note that syntax diagrams can not
 properly represent all of a PEG syntax, as there is no good way to represent
 lookaheads (`&`, `!`) or captures (`'>'`)
 
 ```
-                                         ╭───────────────»───────────────╮         
-jobject o──'{'──┬─[jstring]──":"──[JSON]─┴┬─","──[jstring]──":"──[JSON]─┬┴┬──"}"──o
-                │                         ╰──────────────«──────────────╯ │        
-                │╭──»──╮                                                  │        
-                ╰┴─[S]─┴──────────────────────────────────────────────────╯        
+escape o──'\'──┬─{'"','\','b','f','n','r','t','{'..'|'}─┬──o
+               ╰─[unicodeEscape]────────────────────────╯
 
-                        ╭───────»───────╮         
-jarray o──"["──┬─[JSON]─┴┬─","──[JSON]─┬┴┬──"]"──o
-               │         ╰──────«──────╯ │        
-               │╭──»──╮                  │        
-               ╰┴─[S]─┴──────────────────╯        
+                         ╭────────────────»────────────────╮
+             ╭────»─────╮│                  ╭─────»──────╮ │
+stringBody o─┴─[escape]─┴┴┬┬─{' '..'\xff'}─┬┴┬─[escape]─┬┴┬┴─o
+                          │╰───────«───────╯ ╰────«─────╯ │
+                          ╰───────────────«───────────────╯
+
+          ╭──»──╮                        ╭──»──╮
+jstring o─┴─[S]─┴─'"'──[stringBody]──'"'─┴─[S]─┴─o
 ```
-
 
 ### Grammar graphs
 
@@ -1310,4 +1309,8 @@ The resulting data:
   }
 )
 ```
+
+### More examples
+
+More examples can be found in tests/examples.nim.
 
