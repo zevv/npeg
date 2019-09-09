@@ -6,6 +6,8 @@ collect selected parts of the input. PEGs are not unlike regular expressions,
 but offer more power and flexibility, and have less ambiguities. (More about 
 PEGs on [wikipedia](https://en.wikipedia.org/wiki/Parsing_expression_grammar))
 
+![Graph](/doc/syntax-diagram.png)
+
 Some use cases where NPeg is useful are configuration or data file parsers,
 robust protocol implementations, input validation, lexing of programming
 languages or domain specific languages.
@@ -1020,23 +1022,25 @@ When compiled with `-d:npegGraph`, NPeg will dump syntax diagrams (also known
 as railroad diagrams) for all parsed rules.
 
 Syntax diagrams are sometimes helpful to understand or debug a grammar, or to
-get more insight in a grammars' complexity. Note that syntax diagrams can not
-properly represent all of a PEG syntax, as there is no good way to represent
-lookaheads (`&`, `!`) or captures (`'>'`)
+get more insight in a grammars' complexity.
+
+![Graph](/doc/syntax-diagram.png)
 
 ```
-escape o──'\'──┬─{'"','\','b','f','n','r','t','{'..'|'}─┬──o
-               ╰─[unicodeEscape]────────────────────────╯
-
-                         ╭────────────────»────────────────╮
-             ╭────»─────╮│                  ╭─────»──────╮ │
-stringBody o─┴─[escape]─┴┴┬┬─{' '..'\xff'}─┬┴┬─[escape]─┬┴┬┴─o
-                          │╰───────«───────╯ ╰────«─────╯ │
-                          ╰───────────────«───────────────╯
-
-          ╭──»──╮                        ╭──»──╮
-jstring o─┴─[S]─┴─'"'──[stringBody]──'"'─┴─[S]─┴─o
+                              ╭─────────»──────────╮                     
+                              │      ╭─────»──────╮│                     
+                ╭╶╶╶╶╶╶╶╶╶╶╮  │      │  ━━━━      ││         ╭╶╶╶╶╶╶╶╮   
+inf o──"INF:"─»───[number]───»┴─","─»┴┬─[lf]─»─1─┬┴┴»─[lf]─»───[url]────o
+                ╰╶╶╶╶╶╶╶╶╶╶╯          ╰────«─────╯           ╰╶╶╶╶╶╶╶╯   
 ```
+
+* Optionals (`?`) are indicated by a forward arrow overhead
+* Repeats ('+') are indicated by a backwards arrow underneath
+* Literals (strings, chars, sets) are printed in purple
+* Non-terminals are printed in cyan between square brackets
+* Not-predicates (`!`) are overlined in red. Note that the diagram does not
+  make it clear that the input for not-predicates is not consumed.
+* Captures are boxed in a gray rectangle
 
 ### Grammar graphs
 

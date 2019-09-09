@@ -63,12 +63,8 @@ proc parsePatt*(name: string, nn: NimNode, grammar: Grammar, dot: Dot = nil): Pa
 
     case n.kind:
 
-      of nnKPar, nnkStmtList:
-        if n.len == 1: result = aux n[0]
-        elif n.len == 2:
-          result = newPatt(aux n[0], ckAction)
-          result[result.high].capAction = n[1]
-        else: krak n, "Too many expressions in parenthesis"
+      of nnKPar:
+        result = aux n[0]
 
       of nnkIntLit:
         result = newPatt(n.intVal)
@@ -170,6 +166,7 @@ proc parsePatt*(name: string, nn: NimNode, grammar: Grammar, dot: Dot = nil): Pa
           of "i": result = newPatt(n[1].strval, opIStr)
           of "E": result = newErrorPatt(n[1].strval)
           else: krak n, "unhandled string prefix"
+
       else:
         echo n.astGenRepr
         krak n, "syntax error"
@@ -179,12 +176,12 @@ proc parsePatt*(name: string, nn: NimNode, grammar: Grammar, dot: Dot = nil): Pa
         if i.pegRepr == "":
           i.pegRepr = n.repr
 
-  when npegGraph:
-    let rr = parseRailroad(nn, grammar)
-    echo $(rr.wrap(name)) & "\n"
-
   result = aux(nn)
   dot.addPatt(name, result.len)
+
+  when npegGraph:
+    let rr = parseRailroad(nn, grammar)
+    dump(rr.wrap(name))
 
 
 #
