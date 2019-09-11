@@ -71,19 +71,18 @@ proc poke(n: Node, fg: ForeGroundColor, cs: varArgs[tuple[x, y: int, s: string]]
   for c in cs:
     n.syms.add Sym(x: c.x, y: c.y, c: Char(r: c.s.runeAt(0), fg: fg))
 
-proc pad(n: Node, left, right: int): Node = 
-  result = Node(w: n.w + left + right, y0: n.y0, y1: n.y1)
+proc pad(n: Node, left, right, top, bottom = 0): Node = 
+  result = Node(w: n.w + left + right, y0: n.y0 - top, y1: n.y1 + bottom)
+  result.kids.add Kid(n: n, dx: left, dy: 0)
   for x in 0..<left:
     result.poke fgLine, (x, 0, "─")
   for x in n.w+left..<result.w:
     result.poke fgLine, (x, 0, "─")
-  result.kids.add Kid(n: n, dx: left, dy: 0)
 
 proc wrap*(n: Node, name: string): Node =
   let namer = (name & " ").toRunes()
   let nl = namer.len()
-  result = Node(w: n.w+4+nl, y0: n.y0, y1: n.y1)
-  result.kids.add Kid(n: n, dx: 2+nl)
+  result = n.pad(nl+2, 2)
   result.poke fgLine, (nl+0, 0, "o"), (nl+1, 0, "─"), (result.w-2, 0, "─"), (result.w-1, 0, "o")
   for i in 0..<nl:
     result.poke fgName, (i, 0, $namer[i])
@@ -114,10 +113,8 @@ proc `*`(n1, n2: Node): Node =
   result.kids.add Kid(n: n2, dx: n1.w+1)
 
 proc `?`(n: Node): Node =
-  result = Node(w: n.w+2, y0: -1 + n.y0, y1: n.y1)
-  result.kids.add Kid(n: n.pad(1, 1))
-  let (y1, y2) = (-1 + n.y0, 0)
-  let (x1, x2) = (0, n.w+1)
+  result = n.pad(1, 1, 1, 0)
+  let (x1, x2, y1, y2) = (0, n.w+1, -1 + n.y0, 0)
   result.poke fgLine, (x1, y1, "╭"), (x1, y2, "┴"), (x2, y1, "╮"), (x2, y2, "┴")
   for x in x1+1..x2-1:
     result.poke fgLine, (x, y1, "─")
@@ -126,10 +123,8 @@ proc `?`(n: Node): Node =
   result.poke fgLine, ((x1+x2)/%2, y1, "»")
 
 proc `+`(n: Node): Node =
-  result = Node(w: n.w+2, y0: n.y0, y1: n.y1+1)
-  result.kids.add Kid(n: n.pad(1, 1), dy:  0)
-  let (y1, y2) = (0, n.y1+1)
-  let (x1, x2) = (0, n.w+1)
+  result = n.pad(1, 1, 0, 1)
+  let (x1, x2, y1, y2) = (0, n.w+1, 0, n.y1+1)
   result.poke fgLine, (x1, y1, "┬"), (x1, y2, "╰"), (x2, y1, "┬"), (x2, y2, "╯")
   for x in x1+1..x2-1:
     result.poke fgLine, (x, y2, "─")
