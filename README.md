@@ -775,7 +775,7 @@ passed to the template when called.
 
 For example, consider the following grammar:
 
-```
+```nim
 numberList <- +Digit * *( ',' * +Digit)
 wordList <- +Alpha * *( ',' * +Alpha)
 ```
@@ -787,7 +787,7 @@ followed by pattern `p`. For example, `numberList` will match the string
 
 The above example can be parameterized with a template like this:
 
-```
+```nim
 commaList(item) <- item * *( ',' * item )
 numberList <- commaList(+Digit)
 wordList <- commaList(+Alpha)
@@ -801,7 +801,7 @@ This template is used to define the more complex patterns `numberList` and
 Templates may invoke other templates recursively; for example the above can
 even be further generalized:
 
-```
+```nim
 list(item, sep) <- item * *( sep * item )
 commaList(item) <- list(item, ',')
 numberList <- commaList(+Digit)
@@ -844,7 +844,7 @@ be found in the `npeg/lib` directory. A library an be imported with the regular
 Nim `import` statement, all rules defined in the imported file will then be
 added to NPegs global pattern library. For example:
 
-```
+```nim
 import npeg/lib/uri
 ```
 
