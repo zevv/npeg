@@ -1040,7 +1040,7 @@ inf o──"INF:"─»───[number]───»┴─","─»┴┬─[lf]─
 * Non-terminals are printed in cyan between square brackets
 * Not-predicates (`!`) are overlined in red. Note that the diagram does not
   make it clear that the input for not-predicates is not consumed.
-* Captures are boxed in a gray rectangle
+* Captures are boxed in a gray rectangle, optionally including the capture name
 
 ### Grammar graphs
 

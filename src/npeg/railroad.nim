@@ -94,7 +94,7 @@ proc newNode(s: string, fg = fgLine): Node =
     n.poke fg, (x, 0, $rs[x])
   result = n.pad(1, 1)
 
-proc newCapNode(n: Node): Node =
+proc newCapNode(n: Node, name = ""): Node =
   result = pad(n, 2, 2)
   result.y0 = n.y0 - 1
   result.y1 = n.y1 + 1
@@ -105,6 +105,9 @@ proc newCapNode(n: Node): Node =
   for y in y0+1..y1-1:
     if y != 0:
       result.poke fgCap, (x0, y, "┆"), (x1, y, "┆")
+  let namer = name.toRunes()
+  for i in 0..<namer.len:
+    result.poke fgCap, ((x1+x0-namer.len)/%2+i, y0, $namer[i])
 
 proc `*`(n1, n2: Node): Node =
   result = Node(w: n1.w + n2.w + 1, y0: min(n1.y0, n2.y0), y1: max(n1.y1, n2.y1))
@@ -248,8 +251,10 @@ proc parseRailRoad*(nn: NimNode, grammar: Grammar): Node =
           var cs: seq[Node]
           for i in 1..<n.len: cs.add aux(n[i])
           result = choice(cs)
-        else:
+        elif n.len == 2:
           result = newCapNode aux(n[1])
+        elif n.len == 3:
+          result = newCapNode(aux(n[2]), n[1].strVal)
 
       of nnkPrefix:
         # Nim combines all prefix chars into one string. Handle prefixes
