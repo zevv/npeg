@@ -111,6 +111,11 @@ type
     patts*: Table[string, Patt]
     templates*: Table[string, Template]
 
+  ASTNode* = ref object
+    id*: string
+    val*: string
+    kids*: seq[ASTNode]
+
 
 #
 # Misc helper functions
@@ -133,10 +138,36 @@ proc subIStrCmp*(s: Subject, slen: int, si: int, s2: string): bool =
       return false
   return true
 
+
+#
+# Some common operations for ASTNodes
+#
+
+proc `[]`*(a: ASTNode, id: string): ASTNode =
+  for kid in a.kids:
+    if kid.id == id:
+      return kid
+
+proc `[]`*(a: ASTNode, i: int): ASTNode =
+  return a.kids[i]
+
+iterator items*(a: ASTNode): ASTNode =
+  for c in a.kids:
+    yield c
+
+proc `$`*(a: ASTNode): string =
+  # Debug helper to convert an AST tree to representable string
+  proc aux(a: ASTNode, s: var string, d: int=0) =
+    s &= indent(a.id & " " & a.val, d) & "\n"
+    for k in a.kids:
+      aux(k, s, d+1)
+  aux(a, result)
+
+
 # Create a short and friendly text representation of a character set.
 
 proc escapeChar*(c: char): string =
-  const escapes = { '\n': "\\n", '\r': "\\r", '\t': "\\t" }.toTable()
+  const escapes = { '\n': "\\n", '\r': "\\r", '\t': "\\t", '\\': "\\\\", '\'': "\\'" }.toTable()
   if c in escapes:
     result = escapes[c]
   elif c >= ' ' and c <= '~':

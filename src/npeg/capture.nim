@@ -23,11 +23,6 @@ type
   FixMethod* = enum
     FixAll, FixOpen
 
-  ASTNode* = ref object
-    id*: string
-    val*: string
-    kids*: seq[ASTNode]
-
 # Convert all closed CapFrames on the capture stack to a list of Captures, all
 # consumed frames are removed from the CapStack
 

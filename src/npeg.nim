@@ -63,7 +63,7 @@ import json
 import strutils
 import npeg/[common,codegen,capture,parsepatt,grammar,dot]
 
-export NPegException, Parser, MatchResult, contains
+export NPegException, Parser, ASTNode, MatchResult, contains, items, `[]`
 
 # Create a parser for a PEG grammar
 
@@ -170,15 +170,6 @@ proc capturesJson*(mr: MatchResult): JsonNode =
 proc capturesAST*(mr: MatchResult): ASTNode =
   ## Return the tree with AST captures from the match result
   collectCapturesAST(mr.cs)
-
-
-proc `$`*(a: ASTNode): string =
-  # Debug helper to convert an AST tree to representable string
-  proc aux(a: ASTNode, s: var string, d: int=0) =
-    s &= indent(a.id & " " & a.val, d) & "\n"
-    for k in a.kids:
-      aux(k, s, d+1)
-  aux(a, result)
 
 
 import npeg/lib/core

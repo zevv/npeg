@@ -26,21 +26,19 @@ proc parsePatt*(name: string, nn: NimNode, grammar: Grammar, dot: Dot = nil): Pa
       if name == name2:
         if name in grammar.patts:
           let nameShadowed = grammar.shadow(name)
-          result = newCallPatt(nameShadowed)
-        else:
-          error "Rule '" & name & "' calls itself"
+          return newCallPatt(nameShadowed)
 
-      elif name2 in grammar.patts and grammar.patts[name2].len < npegInlineMaxLen:
+      if name2 in grammar.patts and grammar.patts[name2].len < npegInlineMaxLen:
         when npegDebug:
           echo "  inline ", name2
         dot.add(name, name2, "inline")
-        result = grammar.patts[name2]
+        return grammar.patts[name2]
 
       else:
         when npegDebug:
           echo "  call ", name2
         dot.add(name, name2, "call")
-        result = newCallPatt(name2)
+        return newCallPatt(name2)
 
     proc applyTemplate(name: string, arg: NimNode): NimNode =
       let t = if name in grammar.templates:
