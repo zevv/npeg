@@ -137,9 +137,3 @@ proc link*(grammar: Grammar, initial_name: string, dot: Dot = nil): Patt =
   when npegTrace:
     result.dump(symTab)
 
-
-
-proc `$`*(g: Grammar): string =
-  for name, patt in g.patts:
-    result.add name & ":\n"
-    result.add $patt

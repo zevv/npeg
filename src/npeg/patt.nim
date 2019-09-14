@@ -56,8 +56,10 @@ proc toSet(p: Patt, cs: var Charset): bool =
       return true
     if i.op == opStr and i.str.len == 1:
       cs = { i.str[0] }
+      return true
     if i.op == opIStr and i.str.len == 1:
       cs = { toLowerAscii(i.str[0]), toUpperAscii(i.str[0]) }
+      return true
     if i.op == opAny:
       cs = {low(char)..high(char)}
       return true
