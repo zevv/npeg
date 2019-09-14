@@ -210,17 +210,16 @@ proc genCode*(patt: Patt, userDataType: NimNode, userDataId: NimNode): NimNode =
 
       of opCall:
         let label = newLit(i.callLabel)
-        let offset = newLit(i.callOffset)
+        let address = newLit(i.callAddress)
         quote do:
-          trace ms, `iname`, s, "call -> " & `label` & ":" & $(ms.ip+`offset`)
+          trace ms, `iname`, s, "call -> " & `label` & ":" & $`address`
           push(ms.retStack, ms.ip+1)
-          ms.ip += `offset`
+          ms.ip = `address`
 
       of opJump:
-        let label = newLit(i.callLabel)
-        let offset = newLit(i.callOffset)
+        let offset = newLit(i.jumpOffset)
         quote do:
-          trace ms, `iname`, s, "jump -> " & `label` & ":" & $(ms.ip+`offset`)
+          trace ms, `iname`, s, "jump -> " & $(ms.ip+`offset`)
           ms.ip += `offset`
 
       of opCapOpen:

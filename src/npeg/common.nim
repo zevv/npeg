@@ -80,9 +80,11 @@ type
         str*: string
       of opChr, opIChr:
         ch*: char
-      of opCall, opJump:
+      of opJump:
+        jumpOffset*: int
+      of opCall:
         callLabel*: string
-        callOffset*: int
+        callAddress*: int
       of opSet, opSpan:
         cs*: CharSet
       of opCapOpen, opCapClose:

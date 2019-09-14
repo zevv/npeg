@@ -20,8 +20,10 @@ when npegTrace:
           args = " '" & escapeChar(i.ch) & "'"
         of opChoice, opCommit, opPartCommit:
           args = " " & $(n+i.offset)
-        of opCall, opJump:
-          args = " " & $(n+i.callOffset)
+        of opCall:
+          args = " " & $(i.callAddress)
+        of opJump:
+          args = " " & $(n+i.jumpOffset)
         of opCapOpen, opCapClose:
           args = " " & $i.capKind
           if i.capAction != nil:
@@ -154,7 +156,7 @@ proc `@`*(p: Patt): Patt =
   result.add p
   result.add Inst(op: opCommit, offset: 3)
   result.add Inst(op: opAny)
-  result.add Inst(op: opJump, callOffset: - p.len - 3)
+  result.add Inst(op: opJump, jumpOffset: - p.len - 3)
 
 ### Infixes
 

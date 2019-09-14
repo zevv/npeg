@@ -129,9 +129,11 @@ proc link*(grammar: Grammar, initial_name: string, dot: Dot = nil): Patt =
 
   for ip, i in retPatt.mpairs:
     if i.op == opCall:
-      i.callOffset = symtab.get(i.callLabel) - ip
+      i.callAddress = symtab.get(i.callLabel)
     if i.op == opCall and retPatt[ip+1].op == opReturn:
+      let offset = i.callAddress - ip
       i.op = opJump
+      i.jumpOffset = offset
 
   result = retPatt
   when npegTrace:
