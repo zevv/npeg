@@ -167,7 +167,7 @@ proc `$`*(a: ASTNode): string =
 # Create a short and friendly text representation of a character set.
 
 proc escapeChar*(c: char): string =
-  const escapes = { '\n': "\\n", '\r': "\\r", '\t': "\\t", '\\': "\\\\", '\'': "\\'" }.toTable()
+  const escapes = { '\n': "\\n", '\r': "\\r", '\t': "\\t" }.toTable()
   if c in escapes:
     result = escapes[c]
   elif c >= ' ' and c <= '~':

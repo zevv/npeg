@@ -30,6 +30,8 @@ proc fixCaptures*(s: Subject, capStack: var Stack[CapFrame], fm: FixMethod): Cap
 
   assert capStack.top > 0
   assert capStack.peek.cft == cftCLose
+  when npegDebug:
+    echo $capStack
 
   # Search the capStack for cftOpen matching the cftClose on top
 

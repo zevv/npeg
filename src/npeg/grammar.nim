@@ -50,7 +50,7 @@ proc libStore*(libName: string, grammar: Grammar) =
 
 proc addPatt*(grammar: Grammar, name: string, patt1: Patt) =
   if name in grammar.patts:
-    error "Redefinition of rule '" & name & "'"
+    warning "Redefinition of rule '" & name & "'"
   var patt = patt1
   when npegTrace:
     for i in patt.mitems:
@@ -113,6 +113,8 @@ proc link*(grammar: Grammar, initial_name: string, dot: Dot = nil): Patt =
     symTab.add(name, retPatt.len)
     retPatt.add patt
     retPatt.add Inst(op: opReturn)
+    when npegTrace:
+      retPatt[retPatt.high].name = retPatt[retPatt.high-1].name
 
     for i in patt:
       if i.op == opCall and i.callLabel notin symTab:
