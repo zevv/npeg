@@ -2,7 +2,7 @@
 master
 ======
 
-- Compile time performance improvements
+- Various runtime and compiletime performance improvements
 
 0.16.0
 ======

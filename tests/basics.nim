@@ -105,6 +105,16 @@ suite "unit tests":
     const v = doTest()
     doAssert v == "12345"
 
+  test "matchMax":
+    let s = peg "line":
+      line   <- one | two
+      one    <- +Digit * 'c' * 'd' * 'f'
+      two    <- +Digit * 'b'
+    let r = s.match("1234cde")
+    doAssert r.ok == false
+    doAssert r.matchLen == 4
+    doAssert r.matchMax == 6
+
   test "grammar1":
     let a = peg "r1":
       r1 <- "abc"
