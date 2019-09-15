@@ -20,29 +20,30 @@ proc parsePatt*(name: string, nn: NimNode, grammar: Grammar, dot: Dot = nil): Pa
     proc inlineOrCall(name2: string): Patt =
 
       # Try to import symbol early so we might be able to inline or shadow it
-      if name2 notin grammar.patts:
+      if not grammar.hasRule(name2):
         discard libImportRule(name2, grammar)
 
       if name == name2:
-        if name in grammar.patts:
-          let nameShadowed = grammar.shadow(name)
+        if grammar.hasRule(name):
+          let nameShadowed = grammar.shadowRule(name)
           return newCallPatt(nameShadowed)
 
-      if name2 in grammar.patts and grammar.patts[name2].len < npegInlineMaxLen:
-        when npegDebug:
-          echo "  inline ", name2
-        dot.add(name, name2, "inline")
-        return grammar.patts[name2]
+      if grammar.hasRule(name2):
+        let patt2 = grammar.getRule(name2)
+        if patt2.len < npegInlineMaxLen:
+          when npegDebug:
+            echo "  inline ", name2
+          dot.add(name, name2, "inline")
+          return patt2
 
-      else:
-        when npegDebug:
-          echo "  call ", name2
-        dot.add(name, name2, "call")
-        return newCallPatt(name2)
+      when npegDebug:
+        echo "  call ", name2
+      dot.add(name, name2, "call")
+      return newCallPatt(name2)
 
     proc applyTemplate(name: string, arg: NimNode): NimNode =
-      let t = if name in grammar.templates:
-        grammar.templates[name]
+      let t = if grammar.hasTemplate(name):
+        grammar.getTemplate(name)
       else:
         libImportTemplate(name)
       if t != nil:
@@ -204,13 +205,13 @@ proc parseGrammar*(ns: NimNode, dot: Dot=nil): Grammar =
         if n.len == 4:
           patt = newPatt(patt, ckAction)
           patt[patt.high].capAction = n[3]
-        result.addPatt(name, patt)
+        result.addRule(name, patt)
 
       elif n[1].kind == nnkCall:
         var t = Template(name: n[1][0].strVal, code: n[2])
         for i in 1..<n[1].len:
           t.args.add n[1][i].strVal
-        result.templates[t.name] = t
+        result.addTemplate(t.name, t)
 
       else:
         error "Expected PEG rule name but got " & $n[1].kind, n

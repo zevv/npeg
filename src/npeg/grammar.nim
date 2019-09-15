@@ -20,6 +20,74 @@ proc newGrammar*(): Grammar =
 var gPattLib {.compileTime.} = newGrammar()
 
 
+# Manage rules in a grammar
+
+proc hasRule*(g: Grammar, name: string): bool =
+  for rule in g.rules:
+    if rule.name == name:
+      return true
+
+proc getRule*(g: Grammar, name: string): Patt =
+  for rule in g.rules:
+    if rule.name == name:
+      return rule.patt
+
+proc delRule(g: Grammar, name: string) =
+  var idx = -1
+  for i in 0..g.rules.high:
+    if g.rules[i].name == name:
+      idx = i
+  if idx != -1:
+    g.rules.del idx
+
+proc addRule*(grammar: Grammar, name: string, patt1: Patt) =
+  if grammar.hasRule(name):
+    warning "Redefinition of rule '" & name & "'"
+  var patt = patt1
+  when npegTrace:
+    for i in patt.mitems:
+      if i.name == "":
+        i.name = name
+  grammar.rules.add Rule(name: name, patt: patt)
+
+iterator eachRule*(g: Grammar): (string, Patt) =
+  for rule in g.rules:
+    yield (rule.name, rule.patt)
+
+proc shadowRule*(grammar: Grammar, name: string): string =
+  # Shadow the given name in the grammar by creating an unique new name,
+  # and moving the original rule
+  var gShadowId {.global.} = 0
+  inc gShadowId
+  let name2 = name & "-" & $gShadowId
+  when npegDebug:
+    echo "  shadow ", name, " -> ", name2
+  grammar.addRule(name2, grammar.getRule(name))
+  grammar.delRule(name)
+  return name2
+
+
+# Manage templates in a grammar
+
+proc hasTemplate*(g: Grammar, name: string): bool =
+  for t in g.templates:
+    if t.name == name:
+      return true
+
+proc getTemplate*(g: Grammar, name: string): Template =
+  for t in g.templates:
+    if t.name == name:
+      return t
+
+proc addTemplate*(g: Grammar, name: string, t: Template) =
+  var t2 = t
+  t2.name = name
+  g.templates.add t2
+
+iterator eachTemplate*(g: Grammar): Template =
+  for t in g.templates:
+    yield t
+
 # Store a grammar in the library.  The rule names and all unqualified
 # identifiers in the grammar are expanded to qualified names in the form
 # <libname>.<pattname> to make sure they are easily resolved when they are
@@ -30,7 +98,7 @@ proc libStore*(libName: string, grammar: Grammar) =
   proc qualify(name: string): string =
     if libName.len > 0: libName & "." & name else: name
 
-  for pattname, patt in grammar.patts:
+  for pattname, patt in grammar.eachRule:
     var pattname2 = qualify(pattname)
     var patt2: Patt
     for i in patt.items:
@@ -39,56 +107,27 @@ proc libStore*(libName: string, grammar: Grammar) =
         if "." notin i2.callLabel:
           i2.callLabel = qualify(i2.callLabel)
       patt2.add i2
-    gPattLib.patts[pattname2] = patt2
+    gPattLib.addRule(pattname2, patt2)
 
-  for tname, t in grammar.templates:
-    gPattLib.templates[qualify(tname)] = t
-
-#
-# Add rule to a grammer
-#
-
-proc addPatt*(grammar: Grammar, name: string, patt1: Patt) =
-  if name in grammar.patts:
-    warning "Redefinition of rule '" & name & "'"
-  var patt = patt1
-  when npegTrace:
-    for i in patt.mitems:
-      if i.name == "":
-        i.name = name
-      else:
-        i.name = " " & i.name
-  grammar.patts[name] = patt
+  for  t in grammar.eachTemplate:
+    gPattLib.addTemplate(qualify(t.name), t)
 
 
 # Try to import the given rule from the pattern library into a grammar. Returns
 # true if import succeeded, false if not found.
 
 proc libImportRule*(name: string, grammar: Grammar): bool =
-  if name in gPattLib.patts:
-    grammar.addPatt name, gPattLib.patts[name]
+  if gPattLib.hasRule(name):
+    grammar.addRule name, gPattLib.getRule(name)
     when npegDebug:
       echo "importing ", name
     return true
 
 
 proc libImportTemplate*(name: string): Template =
-  if name in gPattLib.templates:
-    result = gPattLib.templates[name]
+  if gPattLib.hasTemplate(name):
+    result = gPattLib.getTemplate(name)
 
-
-# Shadow the given name in the grammar by creating an unique new name,
-# and moving the original rule
-
-proc shadow*(grammar: Grammar, name: string): string =
-  var gShadowId {.global.} = 0
-  inc gShadowId
-  let name2 = name & "-" & $gShadowId
-  when npegDebug:
-    echo "  shadow ", name, " -> ", name2
-  grammar.patts[name2] = grammar.patts[name]
-  grammar.patts.del name
-  return name2
 
 
 # Link a list of patterns into a grammar, which is itself again a valid
@@ -97,7 +136,7 @@ proc shadow*(grammar: Grammar, name: string): string =
 
 proc link*(grammar: Grammar, initial_name: string, dot: Dot = nil): Patt =
 
-  if initial_name notin grammar.patts:
+  if not grammar.hasRule(initial_name):
     error "inital rule '" & initial_name & "' not found"
 
   var retPatt: Patt
@@ -109,7 +148,7 @@ proc link*(grammar: Grammar, initial_name: string, dot: Dot = nil): Patt =
   proc emit(name: string) =
     if npegDebug:
       echo "emit ", name
-    let patt = grammar.patts[name]
+    let patt = grammar.getRule(name)
     symTab.add(name, retPatt.len)
     retPatt.add patt
     retPatt.add Inst(op: opReturn)
@@ -118,7 +157,7 @@ proc link*(grammar: Grammar, initial_name: string, dot: Dot = nil): Patt =
 
     for i in patt:
       if i.op == opCall and i.callLabel notin symTab:
-        if i.callLabel notin grammar.patts and not libImportRule(i.callLabel, grammar):
+        if not grammar.hasRule(i.callLabel) and not libImportRule(i.callLabel, grammar):
           error "Npeg: rule \"" & name & "\" is referencing undefined rule \"" & i.callLabel & "\""
         dot.add(name, i.callLabel, "call")
         emit i.callLabel

@@ -210,8 +210,8 @@ proc parseRailRoad*(nn: NimNode, grammar: Grammar): Node =
   proc aux(n: NimNode): Node =
 
     proc applyTemplate(name: string, arg: NimNode): NimNode =
-      let t = if name in grammar.templates:
-        grammar.templates[name]
+      let t = if grammar.hasTemplate(name):
+        grammar.getTemplate(name)
       else:
         libImportTemplate(name)
       if t != nil:

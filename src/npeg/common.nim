@@ -107,9 +107,13 @@ type
     args*: seq[string]
     code*: NimNode
 
+  Rule* = object
+    name*: string
+    patt*: Patt
+
   Grammar* = ref object
-    patts*: Table[string, Patt]
-    templates*: Table[string, Template]
+    rules*: seq[Rule]
+    templates*: seq[Template]
 
   ASTNode* = ref object
     id*: string
