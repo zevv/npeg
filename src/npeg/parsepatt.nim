@@ -177,17 +177,13 @@ proc parsePatt*(name: string, nn: NimNode, grammar: Grammar, dot: Dot = nil): Pa
   result = aux(nn)
   dot.addPatt(name, result.len)
 
-  when npegGraph:
-    let rr = parseRailroad(nn, grammar)
-    dump(rr.wrap(name))
-
 
 #
 # Parse a grammar. A grammar consists of named rules, where each rule is one
 # pattern
 #
 
-proc parseGrammar*(ns: NimNode, dot: Dot=nil): Grammar =
+proc parseGrammar*(ns: NimNode, dot: Dot=nil, dumpRailroad = true): Grammar =
   result = newGrammar()
 
   for n in ns:
@@ -205,6 +201,11 @@ proc parseGrammar*(ns: NimNode, dot: Dot=nil): Grammar =
           patt = newPatt(patt, ckAction)
           patt[patt.high].capAction = n[3]
         result.addPatt(name, patt)
+
+        when npegGraph:
+          if dumpRailroad:
+            let rr = parseRailroad(n[2], result)
+            dump(rr.wrap(name))
 
       elif n[1].kind == nnkCall:
         var t = Template(name: n[1][0].strVal, code: n[2])

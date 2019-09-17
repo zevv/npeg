@@ -106,8 +106,8 @@ macro patt*(n: untyped): untyped =
 macro grammar*(libNameNode: string, n: untyped) =
   ## This macro defines a collection of rules to be stored in NPeg's global
   ## grammar library.
-  let grammar = parseGrammar(n)
   let libName = libNameNode.strval
+  let grammar = parseGrammar(n, dumpRailroad = libname != "")
   libStore(libName, grammar)
 
 
