@@ -151,6 +151,7 @@ proc collectCapturesAST*(cs: Captures): ASTNode =
 
 
 proc `[]`*(cs: Captures, i: int): Capture =
+  echo "Getcap, ", i
   if i >= cs.len:
     raise newException(NPegException, "Capture out of range")
   cs[i]
