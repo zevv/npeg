@@ -72,13 +72,20 @@ template skel(cases: untyped, ms: NimNode, s: NimNode, capture: NimNode,
 
   let match = proc(ms: var MatchState, s: Subject, userDataId: var userDataType): MatchResult =
 
+    # Create local instances of performance-critical MatchState vars, this saves a
+    # dereference on each access
+
+    var ip {.inject.} = ms.ip
+    var si {.inject.} = ms.si
+    var simax {.inject.} = ms.simax
+
     # Debug trace. Slow and expensive
 
     proc doTrace(ms: var MatchState, iname: string, s: Subject, msg: string) =
       when npegTrace:
-        echo align(if ms.ip >= 0: $ms.ip else: "", 3) &
-          "|" & align($ms.si, 3) &
-          "|" & alignLeft(dumpString(s, ms.si, 24), 24) &
+        echo align(if ip >= 0: $ip else: "", 3) &
+          "|" & align($si, 3) &
+          "|" & alignLeft(dumpString(s, si, 24), 24) &
           "|" & alignLeft(iname, 15) &
           "|" & alignLeft(msg, 40) &
           "|" & repeat("*", ms.backStack.top)
@@ -86,13 +93,6 @@ template skel(cases: untyped, ms: NimNode, s: NimNode, capture: NimNode,
     template trace(ms: var MatchState, iname: string, s: Subject, msg: string) =
       when npegTrace:
         doTrace(ms, iname, s, msg)
-
-    # Create local instances of performance-critical MatchState vars, this saves a
-    # dereference on each access
-
-    var ip {.inject.} = ms.ip
-    var si {.inject.} = ms.si
-    var simax {.inject.} = ms.simax
 
     # Parser main loop. `cases` will be filled in by genCode() which uses this template
     # as the match lambda boilerplate:
