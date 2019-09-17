@@ -173,12 +173,12 @@ proc choice(ns: varArgs[Node]): Node =
 
 proc `{}`*(p: Node, n: BiggestInt): Node =
   result = p
-  for i in 1..n:
+  for i in 1..<n:
     result = result * p
 
 proc `{}`*(p: Node, range: HSlice[system.BiggestInt, system.BiggestInt]): Node =
   result = p{range.a}
-  for i in range.a..range.b:
+  for i in range.a..<range.b:
     result = result * ?p
 
 # This macro flattens AST trees of `|` operators into a single call to
