@@ -33,11 +33,18 @@ type
     dx, dy: int
     n: Node
 
+# Provide ASCII alternative of box drawing for windows
+
+when defined(windows):
+  const asciiTable = [ ("│", "|"), ("─", "-"), ("╭", "."), ("╮", "."),
+                       ("╰", "`"), ("╯", "'"), ("┬", "-"), ("├", "|"),
+                       ("┤", "|"), ("┴", "-"), ("━", "=") ]
+
 #
 # Renders a node to text output
 #
 
-proc dump*(n: Node) =
+proc `$`*(n: Node): string =
   let h = n.y1 - n.y0 + 1
   let y0 = n.y0
   var line: Line
@@ -54,18 +61,22 @@ proc dump*(n: Node) =
       let sy = y+s.y - y0
       grid[sy][sx] = s.c
   render(n, 0, 0)
-
-  for line in grid:
-    var o: string
+      
+  when defined(windows):
+    for line in grid:
+      for cell in line:
+        result.add ($cell.r).multiReplace(asciiTable)
+      result.add "\r\n"
+  else:
     var fg = fgLine
-    for cell in line:
-      if fg != cell.fg:
-        fg = cell.fg
-        o.add ansiForegroundColorCode(fg)
-      o.add $cell.r
-    o.add ansiForegroundColorCode(fgLine)
-    echo o
-  echo ""
+    for line in grid:
+      for cell in line:
+        if fg != cell.fg:
+          fg = cell.fg
+          result.add ansiForegroundColorCode(fg)
+        result.add $cell.r
+      result.add "\n"
+    result.add ansiForegroundColorCode(fgLine)
 
 proc poke(n: Node, fg: ForeGroundColor, cs: varArgs[tuple[x, y: int, s: string]]) =
   for c in cs:
