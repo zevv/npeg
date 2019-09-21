@@ -1,5 +1,5 @@
 
-import macros, unicode, strutils, tables
+import macros, unicode, strutils, tables, strformat
 import npeg/[patt,grammar,common]
 
 when not defined(js):
@@ -83,6 +83,39 @@ proc `$`*(n: Node): string =
         result.add $cell.r
       result.add "\n"
     result.add ansiForegroundColorCode(fgLine)
+
+#
+# Renders a node to SVG
+#
+
+proc toSvg*(n: Node, name: string) =
+  var o = ""
+  let scale = 20
+  let width = scale /% 5
+  template a(s: string) = o.add s & "\n"
+
+  proc rect(x, y, w, h: int) =
+    a &"""<rect x="{$x}" y="{$y}" width="{$w}" height="{$h}" fill="black"/>"""
+
+  proc arc(x, y, a0, a1: int) =
+    a &"""<path d="A {$scale} {$scale} 0 1 1 {$x} {$y}"/>"""
+
+  let y0 = n.y0
+  proc render(n: Node, x, y: int) =
+    for s in n.syms:
+      let sx = scale * (x+s.x)
+      let sy = scale * (y+s.y - y0) + 50
+      if $s.c.r == "─": rect(sx, sy+(scale-width)/%2, scale, width)
+      if $s.c.r == "│": rect(sx+(scale-width)/%2, sy, width, scale)
+      if $s.c.r == "╰": arc(sx, sy, 0, 0)
+    for k in n.kids:
+      render(k.n, x + k.dx, y + k.dy)
+
+  a"""<svg version="1.1" baseProfile="full" width="1000" height="800" xmlns="http://www.w3.org/2000/svg">"""
+  render(n, 0, 0)
+  a """</svg>"""
+  writeFile(name, o)
+
 
 proc poke(n: Node, fg: ForeGroundColor, cs: varArgs[tuple[x, y: int, s: string]]) =
   for c in cs:

@@ -204,7 +204,9 @@ proc parseGrammar*(ns: NimNode, dot: Dot=nil, dumpRailroad = true): Grammar =
 
         when npegGraph:
           if dumpRailroad:
-            echo parseRailroad(n[2], result).wrap(name)
+            let r = parseRailroad(n[2], result).wrap(name)
+            echo $r
+            r.toSvg("/tmp/rr.svg")
 
       elif n[1].kind == nnkCall:
         var t = Template(name: n[1][0].strVal, code: n[2])
