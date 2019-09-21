@@ -22,6 +22,9 @@ task testdanger, "Runs the test suite in danger mode":
 task testjs, "Javascript tests":
   exec "nim js tests/tests.nim && node tests/tests.js"
 
+task testcpp, "CPP tests":
+  exec "nim cpp -r tests/tests.nim && tests/tests"
+
 task testwin, "Mingw tests":
   exec "nim c -d:mingw tests/tests.nim && wine tests/tests.exe"
 
@@ -29,4 +32,4 @@ task test32, "32 bit tests":
   exec "nim c --cpu:i386 --passC:-m32 --passL:-m32 tests/tests.nim && tests/tests"
 
 task testall, "Test all":
-  exec "nimble test && nimble testdanger && nimble testjs && nimble testwin"
+  exec "nimble test && nimble testcpp && nimble testdanger && nimble testjs && nimble testwin"
