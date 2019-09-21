@@ -1,6 +1,12 @@
 
-import macros, unicode, strutils, tables, terminal
+import macros, unicode, strutils, tables
 import npeg/[patt,grammar,common]
+
+when not defined(js):
+  import terminal
+else:
+  type ForeGroundColor = enum
+    fgYellow, fgMagenta, fgGreen, fgWhite, fgCyan, fgRed
 
 const
   fgName = fgYellow
@@ -35,7 +41,7 @@ type
 
 # Provide ASCII alternative of box drawing for windows
 
-when defined(windows):
+when defined(windows) or defined(js):
   const asciiTable = [ ("│", "|"), ("─", "-"), ("╭", "."), ("╮", "."),
                        ("╰", "`"), ("╯", "'"), ("┬", "-"), ("├", "|"),
                        ("┤", "|"), ("┴", "-"), ("━", "=") ]
@@ -62,7 +68,7 @@ proc `$`*(n: Node): string =
       grid[sy][sx] = s.c
   render(n, 0, 0)
       
-  when defined(windows):
+  when defined(windows) or defined(js):
     for line in grid:
       for cell in line:
         result.add ($cell.r).multiReplace(asciiTable)
