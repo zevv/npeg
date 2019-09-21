@@ -90,28 +90,55 @@ proc `$`*(n: Node): string =
 
 proc toSvg*(n: Node, name: string) =
   var o = ""
-  let scale = 20
-  let width = scale /% 5
+  let xscale = 20
+  let yscale = 30
+  let width = xscale /% 3
   template a(s: string) = o.add s & "\n"
 
   proc rect(x, y, w, h: int) =
     a &"""<rect x="{$x}" y="{$y}" width="{$w}" height="{$h}" fill="black"/>"""
 
-  proc arc(x, y, a0, a1: int) =
-    a &"""<path d="A {$scale} {$scale} 0 1 1 {$x} {$y}"/>"""
+  proc path(s: string) =
+    a &"""<path d="{s}" style="stroke: #000; stroke-width:{$width}; fill:none;"/>"""
+
+  proc arc(x0, y0, x1, y1: int) =
+    path &"M {$x0},{$y0} A {(xscale/%2)},{$(yscale/%2)} 0 0,1 {$x1},{$y1}"
+
+  proc poly(ps: varargs[tuple[a, b: int]]) =
+    var tmp: seq[string]
+    for p in ps:
+      tmp.add $p.a & "," & $p.b
+    a """<polygon points="""" & tmp.join(" ") & """" style="fill:black;" />"""
+
+  var seen: Table[(int,int), bool]
 
   let y0 = n.y0
   proc render(n: Node, x, y: int) =
     for s in n.syms:
-      let sx = scale * (x+s.x)
-      let sy = scale * (y+s.y - y0) + 50
-      if $s.c.r == "─": rect(sx, sy+(scale-width)/%2, scale, width)
-      if $s.c.r == "│": rect(sx+(scale-width)/%2, sy, width, scale)
-      if $s.c.r == "╰": arc(sx, sy, 0, 0)
+      let (x0, y0) = (xscale * (x+s.x), yscale * (y+s.y - y0))
+      let (x1, y1) = (x0 + xscale, y0 + yscale)
+      let (xc, yc) = (x0+xscale/%2, y0+yscale/%2)
+      case $s.c.r
+        of "─": rect(x0, y0+(yscale-width)/%2, xscale, width)
+        of "━": rect(x0, y0+(yscale-width)/%2, xscale, width*2)
+        of "╶": rect(x0, y0+(yscale-width)/%2, xscale, width)
+        of "┬": rect(x0, y0+(yscale-width)/%2, xscale, width); rect(x0+(xscale-width)/%2, yc, width, yscale/%2)
+        of "┴": rect(x0, y0+(yscale-width)/%2, xscale, width); rect(x0+(xscale-width)/%2, y0, width, yscale/%2)
+        of "│": rect(x0+(xscale-width)/%2, y0, width, yscale)
+        of "┆": rect(x0+(xscale-width)/%2, y0, width, yscale)
+        of "╭": arc(xc, y0+yscale, x1, yc)
+        of "╮": arc(x0, yc, xc, y1)
+        of "╰": arc(x1, yc, xc, y0)
+        of "╯": arc(xc, y0, x0, yc)
+        of "«": rect(x0, y0+(yscale-width)/%2, xscale, width); poly (x0, yc), (x1, yc+width*2), (x1, yc-width*2)
+        of "»": rect(x0, y0+(yscale-width)/%2, xscale, width); poly (x1, yc), (x0, yc+width*2), (x0, yc-width*2)
+        else: a &"""<text class="t" x="{$x0}" y="{$(yc+width)}">{$s.c.r}</text>"""
+
     for k in n.kids:
       render(k.n, x + k.dx, y + k.dy)
 
-  a"""<svg version="1.1" baseProfile="full" width="1000" height="800" xmlns="http://www.w3.org/2000/svg">"""
+  a"""<svg version="1.1" baseProfile="full" width="1280" height="800" xmlns="http://www.w3.org/2000/svg">"""
+  a"""<style> .t { font: bold 32px monospace; }</style>"""
   render(n, 0, 0)
   a """</svg>"""
   writeFile(name, o)
