@@ -153,16 +153,21 @@ proc `+`(n: Node): Node =
   result.poke fgLine, ((x1+x2)/%2, y2, "«")
 
 proc `!`(n: Node): Node =
-  result = n
-  result.y0 = n.y0 - 1
+  result = n.pad(0, 0, 1)
   let (x0, x1) = (1, result.w-2)
   for x in x0..x1:
-    result.poke fgRed, (x, n.y0, "━")
+    result.poke fgRed, (x, result.y0, "━")
 
 proc `-`*(p1, p2: Node): Node =
-  return p1
+  return !p2 * p1
 
 proc `*`(n: Node): Node = ? + n
+
+proc `@`(n: Node): Node =
+  result = *(!n * newNode("1")) * n
+
+proc `&`(n: Node): Node =
+  result = ! ! n
 
 proc choice(ns: varArgs[Node]): Node =
   var wmax = 0
@@ -284,6 +289,8 @@ proc parseRailRoad*(nn: NimNode, grammar: Grammar): Node =
             of '+': p = +p
             of '*': p = *p
             of '!': p = !p
+            of '@': p = @p
+            of '&': p = &p
             of '>': p = newCapNode(p)
             else: p = p
         result = p
@@ -292,7 +299,7 @@ proc parseRailRoad*(nn: NimNode, grammar: Grammar): Node =
         let (p1, p2) = (aux n[1], aux n[2])
         case n[0].strVal:
           of "*": result = p1 * p2
-          of "-": result = !p2 * p1
+          of "-": result = p1 - p2
           else: discard
 
       of nnkBracketExpr:

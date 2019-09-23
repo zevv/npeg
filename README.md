@@ -304,7 +304,7 @@ patterns.
 
   ```
   o─┬─[P1]─┬─o
-    ╰─[P2]─╯  
+    ╰─[P2]─╯
   ```
 
   The pattern `P1 | P2` tries to first match pattern `P1`. If this succeeds,
@@ -320,7 +320,12 @@ patterns.
 - Difference: `P1 - P2`
 
   The pattern `P1 - P2` matches `P1` *only* if `P2` does not match. This is
-  equivalent to `!P2 * P1`
+  equivalent to `!P2 * P1`:
+  
+  ```
+     ━━━━
+  o──[P1]─»─[P2]──o
+  ```
 
   NPeg optimizes the `-` operator for characters and character sets: The
   pattern `{'a','b','c'} - 'b'` will be rewritten to the character set `{'a','c'}`
@@ -333,6 +338,11 @@ patterns.
 
 - Not-predicate: `!P`
 
+  ```
+     ━━━
+  o──[P]──o
+  ```
+
   The pattern `!P` returns a pattern that matches only if the input does not match `P`.
   In contrast to most other patterns, this pattern does not consume any input.
 
@@ -342,14 +352,20 @@ patterns.
 
 - And-predicate: `&P`
 
-  The pattern `&P` matches only if the input matches `P`, but will *not*
-  consume any input. This is equivalent to `!!P`
+  ```
+     ━━━
+     ━━━
+  o──[P]──o
+  ```
 
+  The pattern `&P` matches only if the input matches `P`, but will *not*
+  consume any input. This is equivalent to `!!P`. This is denoted by a double negation
+  in the railroad diagram, which is not very pretty unfortunately.
 
 - Optional: `?P`
 
   ```
-    ╭──»──╮   
+    ╭──»──╮
   o─┴─[P]─┴─o
   ```
 
@@ -362,9 +378,9 @@ patterns.
 - Match zero or more times: `*P`
 
   ```
-    ╭───»───╮  
+    ╭───»───╮
   o─┴┬─[P]─┬┴─o
-     ╰──«──╯   
+     ╰──«──╯
   ```
 
   The pattern `*P` tries to match as many occurrences of pattern `P` as
@@ -377,7 +393,7 @@ patterns.
 
   ```
   o─┬─[P]─┬─o
-    ╰──«──╯  
+    ╰──«──╯
   ```
 
   The pattern `+P` matches `P` at least once, but also more times. It is equivalent
@@ -386,9 +402,16 @@ patterns.
 
 - Search: `@P`
 
-  This operator is syntactic sugar for the operation of searching `s <- P | 1 * s`,
-  which translates to "try to match `P`, and if this fails, consume 1 byte and
-  try again".
+  This operator searches for pattern `P` using an optimized implementation. It
+  is equivalent to `s <- *(1 - P) * P`, which can be read as "try to match as many
+  characters as possible not matching `P`, and then match `P`:
+
+  ```
+    ╭─────»─────╮
+    │  ━━━      │
+  o─┴┬─[P]─»─1─┬┴»─[P]──o
+     ╰────«────╯
+  ```
 
   Note that this operator does not allow capturing the skipped data up to the
   match; if his is required you can manually construct a grammar to do this.
@@ -398,17 +421,32 @@ patterns.
 
   The pattern `P[n]` matches `P` exactly `n` times.
 
-  For example, `"foo"[3]` only matches the string `"foofoofoo"`
+  For example, `"foo"[3]` only matches the string `"foofoofoo"`:
+
+  ```
+  o──[P]─»─[P]─»─[P]──o
+  ```
 
 
 - Match `m` to `n` times: `P[m..n]`
 
   The pattern `P[m..n]` matches `P` at least `m` and at most `n` times.
 
-  For example, `"foo[1,3]"` matches `"foo"`, `"foofoo"` and `"foofoofo"`
+  For example, `"foo[1,3]"` matches `"foo"`, `"foofoo"` and `"foofoofo"`:
+
+  ```
+          ╭──»──╮ ╭──»──╮
+  o──[P]─»┴─[P]─┴»┴─[P]─┴─o
+  ```
 
 
 ## Captures
+
+```
+     ╭╶╶╶╶╶╮
+s o────[P]────o
+     ╰╶╶╶╶╶╯
+```
 
 NPeg supports a number of ways to capture data when parsing a string. The various
 capture methods are described here, including a concise example.
