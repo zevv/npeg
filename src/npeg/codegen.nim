@@ -67,7 +67,7 @@ proc initMatchState*(): MatchState =
 # `peg` macro can access it.  I'd love to hear if there are better solutions
 # for this.
 
-template skel(cases: untyped, ms: NimNode, s: NimNode, capture: NimNode,
+template skel(cases: untyped, count: int, ms: NimNode, s: NimNode, capture: NimNode,
               userDataType: untyped, userDataId: NimNode) =
 
   let match = proc(ms: var MatchState, s: Subject, userDataId: var userDataType): MatchResult =
@@ -75,7 +75,8 @@ template skel(cases: untyped, ms: NimNode, s: NimNode, capture: NimNode,
     # Create local instances of performance-critical MatchState vars, this saves a
     # dereference on each access
 
-    var ip {.inject.} = ms.ip
+    let ipError {.inject.} = count
+    var ip {.inject.}: range[0..count] = ms.ip
     var si {.inject.} = ms.si
     var simax {.inject.} = ms.simax
 
@@ -98,6 +99,7 @@ template skel(cases: untyped, ms: NimNode, s: NimNode, capture: NimNode,
     # as the match lambda boilerplate:
 
     while true:
+      {.computedGoto.}
       {.push hint[XDeclaredButNotUsed]: off.}
       cases
       {.pop.}
@@ -142,7 +144,7 @@ proc genCode*(patt: Patt, userDataType: NimNode, userDataId: NimNode): NimNode =
             inc ip
             inc si
           else:
-            ip = -1
+            ip = ipError
 
       of opIChr:
         let ch = newLit(i.ch)
@@ -152,7 +154,7 @@ proc genCode*(patt: Patt, userDataType: NimNode, userDataId: NimNode): NimNode =
             inc ip
             inc si
           else:
-            ip = -1
+            ip = ipError
 
       of opStr:
         let s2 = newLit(i.str)
@@ -162,7 +164,7 @@ proc genCode*(patt: Patt, userDataType: NimNode, userDataId: NimNode): NimNode =
             inc ip
             inc si, `s2`.len
           else:
-            ip = -1
+            ip = ipError
 
       of opIStr:
         let s2 = newLit(i.str)
@@ -172,7 +174,7 @@ proc genCode*(patt: Patt, userDataType: NimNode, userDataId: NimNode): NimNode =
             inc ip
             inc si, `s2`.len
           else:
-            ip = -1
+            ip = ipError
 
       of opSet:
         let cs = newLit(i.cs)
@@ -182,7 +184,7 @@ proc genCode*(patt: Patt, userDataType: NimNode, userDataId: NimNode): NimNode =
             inc ip
             inc si
           else:
-            ip = -1
+            ip = ipError
 
       of opSpan:
         let cs = newLit(i.cs)
@@ -254,7 +256,7 @@ proc genCode*(patt: Patt, userDataType: NimNode, userDataId: NimNode): NimNode =
               if ok:
                 inc ip
               else:
-                ip = -1
+                ip = ipError
 
           of ckRef:
             quote do:
@@ -280,7 +282,7 @@ proc genCode*(patt: Patt, userDataType: NimNode, userDataId: NimNode): NimNode =
               inc ip
               inc si, s2.len
             else:
-              ip = -1
+              ip = ipError
           else:
             raise newException(NPegException, "Unknown back reference '" & `refName` & "'")
 
@@ -312,7 +314,7 @@ proc genCode*(patt: Patt, userDataType: NimNode, userDataId: NimNode): NimNode =
             inc ip
             inc si
           else:
-            ip = -1
+            ip = ipError
 
       of opNop:
         quote do:
@@ -332,7 +334,7 @@ proc genCode*(patt: Patt, userDataType: NimNode, userDataId: NimNode): NimNode =
 
     cases.add nnkOfBranch.newTree(newLit(n), call)
 
-  cases.add nnkElse.newTree quote do:
+  cases.add nnkOfBranch.newTree(newLit(patt.high+1), quote do:
     simax = max(simax, si)
     if ms.backStack.top > 0:
       trace ms, "", s, "fail"
@@ -340,8 +342,9 @@ proc genCode*(patt: Patt, userDataType: NimNode, userDataId: NimNode): NimNode =
     else:
       trace ms, "", s, "error"
       break
+    )
 
-  result = getAst skel(cases, ident "ms", ident "s", ident "capture",
+  result = getAst skel(cases, patt.high+1, ident "ms", ident "s", ident "capture",
                        userDataType, userDataId)
 
   when npegExpand:
