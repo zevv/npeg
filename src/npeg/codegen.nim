@@ -75,7 +75,6 @@ template skel(cases: untyped, count: int, ms: NimNode, s: NimNode, capture: NimN
     # Create local instances of performance-critical MatchState vars, this saves a
     # dereference on each access
 
-    let ipError {.inject.} = count
     var ip {.inject.}: range[0..count] = ms.ip
     var si {.inject.} = ms.si
     var simax {.inject.} = ms.simax
@@ -95,8 +94,10 @@ template skel(cases: untyped, count: int, ms: NimNode, s: NimNode, capture: NimN
       when npegTrace:
         doTrace(ms, iname, s, msg)
 
-    # Parser main loop. `cases` will be filled in by genCode() which uses this template
-    # as the match lambda boilerplate:
+    # Parser main loop. `cases` will be filled in by genCode() which uses this
+    # template as the match lambda boilerplate. The .computedGoto. pragma will
+    # generate code using C computed gotos, which will get highly optmized,
+    # mostly eliminating the inner parser loop
 
     while true:
       {.computedGoto.}
@@ -127,7 +128,10 @@ proc genCode*(patt: Patt, userDataType: NimNode, userDataId: NimNode): NimNode =
     case ip
         
 
-  for n, i in patt.pairs:
+  for ipNow, i in patt.pairs:
+    
+    let ipNext = ipNow + 1
+    let ipError = patt.high + 1
 
     when npegTrace:
       let iname = newLit(i.name)
@@ -141,50 +145,50 @@ proc genCode*(patt: Patt, userDataType: NimNode, userDataId: NimNode): NimNode =
         quote do:
           trace ms, `iname`, s, "chr \"" & escapeChar(`ch`) & "\""
           if si < s.len and s[si] == `ch`.char:
-            inc ip
+            ip = `ipNext`
             inc si
           else:
-            ip = ipError
+            ip = `ipError`
 
       of opIChr:
         let ch = newLit(i.ch)
         quote do:
           trace ms, `iname`, s, "chr \"" & escapeChar(`ch`) & "\""
           if si < s.len and s[si].toLowerAscii == `ch`.char:
-            inc ip
+            ip = `ipNext`
             inc si
           else:
-            ip = ipError
+            ip = `ipError`
 
       of opStr:
         let s2 = newLit(i.str)
         quote do:
           trace ms, `iname`, s, "str \"" & dumpString(`s2`) & "\""
           if subStrCmp(s, s.len, si, `s2`):
-            inc ip
+            ip = `ipNext`
             inc si, `s2`.len
           else:
-            ip = ipError
+            ip = `ipError`
 
       of opIStr:
         let s2 = newLit(i.str)
         quote do:
           trace ms, `iname`, s, "str \"" & dumpString(`s2`) & "\""
           if subIStrCmp(s, s.len, si, `s2`):
-            inc ip
+            ip = `ipNext`
             inc si, `s2`.len
           else:
-            ip = ipError
+            ip = `ipError`
 
       of opSet:
         let cs = newLit(i.cs)
         quote do:
           trace ms, `iname`, s, "set " & dumpSet(`cs`)
           if si < s.len and s[si] in `cs`:
-            inc ip
+            ip = `ipNext`
             inc si
           else:
-            ip = ipError
+            ip = `ipError`
 
       of opSpan:
         let cs = newLit(i.cs)
@@ -192,24 +196,24 @@ proc genCode*(patt: Patt, userDataType: NimNode, userDataId: NimNode): NimNode =
           trace ms, `iname`, s, "span " & dumpSet(`cs`)
           while si < s.len and s[si] in `cs`:
             inc si
-          inc ip
+          ip = `ipNext`
 
       of opChoice:
-        let ip2 = newLit(n + i.offset)
+        let ip2 = newLit(ipNow + i.offset)
         quote do:
           trace ms, `iname`, s, "choice -> " & $`ip2`
           push(ms.backStack, (ip:`ip2`, si:si, rp:ms.retStack.top, cp:ms.capStack.top))
-          inc ip
+          ip = `ipNext`
 
       of opCommit:
-        let ip2 = newLit(n + i.offset)
+        let ip2 = newLit(ipNow + i.offset)
         quote do:
           trace ms, `iname`, s, "commit -> " & $`ip2`
           discard pop(ms.backStack)
           ip = `ip2`
 
       of opPartCommit:
-        let ip2 = newLit(n + i.offset)
+        let ip2 = newLit(ipNow + i.offset)
         quote do:
           trace ms, `iname`, s, "pcommit -> " & $`ip2`
           update(ms.backStack, si, si)
@@ -218,7 +222,7 @@ proc genCode*(patt: Patt, userDataType: NimNode, userDataId: NimNode): NimNode =
 
       of opCall:
         let label = newLit(i.callLabel)
-        let ip2 = newLit(n + i.callOffset)
+        let ip2 = newLit(ipNow + i.callOffset)
         quote do:
           trace ms, `iname`, s, "call -> " & `label` & ":" & $`ip2`
           push(ms.retStack, ip+1)
@@ -226,7 +230,7 @@ proc genCode*(patt: Patt, userDataType: NimNode, userDataId: NimNode): NimNode =
 
       of opJump:
         let label = newLit(i.callLabel)
-        let ip2 = newLit(n + i.callOffset)
+        let ip2 = newLit(ipNow + i.callOffset)
         quote do:
           trace ms, `iname`, s, "jump -> " & `label` & ":" & $`ip2`
           ip = `ip2`
@@ -237,7 +241,7 @@ proc genCode*(patt: Patt, userDataType: NimNode, userDataId: NimNode): NimNode =
         quote do:
           trace ms, `iname`, s, "capopen " & $`capKind` & " -> " & $si
           push(ms.capStack, (cft: cftOpen, si: si, ck: `capKind`, name: `capName`))
-          inc ip
+          ip = `ipNext`
 
       of opCapClose:
         let ck = newLit(i.capKind)
@@ -254,9 +258,9 @@ proc genCode*(patt: Patt, userDataType: NimNode, userDataId: NimNode): NimNode =
               block:
                 `code`
               if ok:
-                inc ip
+                ip = `ipNext`
               else:
-                ip = ipError
+                ip = `ipError`
 
           of ckRef:
             quote do:
@@ -264,13 +268,13 @@ proc genCode*(patt: Patt, userDataType: NimNode, userDataId: NimNode): NimNode =
               push(ms.capStack, (cft: cftClose, si: si, ck: `ck`, name: ""))
               let r = collectCapturesRef(fixCaptures(s, ms.capStack, FixOpen))
               ms.refs[r.key] = r.val
-              inc ip
+              ip = `ipNext`
 
           else:
             quote do:
               trace ms, `iname`, s, "capclose " & $`ck` & " -> " & $si
               push(ms.capStack, (cft: cftClose, si: si, ck: `ck`, name: ""))
-              inc ip
+              ip = `ipNext`
 
       of opBackRef:
         let refName = newLit(i.refName)
@@ -279,10 +283,10 @@ proc genCode*(patt: Patt, userDataType: NimNode, userDataId: NimNode): NimNode =
             let s2 = ms.refs[`refName`]
             trace ms, `iname`, s, "backref " & `refName` & ":\"" & s2 & "\""
             if subStrCmp(s, s.len, si, s2):
-              inc ip
+              ip = `ipNext`
               inc si, s2.len
             else:
-              ip = ipError
+              ip = `ipError`
           else:
             raise newException(NPegException, "Unknown back reference '" & `refName` & "'")
 
@@ -311,15 +315,15 @@ proc genCode*(patt: Patt, userDataType: NimNode, userDataId: NimNode): NimNode =
         quote do:
           trace ms, `iname`, s, "any"
           if si < s.len:
-            inc ip
+            ip = `ipNext`
             inc si
           else:
-            ip = ipError
+            ip = `ipError`
 
       of opNop:
         quote do:
           trace ms, `iname`, s, "nop"
-          inc ip
+          ip = `ipNext`
 
       of opFail:
         quote do:
@@ -332,7 +336,7 @@ proc genCode*(patt: Patt, userDataType: NimNode, userDataId: NimNode): NimNode =
           simax = max(simax, si)
           (ip, si, ms.retStack.top, ms.capStack.top) = pop(ms.backStack)
 
-    cases.add nnkOfBranch.newTree(newLit(n), call)
+    cases.add nnkOfBranch.newTree(newLit(ipNow), call)
 
   cases.add nnkOfBranch.newTree(newLit(patt.high+1), quote do:
     simax = max(simax, si)
