@@ -126,8 +126,9 @@ proc `?`*(p: Patt): Patt =
   result.add Inst(op: opCommit, offset: 1)
 
 proc `*`*(p: Patt): Patt =
-  if p.isSet:
-    result.add Inst(op: opSpan, cs: p[0].cs)
+  var cs: CharSet
+  if p.toSet(cs):
+    result.add Inst(op: opSpan, cs: cs)
   else:
     result.add Inst(op: opChoice, offset: p.len+2)
     result.add p
