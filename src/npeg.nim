@@ -103,7 +103,7 @@ macro patt*(n: untyped): untyped =
       anonymous <- `n`
 
 
-macro grammar*(libNameNode: string, n: untyped) =
+macro grammar*(libNameNode: untyped, n: untyped) =
   ## This macro defines a collection of rules to be stored in NPeg's global
   ## grammar library.
   let libName = libNameNode.strval
