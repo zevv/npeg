@@ -1,5 +1,7 @@
 ![NPeg](/doc/npeg.png)
 
+> "_Because friends don't let friends write parsers by hand_"
+
 NPeg is a pure Nim pattern matching library. It provides macros to compile
 patterns and grammars (PEGs) to Nim procedures which will parse a string and
 collect selected parts of the input. PEGs are not unlike regular expressions,
