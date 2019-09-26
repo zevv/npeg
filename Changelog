@@ -1,4 +1,9 @@
 
+master
+======
+
+- Added fail() function for forcing a parser fail in a code block capture
+
 0.18.0
 ======
 

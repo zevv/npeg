@@ -155,6 +155,12 @@ suite "unit tests":
     doAssert not p.match("10,300").ok
     doAssert not p.match("300,10").ok
 
+  test "user fail":
+    let p = peg "line":
+      line <- 1:
+        fail()
+    doAssert not p.match("a").ok
+
   test "templates":
     let p = peg "a":
       list(patt, sep) <- patt * *(sep * patt)

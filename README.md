@@ -664,20 +664,28 @@ After the parsing finished, the `words` table will now contain
 #### Custom match validations
 
 Code block captures can be used for additional validation of a captured string:
-the code block can call the function `validate(bool)` to indicate if the match
-should succeed or fail. Failing matches are handled as if the capture itself
-failed and will result in the usual backtracking. When the `validate()` function
-is not called, the match will succeed implicitly.
+the code block can call the functions `fail()` or `validate(bool)` to indicate
+if the match should succeed or fail. Failing matches are handled as if the
+capture itself failed and will result in the usual backtracking. When the
+`fail()` or `validate()` functions are not called, the match will succeed
+implicitly.
 
 For example, the following rule will check if a passed number is a valid
 `uint8` number:
 
 ```
-   uint8 <- >Digit[1..3]:
-     let v = parseInt($a)
-     validate v>=0 and v<=255
+uint8 <- >Digit[1..3]:
+  let v = parseInt($a)
+  validate v>=0 and v<=255
 ```
 
+The following grammar will cause the whole parse to fail when the `error` rule
+matches:
+
+```
+error <- 0:
+  fail()
+```
 
 #### Generic pegs and passing state
 
