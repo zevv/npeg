@@ -1072,8 +1072,6 @@ as railroad diagrams) for all parsed rules.
 Syntax diagrams are sometimes helpful to understand or debug a grammar, or to
 get more insight in a grammars' complexity.
 
-![Graph](/doc/syntax-diagram.png)
-
 ```
                               ╭─────────»──────────╮                     
                               │      ╭─────»──────╮│                     
