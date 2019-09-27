@@ -94,7 +94,7 @@ suite "unit tests":
     doAssert     patt(+Xdigit).match("deadbeef").ok
     doAssert     patt(+Graph).match(" x").ok == false
 
-  test "Compile time":
+  test "Compile time 1":
     proc dotest(): string {.compileTime.} =
       var n: string
       let p = peg "number":
@@ -104,6 +104,15 @@ suite "unit tests":
       return n
     const v = doTest()
     doAssert v == "12345"
+
+  test "Compile time 2":
+    static:
+      var n: string
+      let p = peg "number":
+        number <- >+Digit:
+          n = $1
+      doAssert p.match("12345").ok
+      doAssert n == "12345"
 
   test "matchMax":
     let s = peg "line":
