@@ -14,16 +14,19 @@ requires "nim >= 0.19.0"
 # Test
 
 task test, "Runs the test suite":
+  exec "nimble testc && nimble testcpp && nimble testjs"
+
+task testc, "C tests":
   exec "nim c -r tests/tests.nim"
+
+task testcpp, "CPP tests":
+  exec "nim cpp -r tests/tests.nim"
+
+task testjs, "JS tests":
+  exec "nim js -r tests/tests.nim"
 
 task testdanger, "Runs the test suite in danger mode":
   exec "nim c -d:danger -r tests/tests.nim"
-
-task testjs, "Javascript tests":
-  exec "nim js tests/tests.nim && node tests/tests.js"
-
-task testcpp, "CPP tests":
-  exec "nim cpp -r tests/tests.nim && tests/tests"
 
 task testwin, "Mingw tests":
   exec "nim c -d:mingw tests/tests.nim && wine tests/tests.exe"
