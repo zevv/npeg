@@ -22,8 +22,10 @@ Some NPeg highlights:
 
 - NPeg-generated parsers can be used both at run and at compile time.
 
-- NPeg offers various methods for tracing, graphing, optimizing and debugging
+- NPeg offers various methods for tracing, optimizing and debugging
   your parsers.
+
+- NPeg can draw cool diagrams.
 
 ## Quickstart
 
