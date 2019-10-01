@@ -127,11 +127,11 @@ proc genCode*(patt: Patt, userDataType: NimNode, userDataId: NimNode): NimNode =
   var cases = quote do:
     case ip
         
+  let ipFail = patt.high + 1
 
   for ipNow, i in patt.pairs:
     
     let ipNext = ipNow + 1
-    let ipError = patt.high + 1
 
     when npegTrace:
       let iname = newLit(i.name)
@@ -148,7 +148,7 @@ proc genCode*(patt: Patt, userDataType: NimNode, userDataId: NimNode): NimNode =
             ip = `ipNext`
             inc si
           else:
-            ip = `ipError`
+            ip = `ipFail`
 
       of opIChr:
         let ch = newLit(i.ch)
@@ -158,7 +158,7 @@ proc genCode*(patt: Patt, userDataType: NimNode, userDataId: NimNode): NimNode =
             ip = `ipNext`
             inc si
           else:
-            ip = `ipError`
+            ip = `ipFail`
 
       of opStr:
         let s2 = newLit(i.str)
@@ -168,7 +168,7 @@ proc genCode*(patt: Patt, userDataType: NimNode, userDataId: NimNode): NimNode =
             ip = `ipNext`
             inc si, `s2`.len
           else:
-            ip = `ipError`
+            ip = `ipFail`
 
       of opIStr:
         let s2 = newLit(i.str)
@@ -178,7 +178,7 @@ proc genCode*(patt: Patt, userDataType: NimNode, userDataId: NimNode): NimNode =
             ip = `ipNext`
             inc si, `s2`.len
           else:
-            ip = `ipError`
+            ip = `ipFail`
 
       of opSet:
         let cs = newLit(i.cs)
@@ -188,7 +188,7 @@ proc genCode*(patt: Patt, userDataType: NimNode, userDataId: NimNode): NimNode =
             ip = `ipNext`
             inc si
           else:
-            ip = `ipError`
+            ip = `ipFail`
 
       of opSpan:
         let cs = newLit(i.cs)
@@ -261,7 +261,7 @@ proc genCode*(patt: Patt, userDataType: NimNode, userDataId: NimNode): NimNode =
               if ok:
                 ip = `ipNext`
               else:
-                ip = `ipError`
+                ip = `ipFail`
 
           of ckRef:
             quote do:
@@ -287,7 +287,7 @@ proc genCode*(patt: Patt, userDataType: NimNode, userDataId: NimNode): NimNode =
               ip = `ipNext`
               inc si, s2.len
             else:
-              ip = `ipError`
+              ip = `ipFail`
           else:
             raise newException(NPegException, "Unknown back reference '" & `refName` & "'")
 
@@ -319,7 +319,7 @@ proc genCode*(patt: Patt, userDataType: NimNode, userDataId: NimNode): NimNode =
             ip = `ipNext`
             inc si
           else:
-            ip = `ipError`
+            ip = `ipFail`
 
       of opNop:
         quote do:
@@ -339,7 +339,7 @@ proc genCode*(patt: Patt, userDataType: NimNode, userDataId: NimNode): NimNode =
 
     cases.add nnkOfBranch.newTree(newLit(ipNow), call)
 
-  cases.add nnkOfBranch.newTree(newLit(patt.high+1), quote do:
+  cases.add nnkOfBranch.newTree(newLit(ipFail), quote do:
     simax = max(simax, si)
     if ms.backStack.top > 0:
       trace ms, "", s, "fail"
