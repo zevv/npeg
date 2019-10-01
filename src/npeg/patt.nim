@@ -1,7 +1,6 @@
 
 import macros
 import strutils
-import tables
 
 import npeg/common
 
@@ -38,7 +37,7 @@ when npegTrace:
 
 # Some tests on patterns
 
-proc isSet(p: Patt): bool =
+proc isSet(p: Patt): bool {.used.} =
   p.len == 1 and p[0].op == opSet
 
 

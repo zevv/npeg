@@ -2,7 +2,9 @@
 import tables
 import macros
 import strutils
-import npeg/[common,dot,patt]
+import npeg/[common,dot]
+when npegTrace:
+  import npeg/[patt]
 
 #
 # Create a new grammar

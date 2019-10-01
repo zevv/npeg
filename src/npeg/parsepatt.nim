@@ -2,7 +2,10 @@
 import tables
 import macros
 import strutils
-import npeg/[common,patt,dot,grammar,railroad]
+import npeg/[common,patt,dot,grammar]
+
+when npegGraph:
+  import npeg/[railroad]
 
 
 # Recursively compile a PEG rule to a Pattern

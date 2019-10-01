@@ -1,6 +1,6 @@
 
-import macros, unicode, strutils, tables
-import npeg/[patt,grammar,common]
+import macros, unicode, tables
+import npeg/[grammar,common]
 
 when not defined(js):
   import terminal
