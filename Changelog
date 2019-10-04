@@ -2,7 +2,9 @@
 master
 ======
 
-- Added fail() function for forcing a parser fail in a code block capture
+- Added fail() function to force a parser fail in a code block capture
+- Added push() function to allow code block captures to push captures
+  back on the stack
 
 0.18.0
 ======

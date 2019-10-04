@@ -256,6 +256,9 @@ proc genCode*(patt: Patt, userDataType: NimNode, userDataId: NimNode): NimNode =
               var ok = true
               template validate(o: bool) = ok = o
               template fail() = ok = false
+              template push(s: string) =
+                push(ms.capStack, (cft: cftOpen, si: -1, ck: ckStr, name: s))
+                push(ms.capStack, (cft: cftClose, si: -1, ck: ckStr, name: ""))
               block:
                 `code`
               if ok:

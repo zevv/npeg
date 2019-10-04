@@ -1,5 +1,6 @@
 import unittest
 import npeg
+import strutils
 import json
   
 {.push warning[Spacing]: off.}
@@ -58,4 +59,9 @@ suite "captures":
     doAssert patt(Jo(Jf("one", Js(1)) * Jf("two", Js(1))) ).match("ab").capturesJSon == 
       parseJson(""" { "one":"a", "two":"b" } """)
 
-
+  test "push":
+    let p = peg "m":
+      m <- >n * '+' * >n: push $(parseInt($1) + parseInt($2))
+      n <- +Digit
+    let r = p.match("12+34")
+    doAssert r.captures()[0] == "46"
