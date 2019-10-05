@@ -261,10 +261,7 @@ proc genCode*(patt: Patt, userDataType: NimNode, userDataId: NimNode): NimNode =
                 push(ms.capStack, CapFrame(cft: cftClose, ck: ckStr, sPushed: s))
               block:
                 `code`
-              if ok:
-                ip = `ipNext`
-              else:
-                ip = `ipFail`
+              ip = if ok: `ipNext` else: `ipFail`
 
           of ckRef:
             quote do:
