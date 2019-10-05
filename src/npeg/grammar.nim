@@ -138,5 +138,6 @@ proc link*(grammar: Grammar, initial_name: string, dot: Dot = nil): Program =
   result.patt = retPatt
   result.listing = retPatt.dump(symTab)
   when npegTrace:
-    result.patt.dump(symTab)
+    for l in result.patt.dump(symTab):
+      echo l
 

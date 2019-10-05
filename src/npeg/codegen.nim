@@ -79,7 +79,7 @@ template skel(cases: untyped, count: int, ms: NimNode, s: NimNode, capture: NimN
     var ip {.inject.}: range[0..count] = ms.ip
     var si {.inject.} = ms.si
     var simax {.inject.} = ms.simax
-    var profile: array[count, int]
+    var profile: array[count, float]
 
     # Debug trace. Slow and expensive
 
@@ -95,8 +95,6 @@ template skel(cases: untyped, count: int, ms: NimNode, s: NimNode, capture: NimN
     template trace(ms: var MatchState, iname, opname: string, s: Subject, msg = "") =
       when npegTrace:
         doTrace(ms, iname, opname, s, msg)
-      when npegProfile:
-        inc profile[ip]
 
     # Parser main loop. `cases` will be filled in by genCode() which uses this
     # template as the match lambda boilerplate. The .computedGoto. pragma will
@@ -106,7 +104,11 @@ template skel(cases: untyped, count: int, ms: NimNode, s: NimNode, capture: NimN
     while true:
       {.computedGoto.}
       {.push hint[XDeclaredButNotUsed]: off.}
+      var p = profile[ip].addr
+      let t1 = cpuTime()
       cases
+      let t2 = cpuTime()
+      p[] += (t2-t1)
       {.pop.}
 
     # When the parsing machine is done, copy the local copies of the matchstate
