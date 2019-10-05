@@ -68,6 +68,7 @@ proc initMatchState*(): MatchState =
 # for this.
 
 template skel(cases: untyped, count: int, ms: NimNode, s: NimNode, capture: NimNode,
+              listing: seq[string],
               userDataType: untyped, userDataId: NimNode) =
 
   let match = proc(ms: var MatchState, s: Subject, userDataId: var userDataType): MatchResult =
@@ -78,6 +79,7 @@ template skel(cases: untyped, count: int, ms: NimNode, s: NimNode, capture: NimN
     var ip {.inject.}: range[0..count] = ms.ip
     var si {.inject.} = ms.si
     var simax {.inject.} = ms.simax
+    var profile: array[count, int]
 
     # Debug trace. Slow and expensive
 
@@ -93,6 +95,8 @@ template skel(cases: untyped, count: int, ms: NimNode, s: NimNode, capture: NimN
     template trace(ms: var MatchState, iname, opname: string, s: Subject, msg = "") =
       when npegTrace:
         doTrace(ms, iname, opname, s, msg)
+      when npegProfile:
+        inc profile[ip]
 
     # Parser main loop. `cases` will be filled in by genCode() which uses this
     # template as the match lambda boilerplate. The .computedGoto. pragma will
@@ -117,27 +121,28 @@ template skel(cases: untyped, count: int, ms: NimNode, s: NimNode, capture: NimN
     if result.ok and ms.capStack.top > 0:
       result.cs = fixCaptures(s, ms.capStack, FixAll)
 
+    when npegProfile:
+      for i, l in listing:
+        echo align($i, 3), ": ", align($profile[i], 10), " ", l
+
   Parser[userDataType](fn: match)
 
 
 # Convert the list of parser instructions into a Nim finite state machine
 
-proc genCode*(patt: Patt, userDataType: NimNode, userDataId: NimNode): NimNode =
+proc genCode*(program: Program, userDataType: NimNode, userDataId: NimNode): NimNode =
 
   var cases = quote do:
     case ip
-        
+
+  let patt = program.patt
   let ipFail = patt.high + 1
 
   for ipNow, i in patt.pairs:
     
     let ipNext = ipNow + 1
     let opName = $i.op
-
-    when npegTrace:
-      let iname = newLit(i.name)
-    else:
-      let iname = newLit ""
+    let iname = newLit(i.name)
 
     var call = case i.op:
 
@@ -346,6 +351,7 @@ proc genCode*(patt: Patt, userDataType: NimNode, userDataId: NimNode): NimNode =
     )
 
   result = getAst skel(cases, patt.high+1, ident "ms", ident "s", ident "capture",
+                       program.listing,
                        userDataType, userDataId)
 
   when npegExpand:

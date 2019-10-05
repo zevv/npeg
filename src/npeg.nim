@@ -70,7 +70,8 @@ export NPegException, Parser, ASTNode, MatchResult, contains, items, `[]`
 proc pegAux(name: string, userDataType: NimNode, userDataId: string, n: NimNode): NimNode =
   var dot = newDot(name)
   var grammar = parseGrammar(n, dot)
-  let code = grammar.link(name, dot).genCode(userDataType, ident(userDataId))
+  let program = grammar.link(name, dot)
+  let code = program.genCode(userDataType, ident(userDataId))
   dot.dump()
   code
 

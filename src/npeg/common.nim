@@ -13,6 +13,7 @@ const
   npegTrace* = defined(npegTrace)
   npegExpand* = defined(npegExpand)
   npegGraph* = defined(npegGraph)
+  npegProfile* = defined(npegProfile)
 
 type
 
@@ -97,9 +98,8 @@ type
         discard
       of opBackref:
         refName*: string
-    when npegTrace:
-      name*: string
-      pegRepr*: string
+    name*: string
+    pegRepr*: string
 
   Patt* = seq[Inst]
 
@@ -107,6 +107,10 @@ type
     name*: string
     args*: seq[string]
     code*: NimNode
+
+  Program* = object
+    patt*: Patt
+    listing*: seq[string]
 
   Grammar* = ref object
     patts*: ref Table[string, Patt]

@@ -7,32 +7,28 @@ import npeg/common
 
 # Create string representation of a pattern
 
-when npegTrace:
-
-  proc dump*(p: Patt, symtab: SymTab) =
-    for n, i in p.pairs:
-      if n in symTab:
-        echo "\n" & symtab.get(n) & ":"
-      var args: string
-      case i.op:
-        of opChr, opIChr:
-          args = " '" & escapeChar(i.ch) & "'"
-        of opChoice, opCommit, opPartCommit:
-          args = " " & $(n+i.offset)
-        of opCall, opJump:
-          args = " " & $(n+i.callOffset)
-        of opCapOpen, opCapClose:
-          args = " " & $i.capKind
-          if i.capAction != nil:
-            args &= ": " & i.capAction.repr.indent(23)
-        of opBackref:
-          args = " " & i.refName
-        else:
-          discard
-      echo align($n, 4) & ": " &
-           alignLeft($i.name, 15) &
-           alignLeft($i.op & args, 20) &
-           " " & i.pegRepr
+proc dump*(p: Patt, symtab: SymTab): seq[string] =
+  for n, i in p.pairs:
+    var args: string
+    case i.op:
+      of opChr, opIChr:
+        args = " '" & escapeChar(i.ch) & "'"
+      of opChoice, opCommit, opPartCommit:
+        args = " " & $(n+i.offset)
+      of opCall, opJump:
+        args = " " & $(n+i.callOffset)
+      of opCapOpen, opCapClose:
+        args = " " & $i.capKind
+        if i.capAction != nil:
+          args &= ": " & i.capAction.repr.indent(23)
+      of opBackref:
+        args = " " & i.refName
+      else:
+        discard
+    result.add align($n, 4) & ": " &
+         alignLeft($i.name, 16) &
+         alignLeft($i.op & args, 20) &
+         " " & i.pegRepr
 
 
 # Some tests on patterns

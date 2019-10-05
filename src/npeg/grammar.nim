@@ -2,9 +2,7 @@
 import tables
 import macros
 import strutils
-import npeg/[common,dot]
-when npegTrace:
-  import npeg/[patt]
+import npeg/[common,dot,patt]
 
 #
 # Create a new grammar
@@ -57,12 +55,11 @@ proc addPatt*(grammar: Grammar, name: string, patt1: Patt) =
   if name in grammar.patts:
     warning "Redefinition of rule '" & name & "'"
   var patt = patt1
-  when npegTrace:
-    for i in patt.mitems:
-      if i.name == "":
-        i.name = name
-      else:
-        i.name = " " & i.name
+  for i in patt.mitems:
+    if i.name == "":
+      i.name = name
+    else:
+      i.name = " " & i.name
   grammar.patts[name] = patt
 
 
@@ -100,7 +97,7 @@ proc shadow*(grammar: Grammar, name: string): string =
 # pattern. Start with the initial rule, add all other non terminals and fixup
 # opCall addresses
 
-proc link*(grammar: Grammar, initial_name: string, dot: Dot = nil): Patt =
+proc link*(grammar: Grammar, initial_name: string, dot: Dot = nil): Program =
 
   if initial_name notin grammar.patts:
     error "inital rule '" & initial_name & "' not found"
@@ -138,7 +135,8 @@ proc link*(grammar: Grammar, initial_name: string, dot: Dot = nil): Patt =
     if i.op == opCall and retPatt[ip+1].op == opReturn:
       i.op = opJump
 
-  result = retPatt
+  result.patt = retPatt
+  result.listing = retPatt.dump(symTab)
   when npegTrace:
-    result.dump(symTab)
+    result.patt.dump(symTab)
 
