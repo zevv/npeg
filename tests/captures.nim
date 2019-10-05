@@ -65,3 +65,12 @@ suite "captures":
       n <- +Digit
     let r = p.match("12+34")
     doAssert r.captures()[0] == "46"
+  
+  test "nested":
+    doAssert patt(>(>1 * >1)).match("ab").captures == @["ab", "a", "b"]
+
+  test "nested codeblock":
+    let p = peg foo:
+      foo <- >(>1 * b)
+      b <- >1: push $1
+    doAssert p.match("ab").captures() == @["ab", "a", "b"]
