@@ -59,10 +59,10 @@ proc fixCaptures*(s: Subject, capStack: var Stack[CapFrame], fm: FixMethod): Cap
       assert result[i2].ck == c.ck
 
       if c.ck in { ckStr, ckJString, ckJBool, ckJInt, ckJFloat, ckRef }:
-        result[i2].s = if result[i2].si >= 0:
+        result[i2].s = if c.sPushed == "":
           s.slice(result[i2].si, c.si)
         else:
-          result[i2].name
+          c.sPushed
       result[i2].len = result.len - i2 - 1
   assert stack.top == 0
 

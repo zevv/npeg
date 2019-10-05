@@ -38,10 +38,11 @@ type
     ckClose,        # Closes capture
 
   CapFrame* = object
-    cft*: CapFrameType
-    si*: int 
-    ck*: CapKind
-    name*: string
+    cft*: CapFrameType # Capture frame type
+    name*: string      # Capture name
+    si*: int           # Subject index
+    ck*: CapKind       # Capture kind
+    sPushed*: string   # Pushed capture, overrides subject slice
 
   Ref* = object
     key*: string

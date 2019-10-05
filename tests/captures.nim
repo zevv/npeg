@@ -61,7 +61,8 @@ suite "captures":
 
   test "push":
     let p = peg "m":
-      m <- >n * '+' * >n: push $(parseInt($1) + parseInt($2))
+      m <- >n * '+' * >n:
+        push $(parseInt($1) + parseInt($2))
       n <- +Digit
     let r = p.match("12+34")
     doAssert r.captures()[0] == "46"
