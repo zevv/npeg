@@ -37,11 +37,11 @@ type
     ckAST,          # Abstract syntax tree capture
     ckClose,        # Closes capture
 
-  CapFrame* = tuple
-    cft: CapFrameType
-    si: int
-    ck: CapKind
-    name: string
+  CapFrame* = object
+    cft*: CapFrameType
+    si*: int 
+    ck*: CapKind
+    name*: string
 
   Ref* = object
     key*: string

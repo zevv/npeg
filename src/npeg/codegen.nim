@@ -8,11 +8,11 @@ type
 
   RetFrame = int
 
-  BackFrame = tuple
-    ip: int
-    si: int
-    rp: int
-    cp: int
+  BackFrame = object
+    ip*: int # Instruction pointer
+    si*: int # Subject index
+    rp*: int # Retstack top pointer
+    cp*: int # Capstack top pointer
 
   MatchResult* = object
     ok*: bool
@@ -202,7 +202,7 @@ proc genCode*(patt: Patt, userDataType: NimNode, userDataId: NimNode): NimNode =
         let ip2 = newLit(ipNow + i.offset)
         quote do:
           trace ms, `iname`, s, "choice -> " & $`ip2`
-          push(ms.backStack, (ip:`ip2`, si:si, rp:ms.retStack.top, cp:ms.capStack.top))
+          push(ms.backStack, BackFrame(ip:`ip2`, si:si, rp:ms.retStack.top, cp:ms.capStack.top))
           ip = `ipNext`
 
       of opCommit:
@@ -240,7 +240,7 @@ proc genCode*(patt: Patt, userDataType: NimNode, userDataId: NimNode): NimNode =
         let capName = newLit(i.capName)
         quote do:
           trace ms, `iname`, s, "capopen " & $`capKind` & " -> " & $si
-          push(ms.capStack, (cft: cftOpen, si: si, ck: `capKind`, name: `capName`))
+          push(ms.capStack, CapFrame(cft: cftOpen, si: si, ck: `capKind`, name: `capName`))
           ip = `ipNext`
 
       of opCapClose:
@@ -251,14 +251,14 @@ proc genCode*(patt: Patt, userDataType: NimNode, userDataId: NimNode): NimNode =
             let code = mkDollarCaptures(i.capAction)
             quote do:
               trace ms, `iname`, s, "capclose ckAction -> " & $si
-              push(ms.capStack, (cft: cftClose, si: si, ck: `ck`, name: ""))
+              push(ms.capStack, CapFrame(cft: cftClose, si: si, ck: `ck`))
               let capture {.inject.} = collectCaptures(fixCaptures(s, ms.capStack, FixOpen))
               var ok = true
               template validate(o: bool) = ok = o
               template fail() = ok = false
               template push(s: string) =
-                push(ms.capStack, (cft: cftOpen, si: -1, ck: ckStr, name: s))
-                push(ms.capStack, (cft: cftClose, si: -1, ck: ckStr, name: ""))
+                push(ms.capStack, CapFrame(cft: cftOpen, si: -1, ck: ckStr, name: s))
+                push(ms.capStack, CapFrame(cft: cftClose, si: -1, ck: ckStr))
               block:
                 `code`
               if ok:
@@ -269,7 +269,7 @@ proc genCode*(patt: Patt, userDataType: NimNode, userDataId: NimNode): NimNode =
           of ckRef:
             quote do:
               trace ms, `iname`, s, "capclose ckRef -> " & $si
-              push(ms.capStack, (cft: cftClose, si: si, ck: `ck`, name: ""))
+              push(ms.capStack, CapFrame(cft: cftClose, si: si, ck: `ck`))
               let r = collectCapturesRef(fixCaptures(s, ms.capStack, FixOpen))
               ms.refs[r.key] = r.val
               ip = `ipNext`
@@ -277,7 +277,7 @@ proc genCode*(patt: Patt, userDataType: NimNode, userDataId: NimNode): NimNode =
           else:
             quote do:
               trace ms, `iname`, s, "capclose " & $`ck` & " -> " & $si
-              push(ms.capStack, (cft: cftClose, si: si, ck: `ck`, name: ""))
+              push(ms.capStack, CapFrame(cft: cftClose, si: si, ck: `ck`))
               ip = `ipNext`
 
       of opBackRef:
@@ -338,7 +338,8 @@ proc genCode*(patt: Patt, userDataType: NimNode, userDataId: NimNode): NimNode =
             simax = max(simax, si)
             break
           simax = max(simax, si)
-          (ip, si, ms.retStack.top, ms.capStack.top) = pop(ms.backStack)
+          let t = pop(ms.backStack)
+          (ip, si, ms.retStack.top, ms.capStack.top) = (t.ip, t.si, t.rp, t.cp)
 
     cases.add nnkOfBranch.newTree(newLit(ipNow), call)
 
@@ -346,7 +347,8 @@ proc genCode*(patt: Patt, userDataType: NimNode, userDataId: NimNode): NimNode =
     simax = max(simax, si)
     if ms.backStack.top > 0:
       trace ms, "", s, "fail"
-      (ip, si, ms.retStack.top, ms.capStack.top) = pop(ms.backStack)
+      let t = pop(ms.backStack)
+      (ip, si, ms.retStack.top, ms.capStack.top) = (t.ip, t.si, t.rp, t.cp)
     else:
       trace ms, "", s, "error"
       break
