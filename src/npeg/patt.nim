@@ -1,6 +1,7 @@
 
 import macros
 import strutils
+import sequtils
 
 import npeg/common
 
@@ -31,6 +32,8 @@ when npegTrace:
           args = " " & i.refName
         else:
           discard
+      if i.failOffset != 0:
+        args.add " " & $(n+i.failOffset)
       echo align($n, 4) & ": " &
            alignLeft($i.name, 15) &
            alignLeft($i.op & args, 20) &
@@ -88,21 +91,31 @@ proc newPatt*(s: string, op: Opcode): Patt =
     else:
       doAssert false
 
-proc newPatt*(p: Patt, ck: CapKind, name = ""): Patt =
 
-  # Optimization: try to shift the CapStart into the pattern. This allows the
-  # pattern to fail early before the capture is opened.
+# Calculate how far captures or choices can be shifted into this pattern
+# without consequences; this allows the pattern to fail before pushing to the
+# backStack or capStack
 
-  var o: int
+proc canShift(p: Patt): (int, int) =
+  var siShift, ipShift: int
   for i in p:
+    if i.failOffset != 0:
+      break
     case i.op
-    of opStr, opIStr: o.inc i.str.len
-    of opChr, opIChr, opAny, opSet: o.inc 1
+    of opStr, opIStr:
+      siShift.inc i.str.len
+      ipShift.inc 1
+    of opChr, opIChr, opAny, opSet:
+      siShift.inc 1
+      ipShift.inc 1
     else: break
+  result = (siShift, ipShift)
 
-  result.add p[0..<o]
-  result.add Inst(op: opCapOpen, capKind: ck, capSiOffset: -o, capName: name)
-  result.add p[o..^1]
+proc newPatt*(p: Patt, ck: CapKind, name = ""): Patt =
+  let (siShift, ipShift) = p.canShift()
+  result.add p[0..<ipShift]
+  result.add Inst(op: opCapOpen, capKind: ck, capSiOffset: -siShift, capName: name)
+  result.add p[ipShift..^1]
   result.add Inst(op: opCapClose, capKind: ck)
 
 proc newCallPatt*(label: string): Patt =
@@ -173,31 +186,41 @@ proc `*`*(p1, p2: Patt): Patt =
   result.add p2
   result.checkSanity
 
-proc `|`*(p1, p2: Patt): Patt =
-  var cs1, cs2: Charset
-  if p1.toSet(cs1) and p2.toSet(cs2):
-    result.add Inst(op: opSet, cs: cs1 + cs2)
-  else:
-    # Optimization: detect if P1 is already an ordered choice, and rewrite the
-    # offsets in the choice and commits instructions, then add the new choice
-    # P2 to the end. The naive implementation would generate inefficient code
-    # because the | terms are added left-associative.
-    var p3 = p1
-    var ip = 0
-    while p3[ip].op == opChoice:
-      let ipCommit = p3[ip].offset + ip - 1
-      if p3[ipCommit].op == opCommit and p3[ipCommit].offset + ipCommit == p1.len:
-        p3[ipCommit].offset += p2.len + 2
-        ip = ipCommit + 1
-      else:
-        break
-    p3.setlen ip
-    p3.add Inst(op: opChoice, offset: p1.high - ip + 3)
-    p3.add p1[ip..p1.high]
-    p3.add Inst(op: opCommit, offset: p2.len + 1)
-    p3.add p2
-    result = p3
-  result.checkSanity
+
+# choice() is generated from | operators by flattenChoice().
+#
+# Optimizations done here:
+# - convert to union if all elements can be represented as a set
+# - head fails: when possible, opChoice is shifted into a pattern to
+#   allow the pattern to fail before emitting the opChoice
+
+proc choice*(ps: openArray[Patt]): Patt =
+  var csUnion: CharSet
+  var allSets = true
+  for p in ps:
+    var cs: CharSet
+    if p.toSet(cs):
+      csUnion = csUnion + cs
+    else:
+      allSets = false
+  if allSets:
+    result.add Inst(op: opSet, cs: csUnion)
+    return result
+
+  var lenTot, ip: int
+  lenTot = foldl(ps, a + b.len+2, 0)
+  for i, p in ps:
+    if i < ps.high:
+      let (siShift, ipShift) = p.canShift()
+      for n in 0..<ipShift:
+        result.add p[n]
+        result[result.high].failOffset = p.len - n + 2
+      result.add Inst(op: opChoice, offset: p.len + 2 - ipShift, siOffset: -siShift)
+      result.add p[ipShift..^1]
+      result.add Inst(op: opCommit, offset: lenTot - ip - p.len - 3)
+      ip += p.len + 2
+    else:
+      result.add p
 
 proc `-`*(p1, p2: Patt): Patt =
   var cs1, cs2: Charset

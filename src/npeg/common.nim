@@ -78,6 +78,7 @@ type
     case op*: Opcode
       of opChoice, opCommit, opPartCommit:
         offset*: int
+        siOffset*: int
       of opStr, opIStr:
         str*: string
       of opChr, opIChr:
@@ -98,6 +99,7 @@ type
         discard
       of opBackref:
         refName*: string
+    failOffset*: int
     when npegTrace:
       name*: string
       pegRepr*: string
