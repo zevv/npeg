@@ -1362,7 +1362,37 @@ The resulting data:
 )
 ```
 
+
 ### More examples
 
 More examples can be found in tests/examples.nim.
 
+
+## Future directions / Todos / Roadmap / The long run
+
+Here are some things I'd like to have implemented one day. Some are hard and
+require me to better understand what I'm doing first. In no particular order:
+
+- IR Optimizations: There are various known optimizations that can be applied
+  to the code generation stage as described in the original paper by
+  Ierusalimschy (notably head fails and delayed captures), but for sake of code
+  simplicity and correctness I have not yet implemented those.
+
+- Left recursion: There are known methods to allow PEGs to handle limited left
+  recursion. I don't have a good understanding of these algorithms yet, I'll
+  leave this for a wet and rainy autumn holiday.
+
+  https://tratt.net/laurie/research/pubs/html/tratt__direct_left_recursive_parsing_expression_grammars/
+
+- Resuming/streaming: The current parser is almost ready to be invoked multiple
+  times, resuming parsing where it left off - this should allow parsing of (infinite)
+  streams. The only problem not solved yet is how to handle captures: when a block
+  of data is parsed it might contain data which must later be available to collect
+  the capture. Not sure how to handle this yet.
+
+- Memoization: I guess it would be possible to add (limited) memoization to 
+  improve performance, but no clue where to start yet.
+
+- Parallelization: I wonder if parsing can parallelized: when reaching an
+  ordered choice, mulptile threads should be able to try to parse each
+  individual choice. I do see problems with captures here, though.
