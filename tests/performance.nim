@@ -14,9 +14,12 @@ let hostname = readFile("/etc/hostname").strip()
 
 let expectTime = {
   "platdoos": { 
-    "json": 0.165,
-    "words": 1.05,
-    "search": 0.34,
+    "json": 0.161,
+    "words": 0.994,
+    "search": 0.335,
+    "search1": 1.943,
+    "search2": 2.352,
+    "search3": 0.307,
   }.toTable()
 }.toTable()
 
@@ -73,11 +76,36 @@ measureTime "words":
 
 
 measureTime "search":
-
+  # Search using built in search operator
   var v = 0
   let p = peg search:
     search <- @"CALIFORNIA":
       inc v
+  for i in 1..10:
+    discard p.match(js).ok
+
+
+measureTime "search1":
+  # Searches using tail recursion.
+  let p = peg SS:
+    SS <- +S
+    S <- "CALIFORNIA" | 1 * S
+  for i in 1..10:
+    discard p.match(js).ok
+
+measureTime "search2":
+  # Searches using an explicit
+  let p = peg SS:
+    SS <- +S
+    S <- *( !"CALIFORNIA" * 1) * "CALIFORNIA"
+  for i in 1..10:
+    discard p.match(js).ok
+
+measureTime "search3":
+   # using an optimization to skip false starts.
+  let p = peg SS:
+    SS <- +S
+    S <- "CALIFORNIA" | 1 * *(1-'C') * S
   for i in 1..10:
     discard p.match(js).ok
 
