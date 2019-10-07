@@ -36,3 +36,6 @@ task test32, "32 bit tests":
 
 task testall, "Test all":
   exec "nimble test && nimble testcpp && nimble testdanger && nimble testjs && nimble testwin"
+
+task perf, "Test performance":
+  exec "nim cpp -r -d:danger tests/performance.nim"

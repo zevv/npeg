@@ -23,6 +23,8 @@ when npegTrace:
           args = " " & $(n+i.callOffset)
         of opCapOpen, opCapClose:
           args = " " & $i.capKind
+          if i.capSiOffset != 0:
+            args &= "(" & $i.capSiOffset & ")"
           if i.capAction != nil:
             args &= ": " & i.capAction.repr.indent(23)
         of opBackref:
@@ -86,14 +88,22 @@ proc newPatt*(s: string, op: Opcode): Patt =
     else:
       doAssert false
 
-proc newPatt*(p: Patt, ck: CapKind): Patt =
-  result.add Inst(op: opCapOpen, capKind: ck)
-  result.add p
-  result.add Inst(op: opCapClose, capKind: ck)
+proc newPatt*(p: Patt, ck: CapKind, name = ""): Patt =
 
-proc newPatt*(p: Patt, ck: CapKind, name: string): Patt =
-  result = newPatt(p, ck)
-  result[0].capName = name
+  # Try to shift the CapStart into this pattern. This allows the pattern to
+  # fail early before the capture is opened.
+
+  var o: int
+  for i in p:
+    case i.op
+    of opStr, opIStr: o.inc i.str.len
+    of opChr, opIChr, opAny, opSet: o.inc 1
+    else: break
+
+  result.add p[0..<o]
+  result.add Inst(op: opCapOpen, capKind: ck, capSiOffset: -o, capName: name)
+  result.add p[o..^1]
+  result.add Inst(op: opCapClose, capKind: ck)
 
 proc newCallPatt*(label: string): Patt =
   result.add Inst(op: opCall, callLabel: label)

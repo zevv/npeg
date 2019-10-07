@@ -90,7 +90,7 @@ type
         capKind*: CapKind
         capAction*: NimNode
         capName*: string
-        capId*: BiggestInt
+        capSiOffset*: int
       of opErr:
         msg*: string
       of opFail, opReturn, opAny, opNop:

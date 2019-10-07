@@ -239,9 +239,10 @@ proc genCode*(patt: Patt, userDataType: NimNode, userDataId: NimNode): NimNode =
       of opCapOpen:
         let capKind = newLit(i.capKind)
         let capName = newLit(i.capName)
+        let capSiOffset = newLit(i.capSiOffset)
         quote do:
           trace ms, `iname`, `opName`, s, $`capKind` & " -> " & $si
-          push(ms.capStack, CapFrame(cft: cftOpen, si: si, ck: `capKind`, name: `capName`))
+          push(ms.capStack, CapFrame(cft: cftOpen, si: si+`capSiOffset`, ck: `capKind`, name: `capName`))
           ip = `ipNext`
 
       of opCapClose:

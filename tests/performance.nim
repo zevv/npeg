@@ -44,7 +44,7 @@ measureTime "json", 0.165:
   echo p.match(js)
 
 
-measureTime "words", 2.20:
+measureTime "words", 1.05:
 
   var v = 0
   let p = peg foo:
