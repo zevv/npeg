@@ -127,11 +127,16 @@ proc genCode*(patt: Patt, userDataType: NimNode, userDataId: NimNode): NimNode =
   var cases = quote do:
     case ip
         
-  let ipFail = patt.high
 
   for ipNow, i in patt.pairs:
     
     let ipNext = ipNow + 1
+
+    let ipFail = if i.failOffset == 0:
+      patt.high
+    else:
+      ipNow + i.failOffset
+
     let opName = $i.op
 
     when npegTrace:
@@ -146,8 +151,8 @@ proc genCode*(patt: Patt, userDataType: NimNode, userDataId: NimNode): NimNode =
         quote do:
           trace ms, `iname`, `opName`, s, "\"" & escapeChar(`ch`) & "\""
           if si < s.len and s[si] == `ch`.char:
-            ip = `ipNext`
             inc si
+            ip = `ipNext`
           else:
             ip = `ipFail`
 
@@ -156,8 +161,8 @@ proc genCode*(patt: Patt, userDataType: NimNode, userDataId: NimNode): NimNode =
         quote do:
           trace ms, `iname`, `opName`, s, "\"" & escapeChar(`ch`) & "\""
           if si < s.len and s[si].toLowerAscii == `ch`.char:
-            ip = `ipNext`
             inc si
+            ip = `ipNext`
           else:
             ip = `ipFail`
 
@@ -166,8 +171,8 @@ proc genCode*(patt: Patt, userDataType: NimNode, userDataId: NimNode): NimNode =
         quote do:
           trace ms, `iname`, `opName`, s, "\"" & dumpString(`s2`) & "\""
           if subStrCmp(s, s.len, si, `s2`):
-            ip = `ipNext`
             inc si, `s2`.len
+            ip = `ipNext`
           else:
             ip = `ipFail`
 
@@ -176,8 +181,8 @@ proc genCode*(patt: Patt, userDataType: NimNode, userDataId: NimNode): NimNode =
         quote do:
           trace ms, `iname`, `opName`, s, "\"" & dumpString(`s2`) & "\""
           if subIStrCmp(s, s.len, si, `s2`):
-            ip = `ipNext`
             inc si, `s2`.len
+            ip = `ipNext`
           else:
             ip = `ipFail`
 
@@ -186,8 +191,8 @@ proc genCode*(patt: Patt, userDataType: NimNode, userDataId: NimNode): NimNode =
         quote do:
           trace ms, `iname`, `opName`, s, dumpSet(`cs`)
           if si < s.len and s[si] in `cs`:
-            ip = `ipNext`
             inc si
+            ip = `ipNext`
           else:
             ip = `ipFail`
 
@@ -201,9 +206,10 @@ proc genCode*(patt: Patt, userDataType: NimNode, userDataId: NimNode): NimNode =
 
       of opChoice:
         let ip2 = newLit(ipNow + i.offset)
+        let siOffset = newLit(i.siOffset)
         quote do:
           trace ms, `iname`, `opName`, s, $`ip2`
-          push(ms.backStack, BackFrame(ip:`ip2`, si:si, rp:ms.retStack.top, cp:ms.capStack.top))
+          push(ms.backStack, BackFrame(ip:`ip2`, si:si+`siOffset`, rp:ms.retStack.top, cp:ms.capStack.top))
           ip = `ipNext`
 
       of opCommit:
@@ -263,7 +269,10 @@ proc genCode*(patt: Patt, userDataType: NimNode, userDataId: NimNode): NimNode =
                 push(ms.capStack, CapFrame(cft: cftClose, ck: ckStr, sPushed: s))
               block:
                 `code`
-              ip = if ok: `ipNext` else: `ipFail`
+              if ok:
+                ip = `ipNext`
+              else:
+                ip = `ipFail`
 
           of ckRef:
             quote do:
@@ -286,8 +295,8 @@ proc genCode*(patt: Patt, userDataType: NimNode, userDataId: NimNode): NimNode =
             let s2 = ms.refs[`refName`]
             trace ms, `iname`, `opName`, s, `refName` & ":\"" & s2 & "\""
             if subStrCmp(s, s.len, si, s2):
-              ip = `ipNext`
               inc si, s2.len
+              ip = `ipNext`
             else:
               ip = `ipFail`
           else:
@@ -318,8 +327,8 @@ proc genCode*(patt: Patt, userDataType: NimNode, userDataId: NimNode): NimNode =
         quote do:
           trace ms, `iname`, `opName`, s
           if si < s.len:
-            ip = `ipNext`
             inc si
+            ip = `ipNext`
           else:
             ip = `ipFail`
 

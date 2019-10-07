@@ -203,26 +203,6 @@ proc `{}`*(p: Node, range: HSlice[system.BiggestInt, system.BiggestInt]): Node =
   for i in range.a..<range.b:
     result = result * ?p
 
-# This macro flattens AST trees of `|` operators into a single call to
-# `choice()` with all arguments in one call. e.g, it will convert `A | B | C`
-# into `call(A, B, C)`.
-
-proc flattenChoice(n: NimNode, nChoice: NimNode = nil): NimNode =
-  proc addToChoice(n, nc: NimNode) =
-    if n.kind == nnkInfix and n[0].eqIdent("|"):
-      addToChoice(n[1], nc)
-      addToChoice(n[2], nc)
-    else:
-      nc.add flattenChoice(n)
-  if n.kind == nnkInfix and n[0].eqIdent("|"):
-    result = nnkCall.newTree(ident "choice")
-    addToChoice(n[1], result)
-    addToChoice(n[2], result)
-  else:
-    result = copyNimNode(n)
-    for nc in n:
-      result.add flattenChoice(nc)
-
 # This is a simplified parser based on parsePatt(), but lacking any error
 # checking. This will always run after parsePatt(), so any errors would already
 # have been caught there

@@ -78,6 +78,12 @@ suite "unit tests":
     doAssert     patt("ab" | "cd").match("ab").ok
     doAssert     patt("ab" | "cd").match("cd").ok
     doAssert     patt("ab" | "cd").match("ef").ok == false
+    doAssert     patt(("ab" | "cd") | "ef").match("ab").ok == true
+    doAssert     patt(("ab" | "cd") | "ef").match("cd").ok == true
+    doAssert     patt(("ab" | "cd") | "ef").match("ef").ok == true
+    doAssert     patt("ab" | ("cd") | "ef").match("ab").ok == true
+    doAssert     patt("ab" | ("cd") | "ef").match("cd").ok == true
+    doAssert     patt("ab" | ("cd") | "ef").match("ef").ok == true
 
   test "-: difference":
     doAssert     patt("abcd" - "abcdef").match("abcdefgh").ok == false
@@ -93,6 +99,12 @@ suite "unit tests":
     doAssert     patt(+Digit).match("12345").ok
     doAssert     patt(+Xdigit).match("deadbeef").ok
     doAssert     patt(+Graph).match(" x").ok == false
+
+  test "Misc combos":
+    doAssert     patt('a' | ('b' * 'c')).match("a").ok
+    doAssert     patt('a' | ('b' * 'c') | ('d' * 'e' * 'f')).match("a").ok
+    doAssert     patt('a' | ('b' * 'c') | ('d' * 'e' * 'f')).match("bc").ok
+    doAssert     patt('a' | ('b' * 'c') | ('d' * 'e' * 'f')).match("def").ok
 
   test "Compile time 1":
     proc dotest(): string {.compileTime.} =

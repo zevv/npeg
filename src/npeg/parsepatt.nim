@@ -1,6 +1,7 @@
 
 import tables
 import macros
+import sequtils
 import strutils
 import npeg/[common,patt,dot,grammar]
 
@@ -87,6 +88,8 @@ proc parsePatt*(name: string, nn: NimNode, grammar: Grammar, dot: Dot = nil): Pa
         let n2 = applyTemplate(name, n)
         if n2 != nil:
           result = aux n2
+        elif name == "choice":
+          result = choice(n[1..^1].map(aux))
         elif n.len == 2:
           case name
             of "Js": result = newPatt(aux n[1], ckJString)
@@ -127,7 +130,6 @@ proc parsePatt*(name: string, nn: NimNode, grammar: Grammar, dot: Dot = nil): Pa
         case n[0].strVal:
           of "*": result = p1 * p2
           of "-": result = p1 - p2
-          of "|": result = p1 | p2
           else: krak n, "Unhandled infix operator"
 
       of nnkBracketExpr:
@@ -177,7 +179,7 @@ proc parsePatt*(name: string, nn: NimNode, grammar: Grammar, dot: Dot = nil): Pa
         if i.pegRepr == "":
           i.pegRepr = n.repr
 
-  result = aux(nn)
+  result = aux(nn.flattenChoice())
   dot.addPatt(name, result.len)
 
 

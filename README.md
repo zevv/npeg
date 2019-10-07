@@ -1373,11 +1373,6 @@ More examples can be found in tests/examples.nim.
 Here are some things I'd like to have implemented one day. Some are hard and
 require me to better understand what I'm doing first. In no particular order:
 
-- IR Optimizations: There are various known optimizations that can be applied
-  to the code generation stage as described in the original paper by
-  Ierusalimschy (notably head fails and delayed captures), but for sake of code
-  simplicity and correctness I have not yet implemented those.
-
 - Left recursion: There are known methods to allow PEGs to handle limited left
   recursion. I don't have a good understanding of these algorithms yet, I'll
   leave this for a wet and rainy autumn holiday.
