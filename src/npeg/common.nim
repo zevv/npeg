@@ -1,6 +1,7 @@
 
 import strutils
 import tables
+import macros
 
 # Some constants with "sane" values - these will have to be made configurable one day
 
@@ -139,6 +140,25 @@ proc subIStrCmp*(s: Subject, slen: int, si: int, s2: string): bool =
       return false
   return true
 
+# This macro flattens AST trees of `|` operators into a single call to
+# `choice()` with all arguments in one call. e.g, it will convert `A | B | C`
+# into `call(A, B, C)`.
+
+proc flattenChoice*(n: NimNode, nChoice: NimNode = nil): NimNode =
+  proc addToChoice(n, nc: NimNode) =
+    if n.kind == nnkInfix and n[0].eqIdent("|"):
+      addToChoice(n[1], nc)
+      addToChoice(n[2], nc)
+    else:
+      nc.add flattenChoice(n)
+  if n.kind == nnkInfix and n[0].eqIdent("|"):
+    result = nnkCall.newTree(ident "choice")
+    addToChoice(n[1], result)
+    addToChoice(n[2], result)
+  else:
+    result = copyNimNode(n)
+    for nc in n:
+      result.add flattenChoice(nc)
 
 #
 # Some common operations for ASTNodes
