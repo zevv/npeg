@@ -2,6 +2,7 @@
 import npeg
 import os
 import strutils
+import tables
 import json
 import times
 import packedjson
@@ -9,15 +10,32 @@ import osproc
 
 let js = execProcess("bzip2 -d < tests/json-32M.bzip2").string
 
-template measureTime*(what: string, expect: float, code: untyped) =
+let hostname = readFile("/etc/hostname").strip()
+
+let expectTime = {
+  "platdoos": { 
+    "json": 0.165,
+    "words": 1.05,
+    "search": 0.34,
+  }.toTable()
+}.toTable()
+
+
+template measureTime*(what: string, code: untyped) =
+
+  var expect = 0.0
+  if hostname in expectTime:
+    expect = expectTime[hostname][what]
+
   let start = cpuTime()
   block:
     code
   let duration = cpuTime() - start
-  echo what & ": ", duration.formatFloat(ffDecimal, 3), "s ", (duration/expect).formatFloat(ffDecimal, 3)
+  let perc = 100.0 * duration / expect
+  echo what & ": ", duration.formatFloat(ffDecimal, 3), "s ", perc.formatFloat(ffDecimal, 1), "%"
 
 
-measureTime "json", 0.165:
+measureTime "json":
 
   let p = peg "JSON":
     S              <- *{' ','\t','\r','\n'}
@@ -44,7 +62,7 @@ measureTime "json", 0.165:
   echo p.match(js)
 
 
-measureTime "words", 1.05:
+measureTime "words":
 
   var v = 0
   let p = peg foo:
@@ -54,7 +72,7 @@ measureTime "words", 1.05:
   discard p.match(js).ok
 
 
-measureTime "search", 0.34:
+measureTime "search":
 
   var v = 0
   let p = peg search:
