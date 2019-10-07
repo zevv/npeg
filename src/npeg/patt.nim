@@ -90,8 +90,8 @@ proc newPatt*(s: string, op: Opcode): Patt =
 
 proc newPatt*(p: Patt, ck: CapKind, name = ""): Patt =
 
-  # Try to shift the CapStart into this pattern. This allows the pattern to
-  # fail early before the capture is opened.
+  # Optimization: try to shift the CapStart into the pattern. This allows the
+  # pattern to fail early before the capture is opened.
 
   var o: int
   for i in p:
