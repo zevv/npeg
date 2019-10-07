@@ -5,6 +5,7 @@ master
 - Added fail() function to force a parser fail in a code block capture
 - Added push() function to allow code block captures to push captures
   back on the stack
+- Performance improvements
 
 0.18.0
 ======
