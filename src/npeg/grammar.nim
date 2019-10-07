@@ -138,6 +138,11 @@ proc link*(grammar: Grammar, initial_name: string, dot: Dot = nil): Patt =
     if i.op == opCall and retPatt[ip+1].op == opReturn:
       i.op = opJump
 
+  # Trailing opFail is used by the codegen
+
+  symTab.add("_fail", retPatt.len)
+  retPatt.add Inst(op: opFail)
+
   result = retPatt
   when npegTrace:
     result.dump(symTab)

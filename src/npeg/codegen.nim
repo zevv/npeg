@@ -127,7 +127,7 @@ proc genCode*(patt: Patt, userDataType: NimNode, userDataId: NimNode): NimNode =
   var cases = quote do:
     case ip
         
-  let ipFail = patt.high + 1
+  let ipFail = patt.high
 
   for ipNow, i in patt.pairs:
     
@@ -329,23 +329,18 @@ proc genCode*(patt: Patt, userDataType: NimNode, userDataId: NimNode): NimNode =
 
       of opFail:
         quote do:
-          ip = `ipFail`
+          simax = max(simax, si)
+          if ms.backStack.top > 0:
+            trace ms, "", "opFail", s, "(backtrack)"
+            let t = pop(ms.backStack)
+            (ip, si, ms.retStack.top, ms.capStack.top) = (t.ip, t.si, t.rp, t.cp)
+          else:
+            trace ms, "", "opFail", s, "(error)"
+            break
 
     cases.add nnkOfBranch.newTree(newLit(ipNow), call)
 
-  cases.add nnkOfBranch.newTree(newLit(ipFail), quote do:
-    simax = max(simax, si)
-    if ms.backStack.top > 0:
-      trace ms, "", "opFail", s, "(backtrack)"
-      simax = max(simax, si)
-      let t = pop(ms.backStack)
-      (ip, si, ms.retStack.top, ms.capStack.top) = (t.ip, t.si, t.rp, t.cp)
-    else:
-      trace ms, "", "opFail", s, "(error)"
-      break
-    )
-
-  result = getAst skel(cases, patt.high+1, ident "ms", ident "s", ident "capture",
+  result = getAst skel(cases, patt.high, ident "ms", ident "s", ident "capture",
                        userDataType, userDataId)
 
   when npegExpand:
