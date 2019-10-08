@@ -61,16 +61,16 @@ measureTime "json":
 
   ## Json parsing with npeg
 
-  let p = peg "JSON":
+  let p = peg JSON:
     S              <- *{' ','\t','\r','\n'}
     True           <- "true"
     False          <- "false"
     Null           <- "null"
 
-    UnicodeEscape  <- 'u' * {'0'..'9','A'..'F','a'..'f'}[4]
-    Escape         <- '\\' * ({ '{', '"', '|', '\\', 'b', 'f', 'n', 'r', 't' } | UnicodeEscape)
+    UnicodeEscape  <- 'u' * Xdigit[4]
+    Escape         <- '\\' * ({ '"', '\\', '/', 'b', 'f', 'n', 'r', 't' } | UnicodeEscape)
     StringBody     <- ?Escape * *( +( {'\x20'..'\xff'} - {'"'} - {'\\'}) * *Escape) 
-    String         <- ?S * '"' * StringBody * '"' * ?S
+    String         <- '"' * StringBody * '"'
 
     Minus          <- '-'
     IntPart        <- '0' | {'1'..'9'} * *{'0'..'9'}
@@ -78,10 +78,13 @@ measureTime "json":
     ExpPart        <- ( 'e' | 'E' ) * ?( '+' | '-' ) * +{'0'..'9'}
     Number         <- ?Minus * IntPart * ?FractPart * ?ExpPart
 
-    DOC            <- JSON * !1
-    JSON           <- ?S * ( Number | Object | Array | String | True | False | Null ) * ?S
-    Object         <- '{' * ( String * ":" * JSON * *( "," * String * ":" * JSON ) | ?S ) * "}"
-    Array          <- "[" * ( JSON * *( "," * JSON ) | ?S ) * "]"
+    DOC            <- Value * !1
+    Value          <- S * ( Number | String | Object | Array | True | False | Null ) * S
+    ObjPair        <- S * String * S * ":" * Value
+    Object         <- '{' * ( ObjPair * *( "," * ObjPair ) | S ) * "}"
+    Array          <- "[" * ( Value * *( "," * Value ) | S ) * "]"
+
+    JSON           <- Value * !1
 
   doAssert p.match(js).ok
 
