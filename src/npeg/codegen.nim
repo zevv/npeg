@@ -156,16 +156,6 @@ proc genCode*(patt: Patt, userDataType: NimNode, userDataId: NimNode): NimNode =
           else:
             ip = `ipFail`
 
-      of opIChr:
-        let ch = newLit(i.ch)
-        quote do:
-          trace ms, `iname`, `opName`, s, "\"" & escapeChar(`ch`) & "\""
-          if si < s.len and s[si].toLowerAscii == `ch`.char:
-            inc si
-            ip = `ipNext`
-          else:
-            ip = `ipFail`
-
       of opStr:
         let s2 = newLit(i.str)
         quote do:

@@ -16,7 +16,7 @@ when npegTrace:
         echo "\n" & symtab.get(n) & ":"
       var args: string
       case i.op:
-        of opChr, opIChr:
+        of opChr:
           args = " '" & escapeChar(i.ch) & "'"
         of opChoice, opCommit, opPartCommit:
           args = " " & $(n+i.ipOffset)
@@ -56,9 +56,6 @@ proc toSet(p: Patt, cs: var Charset): bool =
       if i.op == opChr:
         cs = { i.ch }
         return true
-      if i.op == opIChr:
-        cs = { toLowerAscii(i.ch), toUpperAscii(i.ch) }
-        return true
       if i.op == opStr and i.str.len == 1:
         cs = { i.str[0] }
         return true
@@ -86,9 +83,6 @@ proc newPatt*(s: string, op: Opcode): Patt =
     of opChr:
       for ch in s:
         result.add Inst(op: opChr, ch: ch)
-    of opIChr:
-      for ch in s:
-        result.add Inst(op: opIChr, ch: ch.toLowerAscii)
     else:
       doAssert false
 
@@ -107,7 +101,7 @@ proc canShift(p: Patt, enable: static[bool]): (int, int) =
       of opStr, opIStr:
         siShift.inc i.str.len
         ipShift.inc 1
-      of opChr, opIChr, opAny, opSet:
+      of opChr, opAny, opSet:
         siShift.inc 1
         ipShift.inc 1
       else: break

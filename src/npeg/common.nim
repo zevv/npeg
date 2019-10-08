@@ -67,7 +67,6 @@ type
     opStr,          # Matching: Literal string 
     opIStr,         # Matching: Literal string, case insensitive
     opChr,          # Matching: Literal character
-    opIChr,         # Matching: Literal character, case insensitive
     opSet,          # Matching: Character set and/or range
     opAny,          # Matching: Any character
     opNop,          # Matching: Always matches, consumes nothing
@@ -92,7 +91,7 @@ type
         siOffset*: int
       of opStr, opIStr:
         str*: string
-      of opChr, opIChr:
+      of opChr:
         ch*: char
       of opCall, opJump:
         callLabel*: string
