@@ -14,14 +14,22 @@ let hostname = readFile("/etc/hostname").strip()
 
 let expectTime = {
   "platdoos": { 
-    "json": 0.161,
-    "words": 0.994,
-    "search": 0.335,
-    "search1": 1.943,
-    "search2": 2.352,
-    "search3": 0.307,
+    "json": 0.140,
+    "words": 0.947,
+    "search": 0.325,
+    "search1": 0.874,
+    "search2": 2.279,
+    "search3": 0.292,
   }.toTable()
 }.toTable()
+
+
+# Wake up the governor a bit
+
+var v = 0
+for i in 1..100000:
+  for j in 1..1000000:
+    inc v
 
 
 template measureTime*(what: string, code: untyped) =

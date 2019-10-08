@@ -47,26 +47,27 @@ proc isSet(p: Patt): bool {.used.} =
 
 
 proc toSet(p: Patt, cs: var Charset): bool =
-  if p.len == 1:
-    let i = p[0]
-    if i.op == opSet:
-      cs = i.cs
-      return true
-    if i.op == opChr:
-      cs = { i.ch }
-      return true
-    if i.op == opIChr:
-      cs = { toLowerAscii(i.ch), toUpperAscii(i.ch) }
-      return true
-    if i.op == opStr and i.str.len == 1:
-      cs = { i.str[0] }
-      return true
-    if i.op == opIStr and i.str.len == 1:
-      cs = { toLowerAscii(i.str[0]), toUpperAscii(i.str[0]) }
-      return true
-    if i.op == opAny:
-      cs = {low(char)..high(char)}
-      return true
+  when npegOptSets:
+    if p.len == 1:
+      let i = p[0]
+      if i.op == opSet:
+        cs = i.cs
+        return true
+      if i.op == opChr:
+        cs = { i.ch }
+        return true
+      if i.op == opIChr:
+        cs = { toLowerAscii(i.ch), toUpperAscii(i.ch) }
+        return true
+      if i.op == opStr and i.str.len == 1:
+        cs = { i.str[0] }
+        return true
+      if i.op == opIStr and i.str.len == 1:
+        cs = { toLowerAscii(i.str[0]), toUpperAscii(i.str[0]) }
+        return true
+      if i.op == opAny:
+        cs = {low(char)..high(char)}
+        return true
 
 
 proc checkSanity(p: Patt) =
@@ -96,23 +97,24 @@ proc newPatt*(s: string, op: Opcode): Patt =
 # without consequences; this allows the pattern to fail before pushing to the
 # backStack or capStack
 
-proc canShift(p: Patt): (int, int) =
-  var siShift, ipShift: int
-  for i in p:
-    if i.failOffset != 0:
-      break
-    case i.op
-    of opStr, opIStr:
-      siShift.inc i.str.len
-      ipShift.inc 1
-    of opChr, opIChr, opAny, opSet:
-      siShift.inc 1
-      ipShift.inc 1
-    else: break
-  result = (siShift, ipShift)
+proc canShift(p: Patt, enable: static[bool]): (int, int) =
+  when enable:
+    var siShift, ipShift: int
+    for i in p:
+      if i.failOffset != 0:
+        break
+      case i.op
+      of opStr, opIStr:
+        siShift.inc i.str.len
+        ipShift.inc 1
+      of opChr, opIChr, opAny, opSet:
+        siShift.inc 1
+        ipShift.inc 1
+      else: break
+    result = (siShift, ipShift)
 
 proc newPatt*(p: Patt, ck: CapKind, name = ""): Patt =
-  let (siShift, ipShift) = p.canShift()
+  let (siShift, ipShift) = p.canShift(npegOptCapShift)
   result.add p[0..<ipShift]
   result.add Inst(op: opCapOpen, capKind: ck, capSiOffset: -siShift, capName: name)
   result.add p[ipShift..^1]
@@ -211,7 +213,7 @@ proc choice*(ps: openArray[Patt]): Patt =
   lenTot = foldl(ps, a + b.len+2, 0)
   for i, p in ps:
     if i < ps.high:
-      let (siShift, ipShift) = p.canShift()
+      let (siShift, ipShift) = p.canShift(npegOptHeadFail)
       for n in 0..<ipShift:
         result.add p[n]
         result[result.high].failOffset = p.len - n + 2

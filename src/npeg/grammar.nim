@@ -141,10 +141,11 @@ proc link*(grammar: Grammar, initial_name: string, dot: Dot = nil): Patt =
   # Choice/Commit pairs that touch because of head fail optimization can be
   # replaced by a jump and a nop
 
-  for i in 0..<retPatt.high:
-    if retPatt[i+0].op == opChoice and retPatt[i+1].op == opCommit:
-      retPatt[i+0] = Inst(op: opJump, callOffset: retPatt[i+1].offset + 1)
-      retpatt[i+1] = Inst(op: opNop)
+  when npegOptChoiceCommit:
+    for i in 0..<retPatt.high:
+      if retPatt[i+0].op == opChoice and retPatt[i+1].op == opCommit:
+        retPatt[i+0] = Inst(op: opJump, callOffset: retPatt[i+1].offset + 1)
+        retpatt[i+1] = Inst(op: opNop)
 
   # Trailing opFail is used by the codegen
 

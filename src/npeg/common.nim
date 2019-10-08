@@ -2,18 +2,30 @@
 import strutils
 import tables
 import macros
+import bitops
 
-# Some constants with "sane" values - these will have to be made configurable one day
 
 const
+
+  # Some constants with "sane" defaults, configurable with compiler flags
+
   npegPattMaxLen* {.intdefine.} = 4096
   npegInlineMaxLen* {.intdefine.} = 30
   npegRetStackSize* {.intdefine.} = 1024
   npegBackStackSize* {.intdefine.} = 1024
+  npegOptimize* {.intDefine.} = 255
   npegDebug* = defined(npegDebug)
   npegTrace* = defined(npegTrace)
   npegExpand* = defined(npegExpand)
   npegGraph* = defined(npegGraph)
+
+  # Various optimizations. These can be disabled for testing purposes
+  # or when suspecting bugs in the optimization stages
+
+  npegOptSets* = npegOptimize.testBit(0)
+  npegOptHeadFail* = npegOptimize.testBit(1)
+  npegOptCapShift* = npegOptimize.testBit(2)
+  npegOptChoiceCommit* = npegOptimize.testBit(3)
 
 type
 
