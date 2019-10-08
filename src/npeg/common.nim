@@ -88,7 +88,7 @@ type
   Inst* = object
     case op*: Opcode
       of opChoice, opCommit:
-        offset*: int
+        ipOffset*: int
         siOffset*: int
       of opStr, opIStr:
         str*: string

@@ -19,7 +19,7 @@ when npegTrace:
         of opChr, opIChr:
           args = " '" & escapeChar(i.ch) & "'"
         of opChoice, opCommit, opPartCommit:
-          args = " " & $(n+i.offset)
+          args = " " & $(n+i.ipOffset)
         of opCall, opJump:
           args = " " & $(n+i.callOffset)
         of opCapOpen, opCapClose:
@@ -151,9 +151,9 @@ template addChoiceCommit(p: Patt, choiceOffset, commitOffset: int) =
   for n in 0..<ipShift:
     result.add p[n]
     result[result.high].failOffset = choiceOffset - n
-  result.add Inst(op: opChoice, offset: choiceOffset - ipShift, siOffset: -siShift)
+  result.add Inst(op: opChoice, ipOffset: choiceOffset - ipShift, siOffset: -siShift)
   result.add p[ipShift..^1]
-  result.add Inst(op: opCommit, offset: commitOffset)
+  result.add Inst(op: opCommit, ipOffset: commitOffset)
 
 
 ### Prefixes

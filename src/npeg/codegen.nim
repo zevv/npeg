@@ -205,7 +205,7 @@ proc genCode*(patt: Patt, userDataType: NimNode, userDataId: NimNode): NimNode =
           ip = `ipNext`
 
       of opChoice:
-        let ip2 = newLit(ipNow + i.offset)
+        let ip2 = newLit(ipNow + i.ipOffset)
         let siOffset = newLit(i.siOffset)
         quote do:
           trace ms, `iname`, `opName`, s, $`ip2`
@@ -213,7 +213,7 @@ proc genCode*(patt: Patt, userDataType: NimNode, userDataId: NimNode): NimNode =
           ip = `ipNext`
 
       of opCommit:
-        let ip2 = newLit(ipNow + i.offset)
+        let ip2 = newLit(ipNow + i.ipOffset)
         quote do:
           trace ms, `iname`, `opName`, s, $`ip2`
           discard pop(ms.backStack)
