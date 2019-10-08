@@ -1,6 +1,7 @@
 
 import npeg
 import os
+import streams
 import strutils
 import tables
 import json
@@ -14,11 +15,12 @@ let hostname = readFile("/etc/hostname").strip()
 
 let expectTime = {
   "platdoos": { 
-    "json": 0.140,
-    "words": 0.947,
-    "search": 0.325,
+    "json": 0.101,
+    "parsejson": 0.391,
+    "words": 0.820,
+    "search": 0.150,
     "search1": 0.874,
-    "search2": 2.279,
+    "search2": 1.527,
     "search3": 0.292,
   }.toTable(),
   "fe2": { 
@@ -44,7 +46,8 @@ template measureTime*(what: string, code: untyped) =
 
   var expect = 0.0
   if hostname in expectTime:
-    expect = expectTime[hostname][what]
+    if what in expectTime[hostname]:
+      expect = expectTime[hostname][what]
 
   let start = cpuTime()
   block:
@@ -55,6 +58,8 @@ template measureTime*(what: string, code: untyped) =
 
 
 measureTime "json":
+
+  ## Json parsing with npeg
 
   let p = peg "JSON":
     S              <- *{' ','\t','\r','\n'}
@@ -78,7 +83,18 @@ measureTime "json":
     Object         <- '{' * ( String * ":" * JSON * *( "," * String * ":" * JSON ) | ?S ) * "}"
     Array          <- "[" * ( JSON * *( "," * JSON ) | ?S ) * "]"
 
-  echo p.match(js)
+  doAssert p.match(js).ok
+
+
+let s = newStringStream(js)
+measureTime "parsejson":
+  # JSon parsing with nims 'parsejson' module.
+  var p: JsonParser
+  open(p, s, "json")
+  while true:
+    p.next()
+    if p.kind == jsonError or p.kind == jsonEof:
+      break
 
 
 measureTime "words":
