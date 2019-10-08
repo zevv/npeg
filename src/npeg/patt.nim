@@ -142,21 +142,31 @@ proc newReturnPatt*(): Patt =
 proc newErrorPatt*(msg: string): Patt =
   result.add Inst(op: opErr, msg: msg)
 
+
+# Add a choice/commit pair around pattern P, try to optimize head
+# fails when possible
+
+template addChoiceCommit(p: Patt, choiceOffset, commitOffset: int) =
+  let (siShift, ipShift) = p.canShift(npegOptHeadFail)
+  for n in 0..<ipShift:
+    result.add p[n]
+    result[result.high].failOffset = choiceOffset - n
+  result.add Inst(op: opChoice, offset: choiceOffset - ipShift, siOffset: -siShift)
+  result.add p[ipShift..^1]
+  result.add Inst(op: opCommit, offset: commitOffset)
+
+
 ### Prefixes
 
 proc `?`*(p: Patt): Patt =
-  result.add Inst(op: opChoice, offset: p.len + 2)
-  result.add p
-  result.add Inst(op: opCommit, offset: 1)
+  p.addChoiceCommit(p.len+2, 1)
 
 proc `*`*(p: Patt): Patt =
   var cs: CharSet
   if p.toSet(cs):
     result.add Inst(op: opSpan, cs: cs)
   else:
-    result.add Inst(op: opChoice, offset: p.len+2)
-    result.add p
-    result.add Inst(op: opPartCommit, offset: -p.len)
+    p.addChoiceCommit(p.len+2, -p.len-1)
 
 proc `+`*(p: Patt): Patt =
   result.add p
@@ -166,18 +176,14 @@ proc `>`*(p: Patt): Patt =
   return newPatt(p, ckStr)
 
 proc `!`*(p: Patt): Patt =
-  result.add Inst(op: opChoice, offset: p.len + 3)
-  result.add p
-  result.add Inst(op: opCommit, offset: 1)
+  p.addChoiceCommit(p.len+3, 1)
   result.add Inst(op: opFail)
 
 proc `&`*(p: Patt): Patt =
   result.add !(!p)
 
 proc `@`*(p: Patt): Patt =
-  result.add Inst(op: opChoice, offset: p.len + 2)
-  result.add p
-  result.add Inst(op: opCommit, offset: 3)
+  p.addChoiceCommit(p.len+2, 3)
   result.add Inst(op: opAny)
   result.add Inst(op: opJump, callOffset: - p.len - 3)
 
@@ -213,13 +219,7 @@ proc choice*(ps: openArray[Patt]): Patt =
   lenTot = foldl(ps, a + b.len+2, 0)
   for i, p in ps:
     if i < ps.high:
-      let (siShift, ipShift) = p.canShift(npegOptHeadFail)
-      for n in 0..<ipShift:
-        result.add p[n]
-        result[result.high].failOffset = p.len - n + 2
-      result.add Inst(op: opChoice, offset: p.len + 2 - ipShift, siOffset: -siShift)
-      result.add p[ipShift..^1]
-      result.add Inst(op: opCommit, offset: lenTot - ip - p.len - 3)
+      p.addChoiceCommit(p.len+2, lenTot-ip-p.len-3)
       ip += p.len + 2
     else:
       result.add p

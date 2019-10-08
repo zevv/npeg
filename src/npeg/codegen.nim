@@ -219,14 +219,6 @@ proc genCode*(patt: Patt, userDataType: NimNode, userDataId: NimNode): NimNode =
           discard pop(ms.backStack)
           ip = `ip2`
 
-      of opPartCommit:
-        let ip2 = newLit(ipNow + i.offset)
-        quote do:
-          trace ms, `iname`, `opName`, s, $`ip2`
-          update(ms.backStack, si, si)
-          update(ms.backStack, cp, ms.capStack.top)
-          ip = `ip2`
-
       of opCall:
         let label = newLit(i.callLabel)
         let ip2 = newLit(ipNow + i.callOffset)

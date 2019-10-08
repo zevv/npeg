@@ -74,7 +74,6 @@ type
     opSpan          # Matching: Match a sequence of 0 or more character sets
     opChoice,       # Flow control: stores current position
     opCommit,       # Flow control: commit previous choice
-    opPartCommit,   # Flow control: optimized commit/choice pair
     opCall,         # Flow control: call another rule
     opJump,         # Flow control: jump to target
     opReturn,       # Flow control: return from earlier call
@@ -88,7 +87,7 @@ type
 
   Inst* = object
     case op*: Opcode
-      of opChoice, opCommit, opPartCommit:
+      of opChoice, opCommit:
         offset*: int
         siOffset*: int
       of opStr, opIStr:
