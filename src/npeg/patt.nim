@@ -18,7 +18,7 @@ when npegTrace:
       case i.op:
         of opChr:
           args = " '" & escapeChar(i.ch) & "'"
-        of opChoice, opCommit, opPartCommit:
+        of opChoice, opCommit:
           args = " " & $(n+i.ipOffset)
         of opCall, opJump:
           args = " " & $(n+i.callOffset)
