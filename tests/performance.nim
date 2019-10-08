@@ -20,7 +20,15 @@ let expectTime = {
     "search1": 0.874,
     "search2": 2.279,
     "search3": 0.292,
-  }.toTable()
+  }.toTable(),
+  "fe2": { 
+    "json": 0.612,
+    "words": 2.314,
+    "search": 0.750,
+    "search1": 1.874,
+    "search2": 5.662,
+    "search3": 0.838,
+  }.toTable(),
 }.toTable()
 
 
