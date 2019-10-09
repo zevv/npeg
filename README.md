@@ -677,7 +677,7 @@ implicitly.
 For example, the following rule will check if a passed number is a valid
 `uint8` number:
 
-```
+```nim
 uint8 <- >Digit[1..3]:
   let v = parseInt($a)
   validate v>=0 and v<=255
@@ -686,7 +686,7 @@ uint8 <- >Digit[1..3]:
 The following grammar will cause the whole parse to fail when the `error` rule
 matches:
 
-```
+```nim
 error <- 0:
   fail()
 ```
@@ -698,6 +698,22 @@ or lookback, and adjust the subject index to consume input. At the time of
 writing, NPeg lacks a formal API or interface for this though, and I am not
 sure yet what this should look like - If you are interested in doing this,
 contact me so we can discuss the details.
+
+That said: the following snippet shows how to do custom pattern matching by
+abusing the internal parser state. This is *not recommended or supported*
+until a proper API has been implemented for this.
+
+```nim
+  let p = peg foo:
+    foo <- "ba" * die * "da"
+    die <- 0:
+      if si < s.len-3 and if cast[string](s[si..si+2]) == "die":
+        si += 3
+      else:
+        fail()
+
+  echo p.match("badieda")
+```
 
 #### Generic pegs and passing state
 
@@ -1380,6 +1396,11 @@ More examples can be found in tests/examples.nim.
 
 Here are some things I'd like to have implemented one day. Some are hard and
 require me to better understand what I'm doing first. In no particular order:
+
+- Design and implement a proper API for code block captures. The current API feels
+  fragile and fragmented (`capture[], $1/$2, fail(), validate()`), and does not
+  offer solid primitives to make custom match functions yet, something better
+  should be in place before NPeg goes v1.0.
 
 - Left recursion: There are known methods to allow PEGs to handle limited left
   recursion. I don't have a good understanding of these algorithms yet, I'll
