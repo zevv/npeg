@@ -69,7 +69,7 @@ measureTime "json":
 
     UnicodeEscape  <- 'u' * Xdigit[4]
     Escape         <- '\\' * ({ '"', '\\', '/', 'b', 'f', 'n', 'r', 't' } | UnicodeEscape)
-    StringBody     <- ?Escape * *( +( {'\x20'..'\xff'} - {'"'} - {'\\'}) * *Escape) 
+    StringBody     <- *Escape * *( +( {'\x20'..'\xff'} - {'"'} - {'\\'}) * *Escape) 
     String         <- '"' * StringBody * '"'
 
     Minus          <- '-'
