@@ -270,9 +270,9 @@ proc contains*[X,Y](s: TwoWayTable[X,Y], y: Y): bool =
 proc contains*[X,Y](s: TwoWayTable[X,Y], x: X): bool =
   return x in s.x2y
 
-proc get*[X,Y](s: TwoWayTable[X,Y], y: Y): X =
+proc `[]`*[X,Y](s: TwoWayTable[X,Y], y: Y): X =
   return s.y2x[y]
 
-proc get*[X,Y](s: TwoWayTable[X,Y], x: X): Y =
+proc `[]`*[X,Y](s: TwoWayTable[X,Y], x: X): Y =
   return s.x2y[x]
 

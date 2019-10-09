@@ -134,7 +134,7 @@ proc link*(grammar: Grammar, initial_name: string, dot: Dot = nil): Patt =
 
   for ip, i in retPatt.mpairs:
     if i.op == opCall:
-      i.callOffset = symtab.get(i.callLabel) - ip
+      i.callOffset = symtab[i.callLabel] - ip
     if i.op == opCall and retPatt[ip+1].op == opReturn:
       i.op = opJump
 

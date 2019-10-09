@@ -13,7 +13,7 @@ when npegTrace:
   proc dump*(p: Patt, symtab: SymTab) =
     for n, i in p.pairs:
       if n in symTab:
-        echo "\n" & symtab.get(n) & ":"
+        echo "\n" & symtab[n] & ":"
       var args: string
       case i.op:
         of opChr:
