@@ -691,6 +691,14 @@ error <- 0:
   fail()
 ```
 
+Note: The Nim code block is running within the NPeg parser context and has
+access to its internal state - this can be used to create custom
+validator/matcher functions that can inspect the subject string, do lookahead
+or lookback, and adjust the subject index to consume input. At the time of
+writing, NPeg lacks a formal API or interface for this though, and I am not
+sure yet what this should look like - If you are interested in doing this,
+contact me so we can discuss the details.
+
 #### Generic pegs and passing state
 
 Note: This is an experimental feature, the implementation or API might change
@@ -1212,9 +1220,9 @@ those to your liking:
 * `-d:npegGraph`: Dump syntax diagrams of all parsed rules at compile time.
 
 * `-d:npegExpand`: Dump the generated Nim code for all parsers defined in the
-  program. Ment for Npeg development debugging purposes only.
+  program. Ment for NPeg development debugging purposes only.
 
-* `-d:npegDebug`: Enable more debug info. Ment for Npeg development debugging
+* `-d:npegDebug`: Enable more debug info. Ment for NPeg development debugging
   purposes only.
 
 
