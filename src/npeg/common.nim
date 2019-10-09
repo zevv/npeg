@@ -236,15 +236,11 @@ proc dumpString*(s: Subject, o:int=0, l:int=1024): string =
     inc i
 
 
-
 proc slice*(s: Subject, iFrom, iTo: int): string =
   let len = iTo - iFrom
   result.setLen(len)
-  when false:
-    copyMem(result[0].addr, s[iFrom].unsafeAddr, len)
-  else:
-    for i in 0..<len:
-      result[i] = s[i+iFrom]
+  for i in 0..<len:
+    result[i] = s[i+iFrom]
 
 
 proc `$`*(t: Template): string =
