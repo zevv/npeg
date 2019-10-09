@@ -6,40 +6,6 @@ import sequtils
 import npeg/common
 
 
-# Create string representation of a pattern
-
-when npegTrace:
-
-  proc dump*(p: Patt, symtab: SymTab) =
-    for n, i in p.pairs:
-      if n in symTab:
-        echo "\n" & symtab[n] & ":"
-      var args: string
-      case i.op:
-        of opChr:
-          args = " '" & escapeChar(i.ch) & "'"
-        of opChoice, opCommit:
-          args = " " & $(n+i.ipOffset)
-        of opCall, opJump:
-          args = " " & $(n+i.callOffset)
-        of opCapOpen, opCapClose:
-          args = " " & $i.capKind
-          if i.capSiOffset != 0:
-            args &= "(" & $i.capSiOffset & ")"
-          if i.capAction != nil:
-            args &= ": " & i.capAction.repr.indent(23)
-        of opBackref:
-          args = " " & i.refName
-        else:
-          discard
-      if i.failOffset != 0:
-        args.add " " & $(n+i.failOffset)
-      echo align($n, 4) & ": " &
-           alignLeft($i.name, 15) &
-           alignLeft($i.op & args, 20) &
-           " " & i.pegRepr
-
-
 # Some tests on patterns
 
 proc isSet(p: Patt): bool {.used.} =

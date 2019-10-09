@@ -100,7 +100,7 @@ proc shadow*(grammar: Grammar, name: string): string =
 # pattern. Start with the initial rule, add all other non terminals and fixup
 # opCall addresses
 
-proc link*(grammar: Grammar, initial_name: string, dot: Dot = nil): Patt =
+proc link*(grammar: Grammar, initial_name: string, dot: Dot = nil): Program =
 
   if initial_name notin grammar.patts:
     error "inital rule '" & initial_name & "' not found"
@@ -134,7 +134,7 @@ proc link*(grammar: Grammar, initial_name: string, dot: Dot = nil): Patt =
 
   for ip, i in retPatt.mpairs:
     if i.op == opCall:
-      i.callOffset = symtab[i.callLabel] - ip
+      i.callOffset = symTab[i.callLabel] - ip
     if i.op == opCall and retPatt[ip+1].op == opReturn:
       i.op = opJump
 
@@ -152,7 +152,8 @@ proc link*(grammar: Grammar, initial_name: string, dot: Dot = nil): Patt =
   symTab.add("_fail", retPatt.len)
   retPatt.add Inst(op: opFail)
 
-  result = retPatt
+  result = Program(patt: retPatt, symTab: symTab)
+
   when npegTrace:
-    result.dump(symTab)
+    echo $result
 

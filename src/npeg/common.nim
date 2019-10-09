@@ -110,11 +110,20 @@ type
       of opBackref:
         refName*: string
     failOffset*: int
-    when npegTrace:
-      name*: string
-      pegRepr*: string
+    name*: string
+    pegRepr*: string
 
   Patt* = seq[Inst]
+
+  TwoWayTable*[X,Y] = ref object
+    x2y: Table[X, Y]
+    y2x: Table[Y, X]
+
+  Symtab* = TwoWayTable[string, int]
+
+  Program* = object
+    patt*: Patt
+    symtab*: Symtab
 
   Template* = ref object
     name*: string
@@ -129,6 +138,31 @@ type
     id*: string
     val*: string
     kids*: seq[ASTNode]
+
+#
+# Two-way table
+#
+
+proc newTwoWayTable*[X,Y](): TwoWayTable[X,Y] =
+  new result
+  result.x2y = initTable[X, Y]()
+  result.y2x = initTable[Y, X]()
+
+proc add*[X,Y](s: TwoWayTable[X,Y], x: X, y: Y) =
+  s.x2y[x] = y
+  s.y2x[y] = x
+
+proc contains*[X,Y](s: TwoWayTable[X,Y], y: Y): bool =
+  return y in s.y2x
+
+proc contains*[X,Y](s: TwoWayTable[X,Y], x: X): bool =
+  return x in s.x2y
+
+proc `[]`*[X,Y](s: TwoWayTable[X,Y], y: Y): X =
+  return s.y2x[y]
+
+proc `[]`*[X,Y](s: TwoWayTable[X,Y], x: X): Y =
+  return s.x2y[x]
 
 
 #
@@ -236,6 +270,36 @@ proc dumpString*(s: Subject, o:int=0, l:int=1024): string =
     inc i
 
 
+proc `$`*(program: Program): string =
+  for ip, i in program.patt.pairs:
+    if ip in program.symTab:
+      result.add "\n" & program.symtab[ip] & ":\n"
+    var args: string
+    case i.op:
+      of opChr:
+        args = " '" & escapeChar(i.ch) & "'"
+      of opChoice, opCommit:
+        args = " " & $(ip+i.ipOffset)
+      of opCall, opJump:
+        args = " " & $(ip+i.callOffset)
+      of opCapOpen, opCapClose:
+        args = " " & $i.capKind
+        if i.capSiOffset != 0:
+          args &= "(" & $i.capSiOffset & ")"
+        if i.capAction != nil:
+          args &= ": " & i.capAction.repr.indent(23)
+      of opBackref:
+        args = " " & i.refName
+      else:
+        discard
+    if i.failOffset != 0:
+      args.add " " & $(ip+i.failOffset)
+    result.add align($ip, 4) & ": " &
+               alignLeft(i.name, 15) &
+               alignLeft(($i.op).toLowerAscii[2..^1] & args, 20) &
+               " " & i.pegRepr & "\n"
+
+
 proc slice*(s: Subject, iFrom, iTo: int): string =
   let len = iTo - iFrom
   result.setLen(len)
@@ -245,34 +309,4 @@ proc slice*(s: Subject, iFrom, iTo: int): string =
 
 proc `$`*(t: Template): string =
   return t.name & "(" & t.args.join(", ") & ") = " & t.code.repr
-
-
-type
-
-  TwoWayTable*[X,Y] = ref object
-    x2y: Table[X, Y]
-    y2x: Table[Y, X]
-
-  Symtab* = TwoWayTable[string, int]
-
-proc newTwoWayTable*[X,Y](): TwoWayTable[X,Y] =
-  new result
-  result.x2y = initTable[X, Y]()
-  result.y2x = initTable[Y, X]()
-
-proc add*[X,Y](s: TwoWayTable[X,Y], x: X, y: Y) =
-  s.x2y[x] = y
-  s.y2x[y] = x
-
-proc contains*[X,Y](s: TwoWayTable[X,Y], y: Y): bool =
-  return y in s.y2x
-
-proc contains*[X,Y](s: TwoWayTable[X,Y], x: X): bool =
-  return x in s.x2y
-
-proc `[]`*[X,Y](s: TwoWayTable[X,Y], y: Y): X =
-  return s.y2x[y]
-
-proc `[]`*[X,Y](s: TwoWayTable[X,Y], x: X): Y =
-  return s.x2y[x]
 

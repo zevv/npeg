@@ -75,9 +75,10 @@ template skel(cases: untyped, count: int, ms: NimNode, s: NimNode, capture: NimN
     # Create local instances of performance-critical MatchState vars, this saves a
     # dereference on each access
 
-    var ip {.inject.}: range[0..count] = ms.ip
-    var si {.inject.} = ms.si
-    var simax {.inject.} = ms.simax
+    var
+      ip {.inject.}: range[0..count] = ms.ip
+      si {.inject.} = ms.si
+      simax {.inject.} = ms.simax
 
     # Debug trace. Slow and expensive
 
@@ -87,7 +88,7 @@ template skel(cases: untyped, count: int, ms: NimNode, s: NimNode, capture: NimN
           "|" & align($si, 3) &
           "|" & alignLeft(dumpString(s, si, 24), 24) &
           "|" & alignLeft(iname, 15) &
-          "|" & alignLeft(opname.toLowerAscii[2..^1] & " " & msg, 40) &
+          "|" & alignLeft(opname & " " & msg, 40) &
           "|" & repeat("*", ms.backStack.top)
 
     template trace(ms: var MatchState, iname, opname: string, s: Subject, msg = "") =
@@ -122,27 +123,22 @@ template skel(cases: untyped, count: int, ms: NimNode, s: NimNode, capture: NimN
 
 # Convert the list of parser instructions into a Nim finite state machine
 
-proc genCode*(patt: Patt, userDataType: NimNode, userDataId: NimNode): NimNode =
+proc genCode*(program: Program, userDataType: NimNode, userDataId: NimNode): NimNode =
 
   var cases = quote do:
     case ip
-        
 
-  for ipNow, i in patt.pairs:
-    
-    let ipNext = ipNow + 1
 
-    let ipFail = if i.failOffset == 0:
-      patt.high
-    else:
-      ipNow + i.failOffset
+  for ipNow, i in program.patt.pairs:
 
-    let opName = $i.op
-
-    when npegTrace:
-      let iname = newLit(i.name)
-    else:
-      let iname = newLit ""
+    let
+      ipNext = ipNow + 1
+      opName = newLit(($i.op).toLowerAscii[2..^1])
+      iname = newLit(i.name)
+      ipFail = if i.failOffset == 0:
+        program.patt.high
+      else:
+        ipNow + i.failOffset
 
     var call = case i.op:
 
@@ -332,7 +328,7 @@ proc genCode*(patt: Patt, userDataType: NimNode, userDataId: NimNode): NimNode =
 
     cases.add nnkOfBranch.newTree(newLit(ipNow), call)
 
-  result = getAst skel(cases, patt.high, ident "ms", ident "s", ident "capture",
+  result = getAst skel(cases, program.patt.high, ident "ms", ident "s", ident "capture",
                        userDataType, userDataId)
 
   when npegExpand:
