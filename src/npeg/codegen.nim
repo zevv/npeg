@@ -40,7 +40,7 @@ proc mkDollarCaptures(n: NimNode): NimNode =
   if n.kind == nnkPrefix and
        n[0].kind == nnkIdent and n[0].eqIdent("$") and
        n[1].kind == nnkIntLit:
-    let i = int(n[1].intVal-1)
+    let i = int(n[1].intVal)
     result = quote do:
       capture[`i`].s
   elif n.kind == nnkNilLit:

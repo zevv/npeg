@@ -628,18 +628,24 @@ type Capture = object
 ```
 
 For convenience there is syntactic sugar available in the code block which
-allows to use fake variables `$1` to `$9` to be used to access the captured
-strings. Some important notes about this notation:
+allows to use the variables `$0` to `$9` to be used to access the captured
+strings. The `$` operator uses then usual Nim precedence, thus these variables
+might need parentheses or different ordering in some cases, for example
+`$1.parseInt` should be written as `parseInt($1)`)
 
-- Offset difference: The first capture string from `capture[0]` is available in
-  the fake variable `$1`.
+- The total subject matched by the code block rule is available in `capture[0]`
+  or `$0`
 
-- Operator precedence: the dollar-variables might need parentheses or different
-  ordering in some cases, for example `$1.parseInt` should be written as
-  `parseInt($1)`)
+- Any additional explicit `>` string captures made by the rule or any of
+  its child rules will be available as `capture[1]`, `capture[2]`, ... or
+  `$1`, `$2`, ...
 
 Code block captures consume all embedded string captures, so these captures
 will no longer be available after matching.
+
+A code block capture can also produce captures by calling the `push(s: string)`
+function from the code block. Note that this is an experimental feature and
+that the API might change in future versions.
 
 The example has been extended to capture each word and number with the `>`
 string capture prefix. When the `pair` rule is matched, the attached code block

@@ -8,7 +8,7 @@ type
 
   Capture* = ref object
     case ck: CapKind
-    of ckStr, ckJString, ckJBool, ckJInt, ckJFloat, ckRef:
+    of ckStr, ckJString, ckJBool, ckJInt, ckJFloat, ckRef, ckAction:
       s*: string
     of ckAST:
       kids: Captures
@@ -58,7 +58,7 @@ proc fixCaptures*(s: Subject, capStack: var Stack[CapFrame], fm: FixMethod): Cap
       let i2 = stack.pop()
       assert result[i2].ck == c.ck
 
-      if c.ck in { ckStr, ckJString, ckJBool, ckJInt, ckJFloat, ckRef }:
+      if c.ck in { ckStr, ckJString, ckJBool, ckJInt, ckJFloat, ckRef, ckAction }:
         result[i2].s = if c.sPushed == "":
           s.slice(result[i2].si, c.si)
         else:
@@ -72,7 +72,7 @@ proc fixCaptures*(s: Subject, capStack: var Stack[CapFrame], fm: FixMethod): Cap
 
 
 proc collectCaptures*(caps: Captures): Captures =
-  result = caps.filterIt(it.ck == ckStr)
+  result = caps.filterIt(it.ck == ckStr or it.ck == ckAction)
 
 
 proc collectCapturesRef*(caps: Captures): Ref =

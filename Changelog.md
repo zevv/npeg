@@ -2,10 +2,14 @@
 master
 ======
 
+- Significant performance improvements, NPeg is now up to three times
+  faster for certain workloads
+- Changed semantincs of code block captures: $0 now always captures the
+  total subject captured in a rule. This is a minor API change that only
+  affects code using the `capture[]` notation inside code blocks
 - Added fail() function to force a parser fail in a code block capture
 - Added push() function to allow code block captures to push captures
   back on the stack
-- Significant performance improvements (delayed captures, head fails)
 
 0.18.0
 ======
