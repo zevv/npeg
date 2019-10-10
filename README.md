@@ -499,6 +499,90 @@ The resulting list of captures is now:
 ```
 
 
+### Code block captures
+
+Code block captures offer the most flexibility for accessing matched data in
+NPeg. This allows you to define a grammar with embedded Nim code for handling
+the data during parsing.
+
+Note that for code block captures, the Nim code gets executed during parsing,
+*even if the match is part of a pattern that fails and is later backtracked*
+
+When a grammar rule ends with a colon `:`, the next indented block in the
+grammar is interpreted as Nim code, which gets executed when the rule has been
+matched. Any string captures that were made inside the rule are available to
+the Nim code in the injected variable `capture[]` of type `seq[Capture]`:
+
+```
+type Capture = object
+  s*: string      # The captured string
+  si*: int        # The index of the captured string in the subject
+```
+
+For convenience there is syntactic sugar available in the code block which
+allows to use the variables `$0` to `$9` to be used to access the captured
+strings. The `$` operator uses then usual Nim precedence, thus these variables
+might need parentheses or different ordering in some cases, for example
+`$1.parseInt` should be written as `parseInt($1)`)
+
+- The total subject matched by the code block rule is available in `capture[0]`
+  or `$0`
+
+- Any additional explicit `>` string captures made by the rule or any of
+  its child rules will be available as `capture[1]`, `capture[2]`, ... or
+  `$1`, `$2`, ...
+
+Example:
+```nim
+let p = peg foo:
+  foo <- >(1 * >1) * 1:
+    echo "$0 = ", $0
+    echo "$1 = ", $1
+    echo "$2 = ", $2
+	     
+echo p.match("abc").ok
+```
+
+Will output
+
+```nim
+$0 = abc
+$1 = ab
+$2 = b
+```
+
+Code block captures consume all embedded string captures, so these captures
+will no longer be available after matching.
+
+A code block capture can also produce captures by calling the `push(s: string)`
+function from the code block. Note that this is an experimental feature and
+that the API might change in future versions.
+
+The example has been extended to capture each word and number with the `>`
+string capture prefix. When the `pair` rule is matched, the attached code block
+is executed, which adds the parsed key and value to the `words` table.
+
+```nim
+from strutils import parseInt
+var words = initTable[string, int]()
+
+let parser = peg "pairs":
+  pairs <- pair * *(',' * pair) * !1
+  word <- +Alpha
+  number <- +Digit
+  pair <- >word * '=' * >number:
+    words[$1] = parseInt($2)
+
+let r = parser.match(data)
+```
+
+After the parsing finished, the `words` table will now contain
+
+```nim
+{"two": 2, "three": 3, "one": 1, "four": 4}
+```
+
+
 ### AST (Abstract Syntax Tree) captures
 
 Note: AST captures is an experimental feature, the implementation or API might
@@ -606,70 +690,6 @@ The resulting Json data is now:
 }
 ```
 
-
-### Code block captures
-
-Code block captures offer the most flexibility for accessing matched data in
-NPeg. This allows you to define a grammar with embedded Nim code for handling
-the data during parsing.
-
-Note that for code block captures, the Nim code gets executed during parsing,
-*even if the match is part of a pattern that fails and is later backtracked*
-
-When a grammar rule ends with a colon `:`, the next indented block in the
-grammar is interpreted as Nim code, which gets executed when the rule has been
-matched. Any string captures that were made inside the rule are available to
-the Nim code in the injected variable `capture[]` of type `seq[Capture]`:
-
-```
-type Capture = object
-  s*: string      # The captured string
-  si*: int        # The index of the captured string in the subject
-```
-
-For convenience there is syntactic sugar available in the code block which
-allows to use the variables `$0` to `$9` to be used to access the captured
-strings. The `$` operator uses then usual Nim precedence, thus these variables
-might need parentheses or different ordering in some cases, for example
-`$1.parseInt` should be written as `parseInt($1)`)
-
-- The total subject matched by the code block rule is available in `capture[0]`
-  or `$0`
-
-- Any additional explicit `>` string captures made by the rule or any of
-  its child rules will be available as `capture[1]`, `capture[2]`, ... or
-  `$1`, `$2`, ...
-
-Code block captures consume all embedded string captures, so these captures
-will no longer be available after matching.
-
-A code block capture can also produce captures by calling the `push(s: string)`
-function from the code block. Note that this is an experimental feature and
-that the API might change in future versions.
-
-The example has been extended to capture each word and number with the `>`
-string capture prefix. When the `pair` rule is matched, the attached code block
-is executed, which adds the parsed key and value to the `words` table.
-
-```nim
-from strutils import parseInt
-var words = initTable[string, int]()
-
-let parser = peg "pairs":
-  pairs <- pair * *(',' * pair) * !1
-  word <- +Alpha
-  number <- +Digit
-  pair <- >word * '=' * >number:
-    words[$1] = parseInt($2)
-
-let r = parser.match(data)
-```
-
-After the parsing finished, the `words` table will now contain
-
-```nim
-{"two": 2, "three": 3, "one": 1, "four": 4}
-```
 
 #### Custom match validations
 
