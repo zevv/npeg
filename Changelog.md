@@ -10,6 +10,7 @@ master
 - Added fail() function to force a parser fail in a code block capture
 - Added push() function to allow code block captures to push captures
   back on the stack
+- Check for loops caused by repeat of empty strings at compile time
 
 0.18.0
 ======

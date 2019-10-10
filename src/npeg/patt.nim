@@ -3,7 +3,7 @@ import macros
 import strutils
 import sequtils
 
-import npeg/common
+import npeg/[common,stack]
 
 
 # Some tests on patterns
@@ -37,6 +37,35 @@ proc checkSanity(p: Patt) =
   if p.len >= npegPattMaxLen:
     error "NPeg: grammar too complex, (" & $p.len & " > " & $npegPattMaxLen & ").\n" &
           "If you think this is a mistake, increase the maximum size with -d:npegPattMaxLen=N"
+
+
+# Checks if the passed patt matches an empty subject. This is done by executing
+# the pattern as if it was passed an empty subject and see how it terminates.
+
+proc matchesEmpty(patt: Patt): bool =
+  var backStack = initStack[int]("backtrack", 8, 32)
+  var ip: int
+  while ip < patt.len:
+    let i = patt[ip]
+    case i.op
+      of opChoice:
+        push(backStack, ip+i.ipOffset)
+        inc ip
+      of opCommit:
+        discard pop(backStack)
+        ip += i.ipOffset
+      of opJump: ip += i.callOffset
+      of opCapOpen, opCapClose, opNop, opSpan: inc ip
+      of opErr, opReturn, opCall: return false
+      of opAny, opChr, opStr, opIstr, opSet, opBackRef, opFail:
+        if i.failOffset != 0:
+          ip += i.failOffset
+        elif backStack.top > 0:
+          ip = pop(backStack)
+        else:
+          return false
+  return true
+
 
 ### Atoms
 
@@ -126,6 +155,8 @@ proc `*`*(p: Patt): Patt =
   if p.toSet(cs):
     result.add Inst(op: opSpan, cs: cs)
   else:
+    if matchesEmpty(p):
+      error "'*' repeat argument matches empty subject"
     p.addChoiceCommit(p.len+2, -p.len-1)
 
 proc `+`*(p: Patt): Patt =
