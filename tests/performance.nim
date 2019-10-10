@@ -15,8 +15,8 @@ let hostname = readFile("/etc/hostname").strip()
 
 let expectTime = {
   "platdoos": { 
-    "json": 0.101,
-    "parsejson": 0.391,
+    "json": 0.770,
+    "parsejson": 3.962,
     "words": 0.820,
     "search": 0.150,
     "search1": 0.874,
@@ -86,18 +86,21 @@ measureTime "json":
 
     JSON           <- Value * !1
 
-  doAssert p.match(js).ok
+  for i in 1..10:
+    doAssert p.match(js).ok
 
 
 let s = newStringStream(js)
 measureTime "parsejson":
   # JSon parsing with nims 'parsejson' module.
-  var p: JsonParser
-  open(p, s, "json")
-  while true:
-    p.next()
-    if p.kind == jsonError or p.kind == jsonEof:
-      break
+  for i in 1..10:
+    s.setPosition(0)
+    var p: JsonParser
+    open(p, s, "json")
+    while true:
+      p.next()
+      if p.kind == jsonError or p.kind == jsonEof:
+        break
 
 
 measureTime "words":
