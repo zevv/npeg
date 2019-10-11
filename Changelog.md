@@ -1,9 +1,8 @@
 
-master
+0.19.0
 ======
 
-- Significant performance improvements, NPeg is now up to three times
-  faster for certain workloads
+- Significant performance improvements
 - Changed semantincs of code block captures: $0 now always captures the
   total subject captured in a rule. This is a minor API change that only
   affects code using the `capture[]` notation inside code blocks
