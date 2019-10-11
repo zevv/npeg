@@ -166,6 +166,24 @@ proc `[]`*[X,Y](s: TwoWayTable[X,Y], x: X): Y =
 
 
 #
+# Some glue to report parse errors without having to pass the original
+# NimNode all the way down the call stack
+#
+
+var gCurErrorNode {.compileTime} = newEmptyNode()
+
+proc setKrakNode*(n: NimNode) =
+  gCurErrorNode.copyLineInfo(n)
+
+template krak*(n: NimNode, msg: string) =
+  error "NPeg: error at '" & n.repr & "': " & msg & "\n", n
+
+template krak*(msg: string) =
+  echo "KRIK ", gCurErrorNode.repr
+  krak gCurErrorNode, msg
+
+
+#
 # Misc helper functions
 #
 

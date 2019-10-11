@@ -35,8 +35,8 @@ proc toSet(p: Patt, cs: var Charset): bool =
 
 proc checkSanity(p: Patt) =
   if p.len >= npegPattMaxLen:
-    error "NPeg: grammar too complex, (" & $p.len & " > " & $npegPattMaxLen & ").\n" &
-          "If you think this is a mistake, increase the maximum size with -d:npegPattMaxLen=N"
+    krak "NPeg: grammar too complex, (" & $p.len & " > " & $npegPattMaxLen & ").\n" &
+         "If you think this is a mistake, increase the maximum size with -d:npegPattMaxLen=N"
 
 
 # Checks if the passed patt matches an empty subject. This is done by executing
@@ -156,7 +156,7 @@ proc `*`*(p: Patt): Patt =
     result.add Inst(op: opSpan, cs: cs)
   else:
     if matchesEmpty(p):
-      error "'*' repeat argument matches empty subject"
+      krak "'*' repeat argument matches empty subject"
     p.addChoiceCommit(p.len+2, -p.len-1)
 
 proc `+`*(p: Patt): Patt =

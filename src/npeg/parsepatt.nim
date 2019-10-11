@@ -18,8 +18,7 @@ proc parsePatt*(name: string, nn: NimNode, grammar: Grammar, dot: Dot = nil): Pa
 
   proc aux(n: NimNode): Patt =
 
-    template krak(n: NimNode, msg: string) =
-      error "NPeg: error at '" & n.repr & "': " & msg & "\n", n
+    setKrakNode(n)
 
     proc inlineOrCall(name2: string): Patt =
 
