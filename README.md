@@ -1437,6 +1437,7 @@ require me to better understand what I'm doing first. In no particular order:
 - Precedence/Pratt parsing at the PEG level:
 
   https://dev.to/combinatorylogic/peg-and-pratt-play-well-together-2i20
+  https://github.com/rsdn/nemerle/wiki/PegGrammar-Macro
 
 - Resuming/streaming: The current parser is almost ready to be invoked multiple
   times, resuming parsing where it left off - this should allow parsing of (infinite)
