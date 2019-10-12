@@ -125,10 +125,11 @@ proc parsePatt*(name: string, nn: NimNode, grammar: Grammar, dot: Dot = nil): Pa
         result = p
 
       of nnkInfix:
-        let (p1, p2) = (aux n[1], aux n[2])
         case n[0].strVal:
-          of "*": result = p1 * p2
-          of "-": result = p1 - p2
+          of "*": result = aux(n[1]) * aux(n[2])
+          of "-": result = aux(n[1]) - aux(n[2])
+          of "^": result = newPattAssoc(aux(n[1]), intVal(n[2]), assocLeft)
+          of "^^": result = newPattAssoc(aux(n[1]), intVal(n[2]), assocRight)
           else: krak n, "Unhandled infix operator"
 
       of nnkBracketExpr:

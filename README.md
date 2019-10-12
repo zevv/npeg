@@ -1428,16 +1428,6 @@ require me to better understand what I'm doing first. In no particular order:
   offer solid primitives to make custom match functions yet, something better
   should be in place before NPeg goes v1.0.
 
-- Left recursion: There are known methods to allow PEGs to handle limited left
-  recursion. I don't have a good understanding of these algorithms yet, I'll
-  leave this for a wet and rainy autumn holiday.
-
-  https://tratt.net/laurie/research/pubs/html/tratt__direct_left_recursive_parsing_expression_grammars/
-
-- Precedence/Pratt parsing at the PEG level:
-
-  https://dev.to/combinatorylogic/peg-and-pratt-play-well-together-2i20
-
 - Resuming/streaming: The current parser is almost ready to be invoked multiple
   times, resuming parsing where it left off - this should allow parsing of (infinite)
   streams. The only problem not solved yet is how to handle captures: when a block

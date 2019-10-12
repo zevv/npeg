@@ -55,7 +55,7 @@ proc matchesEmpty(patt: Patt): bool =
         discard pop(backStack)
         ip += i.ipOffset
       of opJump: ip += i.callOffset
-      of opCapOpen, opCapClose, opNop, opSpan: inc ip
+      of opCapOpen, opCapClose, opNop, opSpan, opPrecPush, opPrecPop: inc ip
       of opErr, opReturn, opCall: return false
       of opAny, opChr, opStr, opIstr, opSet, opBackRef, opFail:
         if i.failOffset != 0:
@@ -222,6 +222,12 @@ proc `-`*(p1, p2: Patt): Patt =
   else:
     result.add !p2
     result.add p1
+
+proc newPattAssoc*(p: Patt, prec: BiggestInt, assoc: Assoc): Patt =
+  result.add Inst(op: opPrecPush, prec: prec.int, assoc: assoc)
+  result.add p
+  result.add Inst(op: opPrecPop)
+
 
 ### Others
 

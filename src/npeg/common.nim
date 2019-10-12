@@ -81,8 +81,12 @@ type
     opCapClose,     # Capture close
     opBackref       # Back reference
     opErr,          # Error handler
+    opPrecPush,     # Precedence stack push
+    opPrecPop,      # Precedence stack pop
 
   CharSet* = set[char]
+
+  Assoc* = enum assocLeft, assocRight
 
   Inst* = object
     case op*: Opcode
@@ -105,10 +109,13 @@ type
         capSiOffset*: int
       of opErr:
         msg*: string
-      of opFail, opReturn, opAny, opNop:
+      of opFail, opReturn, opAny, opNop, opPrecPop:
         discard
       of opBackref:
         refName*: string
+      of opPrecPush:
+        prec*: int
+        assoc*: Assoc
     failOffset*: int
     name*: string
     pegRepr*: string
@@ -308,6 +315,8 @@ proc `$`*(program: Program): string =
           args &= ": " & i.capAction.repr.indent(23)
       of opBackref:
         args = " " & i.refName
+      of opPrecPush:
+        args = " @" & $i.prec
       else:
         discard
     if i.failOffset != 0:
