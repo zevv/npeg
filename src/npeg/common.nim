@@ -81,6 +81,7 @@ type
     opCapClose,     # Capture close
     opBackref       # Back reference
     opErr,          # Error handler
+    opPrec,         # Precedence
 
   CharSet* = set[char]
 
@@ -109,6 +110,8 @@ type
         discard
       of opBackref:
         refName*: string
+      of opPrec:
+        prec*: int
     failOffset*: int
     name*: string
     pegRepr*: string
@@ -308,6 +311,8 @@ proc `$`*(program: Program): string =
           args &= ": " & i.capAction.repr.indent(23)
       of opBackref:
         args = " " & i.refName
+      of opPrec:
+        args = " @" & $i.prec
       else:
         discard
     if i.failOffset != 0:

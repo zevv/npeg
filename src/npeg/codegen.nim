@@ -13,6 +13,9 @@ type
     si*: int # Subject index
     rp*: int # Retstack top pointer
     cp*: int # Capstack top pointer
+    pp*: int # PrecStack top pointer
+
+  PrecFrame = int
 
   MatchResult* = object
     ok*: bool
@@ -28,6 +31,7 @@ type
     retStack*: Stack[RetFrame]
     capStack*: Stack[CapFrame]
     backStack*: Stack[BackFrame]
+    precStack*: Stack[PrecFrame]
 
   Parser*[T] = object
     fn*: proc(ms: var MatchState, s: Subject, userdata: var T): MatchResult
@@ -57,7 +61,9 @@ proc initMatchState*(): MatchState =
     retStack: initStack[RetFrame]("return", 8, npegRetStackSize),
     capStack: initStack[CapFrame]("capture", 8),
     backStack: initStack[BackFrame]("backtrace", 8, npegBackStackSize),
+    precStack: initStack[PrecFrame]("precedence", 8, 16),
   )
+  push(result.precStack, 0)
 
 
 # Template for generating the parsing match proc.
@@ -85,8 +91,9 @@ template skel(cases: untyped, count: int, ms: NimNode, s: NimNode, capture: NimN
     proc doTrace(ms: var MatchState, iname, opname: string, s: Subject, msg: string) =
       when npegTrace:
         echo align(if ip >= 0: $ip else: "", 3) &
+          "|" & align($(ms.precStack.peek), 3) &
           "|" & align($si, 3) &
-          "|" & alignLeft(dumpString(s, si, 24), 24) &
+          ":" & alignLeft(dumpString(s, si, 24), 24) &
           "|" & alignLeft(iname, 15) &
           "|" & alignLeft(opname & " " & msg, 40) &
           "|" & repeat("*", ms.backStack.top)
@@ -195,7 +202,7 @@ proc genCode*(program: Program, userDataType: NimNode, userDataId: NimNode): Nim
         let siOffset = newLit(i.siOffset)
         quote do:
           trace ms, `iname`, `opName`, s, $`ip2`
-          push(ms.backStack, BackFrame(ip:`ip2`, si:si+`siOffset`, rp:ms.retStack.top, cp:ms.capStack.top))
+          push(ms.backStack, BackFrame(ip:`ip2`, si:si+`siOffset`, rp:ms.retStack.top, cp:ms.capStack.top, pp:ms.precStack.top))
           ip = `ipNext`
 
       of opCommit:
@@ -225,7 +232,7 @@ proc genCode*(program: Program, userDataType: NimNode, userDataId: NimNode): Nim
         let capName = newLit(i.capName)
         let capSiOffset = newLit(i.capSiOffset)
         quote do:
-          trace ms, `iname`, `opName`, s, $`capKind` & " -> " & $si
+          trace ms, `iname`, `opName`, s, $`capKind` & " " & $`capName` & " -> " & $si
           push(ms.capStack, CapFrame(cft: cftOpen, si: si+`capSiOffset`, ck: `capKind`, name: `capName`))
           ip = `ipNext`
 
@@ -314,6 +321,20 @@ proc genCode*(program: Program, userDataType: NimNode, userDataId: NimNode): Nim
         quote do:
           trace ms, `iname`, `opName`, s
           ip = `ipNext`
+      
+      of opPrec:
+        let iPrec = newLit(i.prec)
+        quote do:
+          trace ms, `iname`, `opName`, s, "@" & $`iPrec`
+          if `iPrec` == 0:
+            discard ms.precStack.pop()
+            ip = `ipNext`
+          else:
+            if ms.precStack.peek() < `iPrec`:
+              push(ms.precStack, `iPrec`)
+              ip = `ipNext`
+            else:
+              ip = `ipFail`
 
       of opFail:
         quote do:
@@ -321,7 +342,7 @@ proc genCode*(program: Program, userDataType: NimNode, userDataId: NimNode): Nim
           if ms.backStack.top > 0:
             trace ms, "", "opFail", s, "(backtrack)"
             let t = pop(ms.backStack)
-            (ip, si, ms.retStack.top, ms.capStack.top) = (t.ip, t.si, t.rp, t.cp)
+            (ip, si, ms.retStack.top, ms.capStack.top, ms.precStack.top) = (t.ip, t.si, t.rp, t.cp, t.pp)
           else:
             trace ms, "", "opFail", s, "(error)"
             break

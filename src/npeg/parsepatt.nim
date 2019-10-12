@@ -104,6 +104,7 @@ proc parsePatt*(name: string, nn: NimNode, grammar: Grammar, dot: Dot = nil): Pa
             of "Jf": result = newPatt(aux n[2], ckJFieldFixed, n[1].strVal)
             of "A": result = newPatt(aux n[2], ckAST, n[1].strVal)
             of "R": result = newPatt(aux n[2], ckRef, n[1].strVal)
+            of "P": result = newPatt(aux n[2], n[1].intVal)
         if result.len == 0:
           krak n, "Unknown template or capture '" & name & "'"
 
@@ -127,8 +128,9 @@ proc parsePatt*(name: string, nn: NimNode, grammar: Grammar, dot: Dot = nil): Pa
       of nnkInfix:
         let (p1, p2) = (aux n[1], aux n[2])
         case n[0].strVal:
-          of "*": result = p1 * p2
-          of "-": result = p1 - p2
+          of "*": result = aux(n[1]) * aux(n[2])
+          of "-": result = aux(n[1]) - aux(n[2])
+          of "/": result = newPatt(aux(n[2]), intVal(n[1]))
           else: krak n, "Unhandled infix operator"
 
       of nnkBracketExpr:

@@ -55,7 +55,7 @@ proc matchesEmpty(patt: Patt): bool =
         discard pop(backStack)
         ip += i.ipOffset
       of opJump: ip += i.callOffset
-      of opCapOpen, opCapClose, opNop, opSpan: inc ip
+      of opCapOpen, opCapClose, opNop, opSpan, opPrec: inc ip
       of opErr, opReturn, opCall: return false
       of opAny, opChr, opStr, opIstr, opSet, opBackRef, opFail:
         if i.failOffset != 0:
@@ -65,22 +65,6 @@ proc matchesEmpty(patt: Patt): bool =
         else:
           return false
   return true
-
-
-### Atoms
-
-proc newPatt*(s: string, op: Opcode): Patt =
-  case op:
-    of opStr:
-      result.add Inst(op: opStr, str: s)
-    of opIStr:
-      result.add Inst(op: opIStr, str: s)
-    of opChr:
-      for ch in s:
-        result.add Inst(op: opChr, ch: ch)
-    else:
-      doAssert false
-
 
 # Calculate how far captures or choices can be shifted into this pattern
 # without consequences; this allows the pattern to fail before pushing to the
@@ -99,8 +83,37 @@ proc canShift(p: Patt, enable: static[bool]): (int, int) =
       of opChr, opAny, opSet:
         siShift.inc 1
         ipShift.inc 1
+      of opNop, opPrec:
+        ipShift.inc 1
       else: break
     result = (siShift, ipShift)
+
+# Add a choice/commit pair around pattern P, try to optimize head
+# fails when possible
+
+template addChoiceCommit(p: Patt, choiceOffset, commitOffset: int) =
+  let (siShift, ipShift) = p.canShift(npegOptHeadFail)
+  for n in 0..<ipShift:
+    result.add p[n]
+    result[result.high].failOffset = choiceOffset - n
+  result.add Inst(op: opChoice, ipOffset: choiceOffset - ipShift, siOffset: -siShift)
+  result.add p[ipShift..^1]
+  result.add Inst(op: opCommit, ipOffset: commitOffset)
+
+
+### Atoms
+
+proc newPatt*(s: string, op: Opcode): Patt =
+  case op:
+    of opStr:
+      result.add Inst(op: opStr, str: s)
+    of opIStr:
+      result.add Inst(op: opIStr, str: s)
+    of opChr:
+      for ch in s:
+        result.add Inst(op: opChr, ch: ch)
+    else:
+      doAssert false
 
 proc newPatt*(p: Patt, ck: CapKind, name = ""): Patt =
   let (siShift, ipShift) = p.canShift(npegOptCapShift)
@@ -131,19 +144,10 @@ proc newReturnPatt*(): Patt =
 proc newErrorPatt*(msg: string): Patt =
   result.add Inst(op: opErr, msg: msg)
 
-
-# Add a choice/commit pair around pattern P, try to optimize head
-# fails when possible
-
-template addChoiceCommit(p: Patt, choiceOffset, commitOffset: int) =
-  let (siShift, ipShift) = p.canShift(npegOptHeadFail)
-  for n in 0..<ipShift:
-    result.add p[n]
-    result[result.high].failOffset = choiceOffset - n
-  result.add Inst(op: opChoice, ipOffset: choiceOffset - ipShift, siOffset: -siShift)
-  result.add p[ipShift..^1]
-  result.add Inst(op: opCommit, ipOffset: commitOffset)
-
+proc newPatt*(p: Patt, prec: BiggestInt): Patt =
+  result.add Inst(op: opPrec, prec: prec.int)
+  result.add p
+  result.add Inst(op: opPrec, prec: 0)
 
 ### Prefixes
 

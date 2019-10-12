@@ -136,7 +136,8 @@ proc link*(grammar: Grammar, initial_name: string, dot: Dot = nil): Program =
     if i.op == opCall:
       i.callOffset = symTab[i.callLabel] - ip
     if i.op == opCall and retPatt[ip+1].op == opReturn:
-      i.op = opJump
+      retPatt[ip+0] = Inst(op: opJump, callOffset: i.callOffset)
+      retPatt[ip+1] = Inst(op: opNop)
 
   # Choice/Commit pairs that touch because of head fail optimization can be
   # replaced by a jump and a nop
