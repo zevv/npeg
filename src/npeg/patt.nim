@@ -83,7 +83,7 @@ proc canShift(p: Patt, enable: static[bool]): (int, int) =
       of opChr, opAny, opSet:
         siShift.inc 1
         ipShift.inc 1
-      of opNop, opPrec:
+      of opNop:
         ipShift.inc 1
       else: break
     result = (siShift, ipShift)
