@@ -8,26 +8,40 @@ import npeg
 
 suite "precedence operator":
 
+  # The PEG below implements a Pratt parser. The ^ and ^^ operators are used to
+  # implement precedence climbing, this allows rules to be left recursive while
+  # still avoiding unbound recursion.
+  #
+  # The parser local state `seq[int]` is used as a stack to store captures and
+  # intermediate results while parsing, the end result of the expression will
+  # be available in element 0 when the parser finishes
+
   test "expr evaluator":
 
     let p = peg(exp, st: seq[int]):
-      S <- *' '
 
-      number <- +Digit * ?( "." * *Digit)
+      # An expression consists of a prefix followed by zero or more infix
+      # operators
+      
+      exp <- S * prefix * *infix
 
-      atom <- >number * S: st.add parseInt($1)
+      # The prefix is a number, a sub expression in parentheses or the unary
+      # `-` operator.
 
-      uniminus <- >'-' * exp: st.add(-st.pop)
+      prefix <- number | parenExp | uniMinus | E"atom"
 
-      parenExp <- ( "(" * exp * ")" ) ^ 0
+      # Parse an infix operator. The left recursion is bound by the precedece
+      # operator that makes sure `exp` is only parsed if the currrent
+      # precedence is lower then the given precedence.
 
-      prefix <- atom | parenExp | uniminus | E"atom"
+      infix <- >("or"|"xor") * exp ^ 3 |
+               >("and")      * exp ^ 4 |
+               >{'+','-'}    * exp ^ 8 |
+               >{'*','/'}    * exp ^ 9 |
+               >{'^'}        * exp ^^ 10:
 
-      postfix <- >("or"|"xor") * exp ^ 3 |
-                 >("and")      * exp ^ 4 |
-                 >{'+','-'}    * exp ^ 8 |
-                 >{'*','/'}    * exp ^ 9 |
-                 >{'^'}        * exp ^^ 10:
+        # Takes two results off the stack, applies the operator and push
+        # back the result
 
         let (f2, f1) = (st.pop, st.pop)
         case $1
@@ -40,12 +54,33 @@ suite "precedence operator":
           of "and": st.add(f1 and f2)
           of "^": st.add(f1 ^ f2)
 
-      exp <- S * prefix * *postfix
+      # Capture a number and put it on the stack
+
+      number <- >+Digit * S:
+        st.add parseInt($1)
+
+      # Unary minues: take last element of the stack, negate and push back
+
+      uniMinus <- >'-' * exp:
+        st.add(-st.pop)
+
+      # Reset the precedence level to 0 when parsing sub-expressions
+      # in parentheses
+
+      parenExp <- ( "(" * exp * ")" ) ^ 0
+
+      S <- *Space
+
+
+    # Evaluate the given expression
 
     proc eval(expr: string): int =
       var st: seq[int]
       doAssert p.match(expr, st).ok
       st[0]
+
+
+    # Test cases
 
     doAssert eval("2+1") == 2+1
     doAssert eval("(((2+(1))))") == 2+1
