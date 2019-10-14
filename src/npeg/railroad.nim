@@ -280,6 +280,8 @@ proc parseRailRoad*(nn: NimNode, grammar: Grammar): Node =
         case n[0].strVal:
           of "*": result = p1 * p2
           of "-": result = p1 - p2
+          of "^": result = p1
+          of "^^": result = p1
           else: discard
 
       of nnkBracketExpr:

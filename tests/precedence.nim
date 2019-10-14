@@ -28,6 +28,7 @@ suite "precedence operator":
                  >{'+','-'}    * exp ^ 8 |
                  >{'*','/'}    * exp ^ 9 |
                  >{'^'}        * exp ^^ 10:
+
         let (f2, f1) = (st.pop, st.pop)
         case $1
           of "+": st.add(f1 + f2)
