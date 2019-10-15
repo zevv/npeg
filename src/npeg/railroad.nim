@@ -126,6 +126,12 @@ proc newCapNode(n: Node, name = ""): Node =
   for i in 0..<namer.len:
     result.poke fgCap, ((x1+x0-namer.len)/%2+i, y0, $namer[i])
 
+proc newPrecNode(n: Node, prec: BiggestInt, lr: string): Node =
+  let l = lr & $prec & lr
+  result = pad(n, if l.len > n.w: l.len-n.w else: 0, 0, 1)
+  for i, c in l:
+    result.poke fgCap, (result.w/%2 - l.len/%2 + i, -1, $c)
+
 proc `*`(n1, n2: Node): Node =
   result = Node(w: n1.w + n2.w + 1, y0: min(n1.y0, n2.y0), y1: max(n1.y1, n2.y1))
   result.poke fgGreen, (n1.w, 0, "»")
@@ -278,10 +284,10 @@ proc parseRailRoad*(nn: NimNode, grammar: Grammar): Node =
       of nnkInfix:
         let (p1, p2) = (aux n[1], aux n[2])
         case n[0].strVal:
-          of "*": result = p1 * p2
-          of "-": result = p1 - p2
-          of "^": result = p1
-          of "^^": result = p1
+          of "*": result = aux(n[1]) * aux(n[2])
+          of "-": result = aux(n[1]) * aux(n[2])
+          of "^": result = newPrecNode(aux(n[1]), intVal(n[2]), "<")
+          of "^^": result = newPrecNode(aux(n[1]), intVal(n[2]), ">")
           else: discard
 
       of nnkBracketExpr:

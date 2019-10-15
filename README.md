@@ -451,14 +451,24 @@ patterns.
 
 ## Precedence operators
 
-Precedence operators are an experimental feature which allows for the
-construction of "precedence climbing" or "Pratt parsers" in NPeg. The main use
-for this feature is building parsers for programming langues that follow the
-usual precedence and associativity rules of arithmetic expressions.
+Precedence operators is an experimental feature which allows for the
+construction of "precedence climbing" or "Pratt parsers" with NPeg. The main
+use for this feature is building parsers for programming langues that follow
+the usual precedence and associativity rules of arithmetic expressions.
 
 - Left associative precedence of `N`: `P ^ N`
 
+```
+   <1<   
+o──[P]──o
+```
+
 - Right associative precedence of `N`: `P ^^ N`
+
+```
+   >1> 
+o──[P]──o
+```
 
 During parsing NPeg keeps track of the current precedence level of the parsed
 expression - the default is `0` if no precedence has been assigned yet. When
