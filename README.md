@@ -475,6 +475,20 @@ the `^` operator is matched, either one of the next three cases applies:
   parsing. This main use case for this is parsing sub-expressions in
   parentheses.
 
+The heart of a Prett parser in NPeg would look something like this:
+
+```nim
+exp <- prefix * *infix
+
+parenExp <- ( "(" * exp * ")" ) ^ 0
+
+prefix <- number | parenExp
+
+infix <- {'+','-'}    * exp ^  1 |
+         {'*','/'}    * exp ^  2 |
+         {'^'}        * exp ^^ 3:
+```
+
 More extensive documentation will be added later, for now take a look at the
 example in `tests/precedence.nim`.
 
