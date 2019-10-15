@@ -28,7 +28,7 @@ suite "precedence operator":
       # The prefix is a number, a sub expression in parentheses or the unary
       # `-` operator.
 
-      prefix <- number | parenExp | uniMinus | E"atom"
+      prefix <- number | parenExp | uniMinus
 
       # Parse an infix operator. The left recursion is bound by the precedece
       # operator that makes sure `exp` is only parsed if the currrent

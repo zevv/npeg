@@ -464,14 +464,16 @@ During parsing NPeg keeps track of the current precedence level of the parsed
 expression - the default is `0` if no precedence has been assigned yet. When
 the `^` operator is matched, either one of the next three cases applies:
 
-- `N > 0` and he given precedence `N` is lower then the current precedence: in this case
-  the current precedence is set to `N` and parsing of pattern `P` continues
+- `P ^ N` where `N > 0` and `N` is lower then the current precedence: in this
+  case the current precedence is set to `N` and parsing of pattern `P`
+  continues
 
-- `N > 0` and he given precedence `N` is higher or equal then the current precedence:
+- `P ^ N` where `N > 0` and `N` is higher or equal then the current precedence:
   parsing will fail and backtrack.
 
-- `N == 0`: resets the current precedence to 0 and continues parsing. This main
-  use case for this is parsing sub-expressions in parentheses.
+- `P ^ N ` and `N == 0`: resets the current precedence to 0 and continues
+  parsing. This main use case for this is parsing sub-expressions in
+  parentheses.
 
 More extensive documentation will be added later, for now take a look at the
 example in `tests/precedence.nim`.
