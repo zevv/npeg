@@ -1,5 +1,5 @@
 
-import macros, unicode, tables
+import macros, unicode, tables, strutils
 import npeg/[grammar,common]
 
 when not defined(js):
