@@ -1315,20 +1315,29 @@ those to your liking:
   parser. The default value should be high enough for practical purposes, the
   stack depth is only limited to detect invalid grammars. (default: 1024)
 
+
+## Tracing, debugging and profiling
+
+Npeg has a number of compile time flags to enable tracing and debugging of the
+generated parser:
+
 * `-d:npegTrace`: Enable compile time and run time tracing. Please refer to the 
   section 'Tracing' for more details
 
 * `-d:npegGraph`: Dump syntax diagrams of all parsed rules at compile time.
 
-* `-d:npegExpand`: Dump the generated Nim code for all parsers defined in the
-  program. Ment for NPeg development debugging purposes only.
+* `-d:npegProfile`: Enables run time profiling. This will dump an annotated
+  listing of NPegs compiled program with total time spent, count and fail count
+  for each instruction.
+
+These flags are ment for debugging NPeg itself, and are typically not useful
+to the end user:
 
 * `-d:npegDebug`: Enable more debug info. Ment for NPeg development debugging
   purposes only.
 
-* `-d:npegProfile`: Enables run time profiling. This will dump an annotated
-  listing of NPegs compiled program with total time spent, count and fail count
-  for each instruction.
+* `-d:npegExpand`: Dump the generated Nim code for all parsers defined in the
+  program. Ment for NPeg development debugging purposes only.
 
 
 ## Random stuff and frequently asked questions
