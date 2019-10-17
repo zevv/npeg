@@ -3,8 +3,6 @@ import tables
 import macros
 import strutils
 import npeg/[common,dot]
-when npegTrace:
-  import npeg/[patt]
 
 #
 # Create a new grammar
@@ -57,12 +55,11 @@ proc addPatt*(grammar: Grammar, name: string, patt1: Patt) =
   if name in grammar.patts:
     warning "Redefinition of rule '" & name & "'"
   var patt = patt1
-  when npegTrace:
-    for i in patt.mitems:
-      if i.name == "":
-        i.name = name
-      else:
-        i.name = " " & i.name
+  for i in patt.mitems:
+    if i.name == "":
+      i.name = name
+    else:
+      i.name = " " & i.name
   grammar.patts[name] = patt
 
 
@@ -118,8 +115,7 @@ proc link*(grammar: Grammar, initial_name: string, dot: Dot = nil): Program =
     symTab.add(name, retPatt.len)
     retPatt.add patt
     retPatt.add Inst(op: opReturn)
-    when npegTrace:
-      retPatt[retPatt.high].name = retPatt[retPatt.high-1].name
+    retPatt[retPatt.high].name = retPatt[retPatt.high-1].name
 
     for i in patt:
       if i.op == opCall and i.callLabel notin symTab:
@@ -152,8 +148,14 @@ proc link*(grammar: Grammar, initial_name: string, dot: Dot = nil): Program =
   symTab.add("_fail", retPatt.len)
   retPatt.add Inst(op: opFail)
 
-  result = Program(patt: retPatt, symTab: symTab)
+  # Save program source
+
+  var listing: seq[string]
+  for i in retPatt:
+    listing.add $i
+
+  result = Program(patt: retPatt, symTab: symTab, listing: listing)
 
   when npegTrace:
-    echo $result
+    echo result
 

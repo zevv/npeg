@@ -66,6 +66,46 @@ proc initMatchState*(): MatchState =
   push(result.precStack, 0)
 
 
+# This is a variant of the main 'cases' loop with extensive profileing of
+# time spent, instruction count and fail count. Slow.
+
+when npegProfile:
+  import math
+  import times
+  template profileLoop(count: static[int], cases: untyped, listing: untyped) =
+
+    var tInst: array[0..count, float]
+    var nInst: array[0..count, int]
+    var nFail: array[0..count, int]
+    var tTotal: float
+
+    while true:
+      let ipProf = ip
+      let t1 = cpuTime()
+
+      cases
+
+      let dt = cpuTime() - t1
+      nInst[ipProf] += 1
+      tInst[ipProf] += dt
+      if ip == count: nFail[ipProf] += 1
+      tTotal += dt
+
+    # Dump profiling results
+
+    when npegProfile:
+      let tMax = sqrt(max(tInst))
+      if tMax > 0:
+        for i, l in listing:
+          let graph = strutils.align(repeat("#", (int)(5.0*sqrt(tInst[i])/tMax)), 5)
+          let perc = formatFloat(100.0 * tInst[i] / tTotal, ffDecimal, 1)
+          echo graph,
+               " ",   strutils.align(perc, 5),
+               " | ", strutils.align($nInst[i], 6),
+               " | ", strutils.align($nFail[i], 6),
+               " | ", strutils.align($i, 3),
+               ": ",  l
+
 # Template for generating the parsing match proc.
 #
 # Note: Dummy 'ms', 'userdata' and 'capture' nodes are passed into this
@@ -74,6 +114,7 @@ proc initMatchState*(): MatchState =
 # for this.
 
 template skel(cases: untyped, count: int, ms: NimNode, s: NimNode, capture: NimNode,
+              listing: seq[string],
               userDataType: untyped, userDataId: NimNode) =
 
   let match = proc(ms: var MatchState, s: Subject, userDataId: var userDataType): MatchResult =
@@ -107,11 +148,16 @@ template skel(cases: untyped, count: int, ms: NimNode, s: NimNode, capture: NimN
     # generate code using C computed gotos, which will get highly optmized,
     # mostly eliminating the inner parser loop
 
-    while true:
-      {.computedGoto.}
-      {.push hint[XDeclaredButNotUsed]: off.}
-      cases
-      {.pop.}
+    {.push hint[XDeclaredButNotUsed]: off.}
+
+    when npegProfile:
+      profileLoop(count, cases, listing)
+    else:
+      while true:
+        {.computedGoto.}
+        cases
+
+    {.pop.}
 
     # When the parsing machine is done, copy the local copies of the matchstate
     # back, close the capture stack and collect all the captures in the match
@@ -363,6 +409,7 @@ proc genCode*(program: Program, userDataType: NimNode, userDataId: NimNode): Nim
     cases.add nnkOfBranch.newTree(newLit(ipNow), call)
 
   result = getAst skel(cases, program.patt.high, ident "ms", ident "s", ident "capture",
+                       program.listing,
                        userDataType, userDataId)
 
   when npegExpand:

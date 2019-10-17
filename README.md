@@ -22,7 +22,7 @@ Some NPeg highlights:
 
 - NPeg-generated parsers can be used both at run and at compile time.
 
-- NPeg offers various methods for tracing, optimizing and debugging
+- NPeg offers various methods for tracing, optimizing, profiling and debugging
   your parsers.
 
 - NPeg can draw cool diagrams.
@@ -1325,6 +1325,10 @@ those to your liking:
 
 * `-d:npegDebug`: Enable more debug info. Ment for NPeg development debugging
   purposes only.
+
+* `-d:npegProfile`: Enables run time profiling. This will dump an annotated
+  listing of NPegs compiled program with total time spent, count and fail count
+  for each instruction.
 
 
 ## Random stuff and frequently asked questions

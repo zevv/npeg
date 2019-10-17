@@ -174,10 +174,11 @@ proc parsePatt*(name: string, nn: NimNode, grammar: Grammar, dot: Dot = nil): Pa
         echo n.astGenRepr
         krak n, "syntax error"
 
-    when npegTrace:
-      for i in result.mitems:
-        if i.pegRepr == "":
-          i.pegRepr = n.repr
+    for i in result.mitems:
+      if i.pegRepr == "":
+        i.pegRepr = n.repr
+        if i.pegRepr.len > 30:
+          i.pegRepr = i.pegRepr[0..30] & "..."
 
   result = aux(nn.flattenChoice())
   dot.addPatt(name, result.len)

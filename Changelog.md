@@ -4,6 +4,7 @@ master
 
 - Added precedence operators - this allows constructions of Pratt parsers with
   left recursion and operator precedence.
+- Added run time profiler, enable with -d:npegProfile
 
 0.19.0
 ======

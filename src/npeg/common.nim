@@ -18,6 +18,7 @@ const
   npegTrace* = defined(npegTrace)
   npegExpand* = defined(npegExpand)
   npegGraph* = defined(npegGraph)
+  npegProfile* = defined(npegProfile)
 
   # Various optimizations. These can be disabled for testing purposes
   # or when suspecting bugs in the optimization stages
@@ -131,6 +132,7 @@ type
   Program* = object
     patt*: Patt
     symtab*: Symtab
+    listing*: seq[string]
 
   Template* = ref object
     name*: string
@@ -295,36 +297,38 @@ proc dumpString*(s: Subject, o:int=0, l:int=1024): string =
     inc i
 
 
+proc `$`*(i: Inst, ip=0): string =
+  var args: string
+  case i.op:
+    of opChr:
+      args = " '" & escapeChar(i.ch) & "'"
+    of opChoice, opCommit:
+      args = " " & $(ip+i.ipOffset)
+    of opCall, opJump:
+      args = " " & $(ip+i.callOffset)
+    of opCapOpen, opCapClose:
+      args = " " & $i.capKind
+      if i.capSiOffset != 0:
+        args &= "(" & $i.capSiOffset & ")"
+      if i.capAction != nil:
+        args &= ": " & i.capAction.repr.indent(23)
+    of opBackref:
+      args = " " & i.refName
+    of opPrecPush:
+      args = " @" & $i.prec
+    else:
+      discard
+  if i.failOffset != 0:
+    args.add " " & $(ip+i.failOffset)
+  result.add alignLeft(i.name, 15) &
+             alignLeft(($i.op).toLowerAscii[2..^1] & args, 20) &
+             " " & i.pegRepr
+
 proc `$`*(program: Program): string =
   for ip, i in program.patt.pairs:
     if ip in program.symTab:
       result.add "\n" & program.symtab[ip] & ":\n"
-    var args: string
-    case i.op:
-      of opChr:
-        args = " '" & escapeChar(i.ch) & "'"
-      of opChoice, opCommit:
-        args = " " & $(ip+i.ipOffset)
-      of opCall, opJump:
-        args = " " & $(ip+i.callOffset)
-      of opCapOpen, opCapClose:
-        args = " " & $i.capKind
-        if i.capSiOffset != 0:
-          args &= "(" & $i.capSiOffset & ")"
-        if i.capAction != nil:
-          args &= ": " & i.capAction.repr.indent(23)
-      of opBackref:
-        args = " " & i.refName
-      of opPrecPush:
-        args = " @" & $i.prec
-      else:
-        discard
-    if i.failOffset != 0:
-      args.add " " & $(ip+i.failOffset)
-    result.add align($ip, 4) & ": " &
-               alignLeft(i.name, 15) &
-               alignLeft(($i.op).toLowerAscii[2..^1] & args, 20) &
-               " " & i.pegRepr & "\n"
+    result.add align($ip, 4) & ": " & `$`(i, ip) & "\n"
 
 
 proc slice*(s: Subject, iFrom, iTo: int): string =
