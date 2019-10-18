@@ -1,9 +1,9 @@
 
-master
+0.20.0
 ======
 
 - Added precedence operators - this allows constructions of Pratt parsers with
-  left recursion and operator precedence.
+  bounded left recursion and operator precedence.
 - Added run time profiler, enable with -d:npegProfile
 - Performance improvements
 
