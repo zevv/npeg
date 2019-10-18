@@ -65,8 +65,6 @@ type
   Subject* = openArray[char]
 
   Opcode* = enum
-    opStr,          # Matching: Literal string 
-    opIStr,         # Matching: Literal string, case insensitive
     opChr,          # Matching: Literal character
     opSet,          # Matching: Character set and/or range
     opAny,          # Matching: Any character
@@ -94,8 +92,6 @@ type
       of opChoice, opCommit:
         ipOffset*: int
         siOffset*: int
-      of opStr, opIStr:
-        str*: string
       of opChr:
         ch*: char
       of opCall, opJump:

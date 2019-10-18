@@ -22,12 +22,6 @@ proc toSet(p: Patt, cs: var Charset): bool =
       if i.op == opChr:
         cs = { i.ch }
         return true
-      if i.op == opStr and i.str.len == 1:
-        cs = { i.str[0] }
-        return true
-      if i.op == opIStr and i.str.len == 1:
-        cs = { toLowerAscii(i.str[0]), toUpperAscii(i.str[0]) }
-        return true
       if i.op == opAny:
         cs = {low(char)..high(char)}
         return true
@@ -57,7 +51,7 @@ proc matchesEmpty(patt: Patt): bool =
       of opJump: ip += i.callOffset
       of opCapOpen, opCapClose, opNop, opSpan, opPrecPush, opPrecPop: inc ip
       of opErr, opReturn, opCall: return false
-      of opAny, opChr, opStr, opIstr, opSet, opBackRef, opFail:
+      of opAny, opChr, opSet, opBackRef, opFail:
         if i.failOffset != 0:
           ip += i.failOffset
         elif backStack.top > 0:
@@ -71,10 +65,6 @@ proc matchesEmpty(patt: Patt): bool =
 
 proc newPatt*(s: string, op: Opcode): Patt =
   case op:
-    of opStr:
-      result.add Inst(op: opStr, str: s)
-    of opIStr:
-      result.add Inst(op: opIStr, str: s)
     of opChr:
       for ch in s:
         result.add Inst(op: opChr, ch: ch)
@@ -90,8 +80,6 @@ proc canShift(p: Patt, enable: static[bool]): (int, int) =
   let i = p[0]
   if i.failOffset == 0:
     case i.op
-    of opStr, opIStr:
-      result = (i.str.len, 1)
     of opChr, opAny, opSet:
       result = (1, 1)
     else:

@@ -212,26 +212,6 @@ proc genCode*(program: Program, userDataType: NimNode, userDataId: NimNode): Nim
           else:
             ip = `ipFail`
 
-      of opStr:
-        let s2 = newLit(i.str)
-        quote do:
-          trace ms, `iname`, `opName`, s, "\"" & dumpString(`s2`) & "\""
-          if subStrCmp(s, s.len, si, `s2`):
-            inc si, `s2`.len
-            ip = `ipNext`
-          else:
-            ip = `ipFail`
-
-      of opIStr:
-        let s2 = newLit(i.str)
-        quote do:
-          trace ms, `iname`, `opName`, s, "\"" & dumpString(`s2`) & "\""
-          if subIStrCmp(s, s.len, si, `s2`):
-            inc si, `s2`.len
-            ip = `ipNext`
-          else:
-            ip = `ipFail`
-
       of opSet:
         let cs = newLit(i.cs)
         quote do:

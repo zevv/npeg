@@ -71,7 +71,7 @@ proc parsePatt*(name: string, nn: NimNode, grammar: Grammar, dot: Dot = nil): Pa
         result = newPatt(n.intVal)
 
       of nnkStrLit:
-        result = newPatt(n.strval, opStr)
+        result = newPatt(n.strval, opChr)
 
       of nnkCharLit:
         result = newPatt($n.intVal.char, opChr)
@@ -166,7 +166,9 @@ proc parsePatt*(name: string, nn: NimNode, grammar: Grammar, dot: Dot = nil): Pa
 
       of nnkCallStrLit:
         case n[0].strVal:
-          of "i": result = newPatt(n[1].strval, opIStr)
+          of "i": 
+            for c in n[1].strval:
+              result.add newPatt({c.toLowerAscii, c.toUpperAscii})
           of "E": result = newErrorPatt(n[1].strval)
           else: krak n, "unhandled string prefix"
 
