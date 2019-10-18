@@ -15,12 +15,12 @@ let hostname = readFile("/etc/hostname").strip()
 
 let expectTime = {
   "platdoos": { 
-    "json": 0.770,
+    "json": 0.712,
     "parsejson": 3.962,
-    "words": 0.820,
-    "search": 0.150,
-    "search1": 0.874,
-    "search2": 1.527,
+    "words": 0.920,
+    "search": 0.057,
+    "search1": 0.231,
+    "search2": 1.419,
     "search3": 0.292,
   }.toTable(),
   "fe2": { 
