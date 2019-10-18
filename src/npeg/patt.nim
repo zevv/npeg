@@ -87,20 +87,15 @@ proc newPatt*(s: string, op: Opcode): Patt =
 # backStack or capStack
 
 proc canShift(p: Patt, enable: static[bool]): (int, int) =
-  when enable:
-    var siShift, ipShift: int
-    for i in p:
-      if i.failOffset != 0:
-        break
-      case i.op
-      of opStr, opIStr:
-        siShift.inc i.str.len
-        ipShift.inc 1
-      of opChr, opAny, opSet:
-        siShift.inc 1
-        ipShift.inc 1
-      else: break
-    result = (siShift, ipShift)
+  let i = p[0]
+  if i.failOffset == 0:
+    case i.op
+    of opStr, opIStr:
+      result = (i.str.len, 1)
+    of opChr, opAny, opSet:
+      result = (1, 1)
+    else:
+      discard
 
 proc newPatt*(p: Patt, ck: CapKind, name = ""): Patt =
   let (siShift, ipShift) = p.canShift(npegOptCapShift)

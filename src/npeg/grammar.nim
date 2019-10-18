@@ -110,10 +110,11 @@ proc link*(grammar: Grammar, initial_name: string, dot: Dot = nil): Program =
     if npegDebug:
       echo "emit ", name
     let patt = grammar.patts[name]
-    symTab.add(name, retPatt.len)
-    retPatt.add patt
-    retPatt.add Inst(op: opReturn)
-    retPatt[retPatt.high].name = retPatt[retPatt.high-1].name
+    if patt.len > 0:
+      symTab.add(name, retPatt.len)
+      retPatt.add patt
+      retPatt.add Inst(op: opReturn)
+      retPatt[retPatt.high].name = retPatt[retPatt.high-1].name
 
     for i in patt:
       if i.op == opCall and i.callLabel notin symTab:
@@ -157,8 +158,8 @@ proc link*(grammar: Grammar, initial_name: string, dot: Dot = nil): Program =
   # Save program source
 
   var listing: seq[string]
-  for i in retPatt:
-    listing.add $i
+  for ip, i in retPatt:
+    listing.add `$`(i, ip)
 
   result = Program(patt: retPatt, symTab: symTab, listing: listing)
 
