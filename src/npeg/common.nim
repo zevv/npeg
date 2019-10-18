@@ -118,8 +118,10 @@ type
         prec*: int
         assoc*: Assoc
     failOffset*: int
+    # Debug info
     name*: string
     pegRepr*: string
+    indent*: int
 
   Patt* = seq[Inst]
 
@@ -310,8 +312,6 @@ proc `$`*(i: Inst, ip=0): string =
       args = " " & $i.capKind
       if i.capSiOffset != 0:
         args &= "(" & $i.capSiOffset & ")"
-      if i.capAction != nil:
-        args &= ": " & i.capAction.repr.indent(23)
     of opBackref:
       args = " " & i.refName
     of opPrecPush:
@@ -321,7 +321,7 @@ proc `$`*(i: Inst, ip=0): string =
   if i.failOffset != 0:
     args.add " " & $(ip+i.failOffset)
   result.add alignLeft(i.name, 15) &
-             alignLeft(($i.op).toLowerAscii[2..^1] & args, 20) &
+             alignLeft(repeat(" ", i.indent) & ($i.op).toLowerAscii[2..^1] & args, 25) &
              " " & i.pegRepr
 
 proc `$`*(program: Program): string =

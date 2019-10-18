@@ -58,8 +58,6 @@ proc addPatt*(grammar: Grammar, name: string, patt1: Patt) =
   for i in patt.mitems:
     if i.name == "":
       i.name = name
-    else:
-      i.name = " " & i.name
   grammar.patts[name] = patt
 
 
@@ -147,6 +145,14 @@ proc link*(grammar: Grammar, initial_name: string, dot: Dot = nil): Program =
 
   symTab.add("_fail", retPatt.len)
   retPatt.add Inst(op: opFail)
+
+  # Calc indent level for instructions
+
+  var indent = 0
+  for ip, i in retPatt.mpairs:
+    if i.op in {opCapClose, opCommit}: dec indent
+    i.indent = indent
+    if i.op in {opCapOpen, opChoice}: inc indent
 
   # Save program source
 

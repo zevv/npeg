@@ -78,6 +78,8 @@ when npegProfile:
     var nInst: array[0..count, int]
     var nFail: array[0..count, int]
     var tTotal: float
+    var nTotal: int
+    var nTotalFail: int
 
     while true:
       let ipProf = ip
@@ -88,23 +90,28 @@ when npegProfile:
       let dt = cpuTime() - t1
       nInst[ipProf] += 1
       tInst[ipProf] += dt
-      if ip == count: nFail[ipProf] += 1
+      if ip == count:
+        nFail[ipProf] += 1
+        nTotalFail += 1
       tTotal += dt
+      nTotal += 1
 
     # Dump profiling results
 
-    when npegProfile:
-      let tMax = sqrt(max(tInst))
-      if tMax > 0:
-        for i, l in listing:
-          let graph = strutils.align(repeat("#", (int)(5.0*sqrt(tInst[i])/tMax)), 5)
-          let perc = formatFloat(100.0 * tInst[i] / tTotal, ffDecimal, 1)
-          echo graph,
-               " ",   strutils.align(perc, 5),
-               " | ", strutils.align($nInst[i], 6),
-               " | ", strutils.align($nFail[i], 6),
-               " | ", strutils.align($i, 3),
-               ": ",  l
+    let tMax = sqrt(max(tInst))
+    if tMax > 0:
+      for i, l in listing:
+        let graph = strutils.align(repeat("#", (int)(5.0*sqrt(tInst[i])/tMax)), 5)
+        let perc = formatFloat(100.0 * tInst[i] / tTotal, ffDecimal, 1)
+        echo graph,
+             " ",   strutils.align(perc, 5),
+             " | ", strutils.align($nInst[i], 6),
+             " | ", strutils.align($nFail[i], 6),
+             " | ", strutils.align($i, 3),
+             ": ",  l
+    echo ""
+    echo "Total instructions : ", nTotal
+    echo "Total fails        : ", nTotalFail
 
 # Template for generating the parsing match proc.
 #
@@ -186,7 +193,7 @@ proc genCode*(program: Program, userDataType: NimNode, userDataId: NimNode): Nim
 
     let
       ipNext = ipNow + 1
-      opName = newLit(($i.op).toLowerAscii[2..^1])
+      opName = newLit(repeat(" ", i.indent) & ($i.op).toLowerAscii[2..^1])
       iname = newLit(i.name)
       ipFail = if i.failOffset == 0:
         program.patt.high
