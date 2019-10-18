@@ -285,7 +285,7 @@ proc parseRailRoad*(nn: NimNode, grammar: Grammar): Node =
         let (p1, p2) = (aux n[1], aux n[2])
         case n[0].strVal:
           of "*": result = aux(n[1]) * aux(n[2])
-          of "-": result = aux(n[1]) * aux(n[2])
+          of "-": result = aux(n[1]) - aux(n[2])
           of "^": result = newPrecNode(aux(n[1]), intVal(n[2]), "<")
           of "^^": result = newPrecNode(aux(n[1]), intVal(n[2]), ">")
           else: discard
