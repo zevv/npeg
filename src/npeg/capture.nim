@@ -155,6 +155,7 @@ proc collectCapturesAST*(cs: Captures): ASTNode =
 
 proc `[]`*(cs: Captures, i: int): Capture =
   if i >= cs.len:
-    raise newException(NPegException, "Capture out of range")
+    let msg = "Capture out of range, " & $i & " is not in [0.." & $cs.high & "]"
+    raise newException(NPegException, msg)
   cs[i]
 
