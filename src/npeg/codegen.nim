@@ -38,7 +38,10 @@ type
     charSets: Table[CharSet, int]
 
 
-# This macro translates `$1`.. into `capture[0]`.. for use in code block captures
+# This macro translates `$1`.. into `capture[1]`.. for use in code block
+# captures.  The source nimnode lineinfo is recursively copied to the newly
+# genreated node to make sure "Capture out of range" exceptions are properly
+# traced.
 
 proc mkDollarCaptures(n: NimNode): NimNode =
   if n.kind == nnkPrefix and
@@ -47,6 +50,10 @@ proc mkDollarCaptures(n: NimNode): NimNode =
     let i = int(n[1].intVal)
     result = quote do:
       capture[`i`].s
+    proc cli(n2: NimNode) =
+      n2.copyLineInfo(n)
+      for nc in n2: cli(nc)
+    cli(result)
   elif n.kind == nnkNilLit:
     result = quote do:
       discard
