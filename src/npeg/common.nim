@@ -127,13 +127,16 @@ type
 
   Symtab* = TwoWayTable[string, int]
 
-  Rule* = object
+  RuleState* = enum Uncompiled, Compiling, Compiled
+
+  Rule* = ref object
+    state*: RuleState
+    libName*: string
     name*: string
-    compiled*: bool
     patt*: Patt
     code*: NimNode
-    nRepr*: string
     action*: NimNode
+    #nRepr*: string
 
   Program* = object
     patt*: Patt

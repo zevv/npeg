@@ -19,8 +19,8 @@ grammar "utf8":
   # Check for UTF-8 character classes. Depends on the tables from
   # the nim unicode module
 
-  space <- >utf8.any: validate unicode.isSpace($1)
-  lower <- >utf8.any: validate unicode.isLower(runeAt($1, 0))
-  upper <- >utf8.any: validate unicode.isUpper(runeAt($1, 0))
-  alpha <- >utf8.any: validate unicode.isAlpha(runeAt($1, 0))
-  title <- >utf8.any: validate unicode.isTitle(runeAt($1, 0))
+  space <- >any: validate unicode.isSpace($1)
+  lower <- >any: validate unicode.isLower(runeAt($1, 0))
+  upper <- >any: validate unicode.isUpper(runeAt($1, 0))
+  alpha <- >any: validate unicode.isAlpha(runeAt($1, 0))
+  title <- >any: validate unicode.isTitle(runeAt($1, 0))

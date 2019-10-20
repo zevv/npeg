@@ -9,58 +9,99 @@ when npegGraph:
   import npeg/[railroad]
 
 
-# Recursively compile a PEG rule to a Pattern
 
-proc parsePatt*(name: string, nn: NimNode, grammar: Grammar, dot: Dot = nil): Patt =
+proc compile*(rule: Rule, grammar: Grammar, dot: Dot = nil) =
+
+  if rule.state != Uncompiled: return
+  rule.state = Compiling
+
+  var name = if rule.libName == "":
+    rule.name
+  else:
+    rule.libName & "." & rule.name
 
   when npegDebug:
-    echo "parse ", name, " <- ", nn.repr
+    echo "parse ", name, " <- ", rule.code.repr
+
+    
+  # Inline or call the given rule. Try to import symbol early so we might be
+  # able to inline or shadow it
+
+  proc inlineOrCall(nameCalled: string): Patt =
+
+    echo "ioc ", nameCalled
+
+    # Shadowing of global library rule
+    if name == nameCalled and "." in name:
+      let orgRule = libImportRule(name)
+      if orgRule == nil:
+        error "Called rule " & name & " not found in library"
+      let newRule = orgRule.shadow()
+      let newName = newRule.libName & "." & newRule.name
+      grammar.addRule(newName, newRule)
+
+      #if name in grammar.rules:
+      #  let rule2 = grammar.rules[name]
+      #  echo "*** " , rule2.code.repr
+      #  rule2.compile(grammar)
+      #  echo "shadow ", name
+      #  let nameShadowed = grammar.shadow(name)
+      return newCallPatt(newName)
+    
+    if nameCalled notin grammar.rules:
+      discard libImportRule(nameCalled, grammar)
+
+    if nameCalled in grammar.rules:
+      echo "  found"
+      let rule2 = grammar.rules[nameCalled]
+      rule2.compile(grammar)
+      if rule2.state == Compiled and rule.patt.len < npegInlineMaxLen:
+        when npegDebug:
+          echo "  inline ", nameCalled
+        let rule = grammar.rules[nameCalled]
+        rule.compile(grammar)
+        dot.add(name, nameCalled, "inline")
+        return rule.patt
+
+    dot.add(name, nameCalled, "call")
+
+    if rule.libName == "" or "." in nameCalled:
+      when npegDebug:
+        echo "  call ", nameCalled
+      return newCallPatt(nameCalled)
+    else:
+      when npegDebug:
+        echo "  call ", rule.libName & "." & nameCalled
+      return newCallPatt(rule.libName & "." & nameCalled)
+
+
+  # Transform the NimNode AST by applying a PEG template
+
+  proc applyTemplate(name: string, arg: NimNode): NimNode =
+    let t = if name in grammar.templates:
+      grammar.templates[name]
+    else:
+      libImportTemplate(name)
+    if t != nil:
+      if arg.len-1 != t.args.len:
+        krak arg, "Wrong number of arguments for template " & name & "(" & $(t.args.join(",")) & ")"
+      when npegDebug:
+        echo "template ", name, " = \n  in:  ", arg.repr, "\n  out: ", result.repr
+      proc aux(n: NimNode): NimNode =
+        if n.kind == nnkIdent and n.strVal in t.args:
+          result = arg[ find(t.args, n.strVal)+1 ]
+        else:
+          result = copyNimNode(n)
+          for nc in n:
+            result.add aux(nc)
+      result = aux(t.code)
+
+
+  # Recursively compile a PEG rule to a Pattern
 
   proc aux(n: NimNode): Patt =
 
     setKrakNode(n)
-
-    proc inlineOrCall(name2: string): Patt =
-
-      # Try to import symbol early so we might be able to inline or shadow it
-      if name2 notin grammar.rules:
-        discard libImportRule(name2, grammar)
-
-      if name == name2:
-        if name in grammar.rules:
-          let nameShadowed = grammar.shadow(name)
-          return newCallPatt(nameShadowed)
-
-      if name2 in grammar.rules and grammar.rules[name2].patt.len < npegInlineMaxLen:
-        when npegDebug:
-          echo "  inline ", name2
-        dot.add(name, name2, "inline")
-        return grammar.rules[name2].patt
-
-      else:
-        when npegDebug:
-          echo "  call ", name2
-        dot.add(name, name2, "call")
-        return newCallPatt(name2)
-
-    proc applyTemplate(name: string, arg: NimNode): NimNode =
-      let t = if name in grammar.templates:
-        grammar.templates[name]
-      else:
-        libImportTemplate(name)
-      if t != nil:
-        if arg.len-1 != t.args.len:
-          krak arg, "Wrong number of arguments for template " & name & "(" & $(t.args.join(",")) & ")"
-        when npegDebug:
-          echo "template ", name, " = \n  in:  ", n.repr, "\n  out: ", result.repr
-        proc aux(n: NimNode): NimNode =
-          if n.kind == nnkIdent and n.strVal in t.args:
-            result = arg[ find(t.args, n.strVal)+1 ]
-          else:
-            result = copyNimNode(n)
-            for nc in n:
-              result.add aux(nc)
-        result = aux(t.code)
 
     case n.kind:
 
@@ -182,8 +223,15 @@ proc parsePatt*(name: string, nn: NimNode, grammar: Grammar, dot: Dot = nil): Pa
         if i.pegRepr.len > 30:
           i.pegRepr = i.pegRepr[0..30] & "..."
 
-  result = aux(nn.flattenChoice())
-  dot.addPatt(name, result.len)
+  var patt = aux(rule.code.flattenChoice())
+
+  if rule.action != nil:
+    patt = newPatt(patt, ckAction)
+    patt[patt.high].capAction = rule.action
+
+  dot.addPatt(name, patt.len)
+  rule.patt = patt
+  rule.state = Compiled
 
 
 #
@@ -191,7 +239,7 @@ proc parsePatt*(name: string, nn: NimNode, grammar: Grammar, dot: Dot = nil): Pa
 # pattern
 #
 
-proc parseGrammar*(ns: NimNode, dot: Dot=nil, dumpRailroad = true): Grammar =
+proc parseGrammar*(libName: string, ns: NimNode, dot: Dot=nil, dumpRailroad = true): Grammar =
   result = newGrammar()
 
   for n in ns:
@@ -199,16 +247,19 @@ proc parseGrammar*(ns: NimNode, dot: Dot=nil, dumpRailroad = true): Grammar =
     if n.kind == nnkInfix and n[0].eqIdent("<-"):
 
       if n[1].kind in { nnkIdent, nnkDotExpr}:
-        var name: string
-        if n[1].kind == nnkIdent:
-          name = n[1].strVal
+
+        var name = if n[1].kind == nnkIdent:
+          n[1].strVal
         else:
-          name = n[1][0].strVal & "." & n[1][1].strVal
-        var patt = parsePatt(name, n[2], result, dot)
+          n[1][0].strVal & "." & n[1][1].strVal
+
+        var rule = Rule(libName: libName, name: name, code: n[2])
         if n.len == 4:
-          patt = newPatt(patt, ckAction)
-          patt[patt.high].capAction = n[3]
-        result.addRule(name, Rule(name: name, patt: patt, code: n[2]))
+          rule.action = n[3]
+
+        #compile(rule, result, dot)
+
+        result.addRule(name, rule)
 
         when npegGraph:
           if dumpRailroad:

@@ -61,7 +61,7 @@ import tables
 import macros
 import json
 import strutils
-import npeg/[common,codegen,capture,parsepatt,grammar,dot]
+import npeg/[common,codegen,capture,parsepatt,grammar,link,dot]
 
 export NPegException, Parser, ASTNode, MatchResult, contains, items, `[]`
 
@@ -69,7 +69,7 @@ export NPegException, Parser, ASTNode, MatchResult, contains, items, `[]`
 
 proc pegAux(name: string, userDataType: NimNode, userDataId: string, n: NimNode): NimNode =
   var dot = newDot(name)
-  var grammar = parseGrammar(n, dot)
+  var grammar = parseGrammar("", n, dot)
   let code = grammar.link(name, dot).genCode(userDataType, ident(userDataId))
   dot.dump()
   code
@@ -114,7 +114,7 @@ macro grammar*(libNameNode: untyped, n: untyped) =
   ## This macro defines a collection of rules to be stored in NPeg's global
   ## grammar library.
   let libName = libNameNode.strval
-  let grammar = parseGrammar(n, dumpRailroad = libname != "")
+  let grammar = parseGrammar(libName, n, dumpRailroad = libname != "")
   libStore(libName, grammar)
 
 
