@@ -23,19 +23,19 @@ proc parsePatt*(name: string, nn: NimNode, grammar: Grammar, dot: Dot = nil): Pa
     proc inlineOrCall(name2: string): Patt =
 
       # Try to import symbol early so we might be able to inline or shadow it
-      if name2 notin grammar.patts:
+      if name2 notin grammar.rules:
         discard libImportRule(name2, grammar)
 
       if name == name2:
-        if name in grammar.patts:
+        if name in grammar.rules:
           let nameShadowed = grammar.shadow(name)
           return newCallPatt(nameShadowed)
 
-      if name2 in grammar.patts and grammar.patts[name2].len < npegInlineMaxLen:
+      if name2 in grammar.rules and grammar.rules[name2].patt.len < npegInlineMaxLen:
         when npegDebug:
           echo "  inline ", name2
         dot.add(name, name2, "inline")
-        return grammar.patts[name2]
+        return grammar.rules[name2].patt
 
       else:
         when npegDebug:
@@ -208,7 +208,7 @@ proc parseGrammar*(ns: NimNode, dot: Dot=nil, dumpRailroad = true): Grammar =
         if n.len == 4:
           patt = newPatt(patt, ckAction)
           patt[patt.high].capAction = n[3]
-        result.addPatt(name, patt)
+        result.addRule(name, Rule(name: name, patt: patt, code: n[2]))
 
         when npegGraph:
           if dumpRailroad:

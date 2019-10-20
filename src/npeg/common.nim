@@ -127,6 +127,14 @@ type
 
   Symtab* = TwoWayTable[string, int]
 
+  Rule* = object
+    name*: string
+    compiled*: bool
+    patt*: Patt
+    code*: NimNode
+    nRepr*: string
+    action*: NimNode
+
   Program* = object
     patt*: Patt
     symtab*: Symtab
@@ -138,7 +146,7 @@ type
     code*: NimNode
 
   Grammar* = ref object
-    patts*: ref Table[string, Patt]
+    rules*: ref Table[string, Rule]
     templates*: ref Table[string, Template]
 
   ASTNode* = ref object
