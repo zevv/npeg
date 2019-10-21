@@ -31,9 +31,16 @@ The following data structures are used for compiling the grammar:
 - `Patt`, short for "pattern": A pattern is a sequence of instructions
   `seq[Inst]` which typically match an atom from the grammar.
 
+- `Rule`: One complete, named pattern which is part of a grammar.
+
 - `Grammar`: A grammar is collection of named patterns implemented as a
   `table[string, Patt]`. This is used as the intermediate representation of the
   complete compiled grammar and holds patterns for each of the named rules.
+
+- `Program`: A complete linked program, consisting of a pattern and its debug
+  info (symbol table, textual listing)
+
+- `Parser`: object holding the compiled Nim matching function
 
 For captures the following data structures are relevant:
 

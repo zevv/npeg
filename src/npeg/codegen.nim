@@ -35,7 +35,6 @@ type
 
   Parser*[T] = object
     fn*: proc(ms: var MatchState, s: Subject, userdata: var T): MatchResult
-    charSets: Table[CharSet, int]
 
 
 # This macro translates `$1`.. into `capture[1]`.. for use in code block
