@@ -43,9 +43,9 @@ suite "precedence operator":
 
       prefix <- number | parenExp | uniMinus
 
-      # Parse an infix operator. The left recursion is bound by the precedece
-      # operator that makes sure `exp` is only parsed if the currrent
-      # precedence is lower then the given precedence.
+      # Parse an infix operator. Bounded by the precedece operator that makes
+      # sure `exp` is only parsed if the currrent precedence is lower then the
+      # given precedence.
 
       infix <- >{'+','-'}    * exp ^  1 |
                >{'*','/'}    * exp ^  2 |
