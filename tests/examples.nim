@@ -2,6 +2,7 @@ import unittest
 import npeg
 import json
 import strutils
+import math
 import tables
 import npeg/lib/uri
 
@@ -51,29 +52,6 @@ suite "examples":
       let r = parser.matchFile "tests/testdata"
       doAssert r.ok
       doAssert r.captures == @["one", "1", "two", "2", "three", "3", "four", "4"]
-
-  ######################################################################
-
-  test "expression parser":
-
-    let s = peg "line":
-      ws       <- *' '
-      number   <- +Digit * ws
-      termOp   <- {'+', '-'} * ws
-      factorOp <- {'*', '/'} * ws
-      open     <- '(' * ws
-      close    <- ')' * ws
-      eol      <- !1
-      exp      <- term * *(termOp * term)
-      term     <- factor * *(factorOp * factor)
-      factor   <- number | (open * exp * close)
-      line     <- ws * exp * eol
-
-    doAssert s.match("1").ok
-    doAssert s.match("1+1").ok
-    doAssert s.match("1+1*1").ok
-    doAssert s.match("(1+1)*1").ok
-    doAssert s.match("13 + 5 * (2+1)").ok
 
   ######################################################################
 

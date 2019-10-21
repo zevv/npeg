@@ -18,11 +18,24 @@ suite "precedence operator":
 
   test "expr evaluator":
 
+    # Table of binary operators - this maps the operator string to a proc
+    # performing the operation:
+
+    template map(op: untyped): untyped = (proc(a, b: int): int = op(a, b))
+
+    var binOps = {
+      "+": map(`+`),
+      "-": map(`-`),
+      "*": map(`*`),
+      "/": map(`/%`),
+      "^": map(`^`),
+    }.toTable()
+
     let p = peg(exp, st: seq[int]):
 
       # An expression consists of a prefix followed by zero or more infix
       # operators
-      
+
       exp <- S * prefix * *infix
 
       # The prefix is a number, a sub expression in parentheses or the unary
@@ -34,25 +47,15 @@ suite "precedence operator":
       # operator that makes sure `exp` is only parsed if the currrent
       # precedence is lower then the given precedence.
 
-      infix <- >("or"|"xor") * exp ^ 3 |
-               >("and")      * exp ^ 4 |
-               >{'+','-'}    * exp ^ 8 |
-               >{'*','/'}    * exp ^ 9 |
-               >{'^'}        * exp ^^ 10:
+      infix <- >{'+','-'}    * exp ^  1 |
+               >{'*','/'}    * exp ^  2 |
+               >{'^'}        * exp ^^ 3 :
 
         # Takes two results off the stack, applies the operator and push
         # back the result
 
         let (f2, f1) = (st.pop, st.pop)
-        case $1
-          of "+": st.add(f1 + f2)
-          of "*": st.add(f1 * f2)
-          of "-": st.add(f1 - f2)
-          of "/": st.add(f1 /% f2)
-          of "or": st.add(f1 or f2)
-          of "xor": st.add(f1 xor f2)
-          of "and": st.add(f1 and f2)
-          of "^": st.add(f1 ^ f2)
+        st.add binOps[$1](f1, f2)
 
       # Capture a number and put it on the stack
 
