@@ -126,19 +126,12 @@ proc match*(p: Parser, s: Subject): MatchResult =
   p.match(s, userData)
 
 
-# Match a subject stream
-
-when false:
-  import streams
-  proc match*(p: Parser, s: Stream): MatchResult =
-    var userData: bool # dummy if user does not provide a type
-    var ms = initMatchState()
-    var buf: array[3, char]
-    while true:
-      let l = s.readData(buf[0].addr, buf.len)
-      echo p.fn(ms, toOpenArray(buf, 0, l-1), userData)
-      if l == 0:
-        break
+template `=~`*(s: Subject, p: Parser): bool =
+  ## Regexp like operator for matching a pattern. Captures are injected.
+  let r = p.match(s)
+  when not declaredInScope(matches):
+    var captures {.inject.} = r.captures
+  r.ok
 
 
 # Match a file

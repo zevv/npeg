@@ -1,4 +1,9 @@
 
+master
+======
+
+- Added =~ operator, which is just some magic for match()
+
 0.20.0
 ======
 
