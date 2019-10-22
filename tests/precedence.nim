@@ -34,10 +34,22 @@ suite "precedence operator":
 
     let p = peg(exp, st: seq[int]):
 
-      # An expression consists of a prefix followed by zero or more infix
-      # operators
+      S <- *Space
 
-      exp <- S * prefix * *infix
+      # Capture a number and put it on the stack
+
+      number <- >+Digit * S:
+        st.add parseInt($1)
+
+      # Reset the precedence level to 0 when parsing sub-expressions
+      # in parentheses
+
+      parenExp <- ( "(" * exp * ")" ) ^ 0
+
+      # Unary minues: take last element of the stack, negate and push back
+
+      uniMinus <- '-' * exp:
+        st.add(-st.pop)
 
       # The prefix is a number, a sub expression in parentheses or the unary
       # `-` operator.
@@ -58,22 +70,10 @@ suite "precedence operator":
         let (f2, f1) = (st.pop, st.pop)
         st.add binOps[$1](f1, f2)
 
-      # Capture a number and put it on the stack
+      # An expression consists of a prefix followed by zero or more infix
+      # operators
 
-      number <- >+Digit * S:
-        st.add parseInt($1)
-
-      # Unary minues: take last element of the stack, negate and push back
-
-      uniMinus <- >'-' * exp:
-        st.add(-st.pop)
-
-      # Reset the precedence level to 0 when parsing sub-expressions
-      # in parentheses
-
-      parenExp <- ( "(" * exp * ")" ) ^ 0
-
-      S <- *Space
+      exp <- S * prefix * *infix
 
 
     # Evaluate the given expression
