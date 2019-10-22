@@ -1,6 +1,7 @@
 import unittest
 import strutils
 import math
+import tables
 import npeg
 
 {.push warning[Spacing]: off.}
