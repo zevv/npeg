@@ -94,14 +94,21 @@ macro peg*(name: untyped, userData: untyped, n: untyped): untyped =
   pegAux name.strVal, userData[1], userData[0].strVal, n
 
 
-macro patt*(n: untyped): untyped =
+template patt*(n: untyped): untyped =
   ## Construct a parser from a single PEG rule. This is similar to the regular
   ## `peg()` macro, but useful for short regexp-like parsers that do not need a
   ## complete grammar.
-  quote do:
-    peg "anonymous":
-      anonymous <- `n`
+  peg anonymous:
+    anonymous <- n
 
+template patt*(n: untyped, code: untyped): untyped =
+  ## Construct a parser from a single PEG rule. This is similar to the regular
+  ## `peg()` macro, but useful for short regexp-like parsers that do not need a
+  ## complete grammar. This variant takes a code block which will be used as
+  ## code block capture for the anonymous rule.
+  peg anonymous:
+    anonymous <- n:
+      code
 
 macro grammar*(libNameNode: untyped, n: untyped) =
   ## This macro defines a collection of rules to be stored in NPeg's global
@@ -124,14 +131,6 @@ proc match*(p: Parser, s: Subject): MatchResult =
   ## contains the result of the match and can be used to query any captures.
   var userData: bool # dummy if user does not provide a type
   p.match(s, userData)
-
-
-template `=~`*(s: Subject, p: Parser): bool =
-  ## Regexp like operator for matching a pattern. Captures are injected.
-  let r = p.match(s)
-  when not declaredInScope(matches):
-    var captures {.inject.} = r.captures
-  r.ok
 
 
 # Match a file

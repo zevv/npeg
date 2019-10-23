@@ -141,6 +141,17 @@ Output:
 @["one", "two", "three"]
 ```
 
+The `patt` macro can take an optional code block which is used as code block
+capture for the pattern:
+
+```nim
+var key, val: string
+let p = patt >+Digit * "=" * >+Alpha:
+  (key, val) = ($1, $2)
+
+assert p.match("15=fifteen").ok
+echo key, " = ", val
+```
 
 ### Grammars
 

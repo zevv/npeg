@@ -2,7 +2,7 @@
 master
 ======
 
-- Added =~ operator, which is just some magic for match()
+- anonymous `patt` patterns now also take a code block
 
 0.20.0
 ======

@@ -22,7 +22,21 @@ suite "captures":
         a = $1
     doAssert p.match("a").ok
     doassert a == "a"
+
+  test "code block captures 2":
+    let p = peg("foo", v: string):
+      foo <- >1: v = $1
+    var a: string
+    doAssert p.match("a", a).ok
+    doassert a == "a"
   
+  test "code block captures 3":
+    var a: string
+    let p = patt >1:
+        a = $1
+    doAssert p.match("a").ok
+    doassert a == "a"
+
   test "code block captures with typed parser":
 
     type Thing = object
