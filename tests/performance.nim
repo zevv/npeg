@@ -15,7 +15,7 @@ let hostname = readFile("/etc/hostname").strip()
 
 let expectTime = {
   "platdoos": { 
-    "json": 0.712,
+    "json": 0.651,
     "parsejson": 3.962,
     "words": 0.920,
     "search": 0.057,
@@ -80,10 +80,10 @@ measureTime "json":
     Number         <- ?Minus * IntPart * ?FractPart * ?ExpPart
 
     DOC            <- Value * !1
-    Value          <- S * ( Number | String | Object | Array | True | False | Null ) * S
     ObjPair        <- S * String * S * ":" * Value
     Object         <- '{' * ( ObjPair * *( "," * ObjPair ) | S ) * "}"
     Array          <- "[" * ( Value * *( "," * Value ) | S ) * "]"
+    Value          <- S * ( Number | String | Object | Array | True | False | Null ) * S
 
     JSON           <- Value * !1
 
