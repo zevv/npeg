@@ -38,17 +38,8 @@ type
   
   CapKind* = enum
     ckStr,          # Plain string capture
-    ckJString,      # JSON string capture
-    ckJBool,        # JSON Bool capture
-    ckJInt,         # JSON Int capture
-    ckJFloat,       # JSON Float capture
-    ckJArray,       # JSON Array
-    ckJObject,      # JSON Object
-    ckJFieldFixed,  # JSON Object field with fixed tag
-    ckJFieldDynamic,# JSON Object field with dynamic tag
     ckAction,       # Action capture, executes Nim code at match time
     ckRef           # Reference
-    ckAST,          # Abstract syntax tree capture
     ckClose,        # Closes capture
 
   CapFrame* = object
@@ -149,11 +140,6 @@ type
     rules*: ref Table[string, Rule]
     templates*: ref Table[string, Template]
 
-  ASTNode* = ref object
-    id*: string
-    val*: string
-    kids*: seq[ASTNode]
-
 #
 # Two-way table
 #
@@ -238,30 +224,6 @@ proc flattenChoice*(n: NimNode, nChoice: NimNode = nil): NimNode =
     result = copyNimNode(n)
     for nc in n:
       result.add flattenChoice(nc)
-
-#
-# Some common operations for ASTNodes
-#
-
-proc `[]`*(a: ASTNode, id: string): ASTNode =
-  for kid in a.kids:
-    if kid.id == id:
-      return kid
-
-proc `[]`*(a: ASTNode, i: int): ASTNode =
-  return a.kids[i]
-
-iterator items*(a: ASTNode): ASTNode =
-  for c in a.kids:
-    yield c
-
-proc `$`*(a: ASTNode): string =
-  # Debug helper to convert an AST tree to representable string
-  proc aux(a: ASTNode, s: var string, d: int=0) =
-    s &= indent(a.id & " " & a.val, d) & "\n"
-    for k in a.kids:
-      aux(k, s, d+1)
-  aux(a, result)
 
 
 # Create a short and friendly text representation of a character set.

@@ -59,11 +59,10 @@ runnableExamples:
 
 import tables
 import macros
-import json
 import strutils
 import npeg/[common,codegen,capture,parsepatt,grammar,dot]
 
-export NPegException, Parser, ASTNode, MatchResult, contains, items, `[]`
+export NPegException, Parser, MatchResult, contains, items, `[]`
 
 # Create a parser for a PEG grammar
 
@@ -153,15 +152,6 @@ proc captures*(mr: MatchResult): seq[string] =
   ## Return all plain string captures from the match result
   for cap in collectCaptures(mr.cs):
     result.add cap.s
-
-proc capturesJson*(mr: MatchResult): JsonNode =
-  ## Return the tree with JSON captures from the match result
-  collectCapturesJson(mr.cs)
-
-
-proc capturesAST*(mr: MatchResult): ASTNode =
-  ## Return the tree with AST captures from the match result
-  collectCapturesAST(mr.cs)
 
 
 import npeg/lib/core
