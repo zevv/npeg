@@ -4,6 +4,15 @@ master
 
 - anonymous `patt` patterns now also take a code block
 
+- deprecated AST and Json captures. AST captures are not flexible enough, and
+  the functionality can be better implemented using code block captures and
+  domain-specific AST object types. The Json captures were added in the early
+  days of NPeg as a flexible way to store captures, but this does not mix well
+  with custom captures and can not handle things like string unescaping. Both
+  capture types were removed from the documentation and a .deprecated. pragma
+  was added to the implementation. If you use Json or AST captures and think
+  deprecation is a mistake, let me know.
+
 0.20.0
 ======
 

@@ -160,37 +160,6 @@ Location: https://nim.org/
 
   ######################################################################
 
-  test "HTTP capture to Json":
-    let s = peg "http":
-      space       <- ' '
-      crlf        <- '\n' * ?'\r'
-      url         <- +(Alpha | Digit | '/' | '_' | '.')
-      eof         <- !1
-      header_name <- +(Alpha | '-')
-      header_val  <- +(1-{'\n'}-{'\r'})
-      proto       <- Jf("proto", Js(+Alpha) )
-      version     <- Jf("version", Js(+Digit * '.' * +Digit) )
-      code        <- Jf("code", Ji(+Digit) )
-      msg         <- Jf("msg", Js(+(1 - '\r' - '\n')) )
-      header      <- Ja( Js(header_name) * ": " * Js(header_val) )
-
-      response    <- Jf("response", Jo( proto * '/' * version * space * code * space * msg ))
-      headers     <- Jf("headers", Ja( *(header * crlf) ))
-      http        <- Jo(response * crlf * headers * eof)
-
-    let data = """
-HTTP/1.1 301 Moved Permanently
-Content-Length: 162
-Content-Type: text/html
-Location: https://nim.org/
-"""
-
-    let res = s.match(data)
-    doAssert res.ok
-    doAssert res.capturesJson == parseJson("""{"response":{"proto":"HTTP","version":"1.1","code":301,"msg":"Moved Permanently"},"headers":[["Content-Length","162"],["Content-Type","text/html"],["Location","https://nim.org/"]]}""")
-
-  ######################################################################
-
   test "UTF-8":
 
     let b = "  añyóng  ♜♞♝♛♚♝♞♜ оживлённым   "

@@ -154,12 +154,12 @@ proc captures*(mr: MatchResult): seq[string] =
   for cap in collectCaptures(mr.cs):
     result.add cap.s
 
-proc capturesJson*(mr: MatchResult): JsonNode =
+proc capturesJson*(mr: MatchResult): JsonNode {.deprecated.} =
   ## Return the tree with JSON captures from the match result
   collectCapturesJson(mr.cs)
 
 
-proc capturesAST*(mr: MatchResult): ASTNode =
+proc capturesAST*(mr: MatchResult): ASTNode {.deprecated.} =
   ## Return the tree with AST captures from the match result
   collectCapturesAST(mr.cs)
 

@@ -115,12 +115,10 @@ MatchResult = object
   is usually a good indication of the location where the matching error
   occured.
 
-The following procs are available to retrieve the captured results:
+The string captures made during the parsing can be accessed with:
 
 ```nim
 proc captures(m: MatchResult): seq[string]
-proc capturesJson(m: MatchResult): JsonNode
-proc capturesAST(m: MatchResult): ASTnode
 ```
 
 
@@ -226,22 +224,6 @@ Precedence operators:
 String captures:  
 
   >P              # Captures the string matching  P 
-
-AST captures (Experimental)
-
-  A("Id", P)      # Stores all captures of P in AST node `Id`
-
-Json captures:
-
-  Js(P)           # Produces a JString from the string matching  P 
-  Ji(P)           # Produces a JInteger from the string matching  P 
-  Jf(P)           # Produces a JFloat from the string matching  P 
-  Jb(P)           # Produces a JBool from the string matching  P 
-  Ja()            # Produces a new JArray
-  Jo()            # Produces a new JObject
-  Jt("tag", P)    # Stores capture P in the field "tag" of the outer JObject
-  Jt(P)           # Stores the second Json capture of P in the outer JObject
-                  # using the first Json capure of P as the tag.
 
 Back references:
 
@@ -650,114 +632,6 @@ After the parsing finished, the `words` table will now contain
 
 ```nim
 {"two": 2, "three": 3, "one": 1, "four": 4}
-```
-
-
-### AST (Abstract Syntax Tree) captures
-
-Note: AST captures is an experimental feature, the implementation or API might
-change in the future.
-
-NPeg has a simple mechanism for storing captures in a tree data structure,
-allowing building of abstract syntax trees straight from the parser.
-
-The basic AST node has the following layout:
-
-```nim
-ASTNode* = ref object
-  id*: string           # user assigned AST node ID
-  val*: string          # string capture
-  kids*: seq[ASTNode]   # child nodes
-```
-
-To parse a subject and capture strings into a tree of `ASTNode`s, use the
-`A(id, p)` operator:
-
-- The `A(id, p)` operator creates a new `ASTNode` with the given identifier
-- The first string capture (`>`) inside pattern `p` will be assigned to the 
-  `val` field of the AST node
-- All nested `ASTnode`s in pattern `p` will be added to the nodes `kids` seq.
-
-The following snippet shows an example of creating an AST from arithmetic
-expressions while properly handling operator precedence;
-
-```nim
-type Kind* = enum kInt, kAdd, kSub, kMul, kDiv
-
-let s = peg "line":
-  line     <- exp * !1
-  number   <- A(kInt, >+Digit)
-  add      <- A(kAdd, term * '+' * exp)
-  sub      <- A(kSub, term * '-' * exp)
-  mul      <- A(kMul, factor * '*' * term)
-  divi     <- A(kDiv, factor * '/' * term)
-  exp      <- add | sub | term
-  term     <- mul | divi | factor
-  factor   <- number | '(' * exp * ')'
-
-let r = s.match("1+2*(3+4+9)+5*6")
-let ast = r.capturesAST()
-echo ast
-```
-
-This will generate an AST tree with the following layout:
-
-```
-       +
-      / \
-     1   + 
-        / \
-       /   \
-      /     *
-     *     / \
-    / \   5   6
-   2   +
-      / \
-     3   +
-        / \
-       4   9
-```
-
-### Json captures
-
-In order capture more complex data it is possible to mark the PEG with
-operators which will build a tree of JsonNodes from the matched data.
-
-In the example below:
-
-- The outermost rule `pairs` gets encapsulated by the `Jo` operator, which
-  produces a Json object (`JObject`).
-
-- The `pair` rule is encapsulated in `Jt` which will produce a tagged pair
-  which will be stored in its outer JObject.
-
-- The matched `word` is captured with `Js` to produce a JString. This will
-  be consumed by its outer `Jt` capture which will used it for the field name
-
-- The matched `number` is captured with a `Ji` to produce a JInteger, which
-  will be consumed by its outer `Jt` capture which will use it for the field
-  value.
-
-```nim
-let parser = peg "pairs":
-  pairs <- Jo(pair * *(',' * pair) * !1)
-  word <- +Alpha
-  number <- +Digit
-  pair <- Jt(Js(word) * '=' * Ji(number))
-
-let r = parser.match(data)
-echo r.capturesJson
-```
-
-The resulting Json data is now:
-
-```json
-{
-  "one": 1,
-  "two": 2,
-  "three": 3,
-  "four": 4
-}
 ```
 
 
