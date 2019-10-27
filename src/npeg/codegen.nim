@@ -1,6 +1,7 @@
 
 import macros
 import strutils
+import sequtils
 import tables
 import npeg/[common,patt,stack,capture]
 
@@ -72,52 +73,39 @@ proc initMatchState*(): MatchState =
   push(result.precStack, 0)
 
 
-# This is a variant of the main 'cases' loop with extensive profileing of
-# time spent, instruction count and fail count. Slow.
+type ProfileInfo = object
+  ipAddr: ptr[int]
+  bin: seq[int]
+  done: bool
 
-when npegProfile:
-  import math
-  import times
-  template profileLoop(count: static[int], cases: untyped, listing: untyped) =
+type Profiler = object
+  info: ProfileInfo
+  thread: Thread[ptr ProfileInfo]
+  
+proc profileThread(pi: ptr ProfileInfo) {.nimcall.} =
+  while not pi.done:
+    let ip = pi.ipAddr[]
+    inc pi.bin[ip]
 
-    var tInst: array[0..count, float]
-    var nInst: array[0..count, int]
-    var nFail: array[0..count, int]
-    var tTotal: float
-    var nTotal: int
-    var nTotalFail: int
+proc start*(profiler: var Profiler, ipAddr: ptr int, count: int) =
+  profiler.info.ipAddr = ipAddr
+  profiler.info.bin.setLen(count)
+  createThread(profiler.thread, profileThread, addr profiler.info)
 
-    while true:
-      let ipProf = ip
-      let t1 = cpuTime()
-
-      cases
-
-      let dt = cpuTime() - t1
-      nInst[ipProf] += 1
-      tInst[ipProf] += dt
-      if ip == count:
-        nFail[ipProf] += 1
-        nTotalFail += 1
-      tTotal += dt
-      nTotal += 1
-
-    # Dump profiling results
-
-    let tMax = sqrt(max(tInst))
-    if tMax > 0:
-      for i, l in listing:
-        let graph = strutils.align(repeat("#", (int)(5.0*sqrt(tInst[i])/tMax)), 5)
-        let perc = formatFloat(100.0 * tInst[i] / tTotal, ffDecimal, 1)
-        echo graph,
-             " ",   strutils.align(perc, 5),
-             " | ", strutils.align($nInst[i], 6),
-             " | ", strutils.align($nFail[i], 6),
-             " | ", strutils.align($i, 3),
-             ": ",  l
-    echo ""
-    echo "Total instructions : ", nTotal
-    echo "Total fails        : ", nTotalFail
+proc stop*(profiler: var Profiler, listing: seq[string]) =
+  profiler.info.done = true
+  joinThread profiler.thread
+  let nMax = max(profiler.info.bin)
+  let nTotal = foldl(profiler.info.bin, a+b, 0)
+  if nMax > 0:
+    for i, l in listing:
+      let n = profiler.info.bin[i]
+      let graph = strutils.align(repeat("#", (int)(5*n/%nMax)), 5)
+      let perc = $(100 * n /% nTotal)
+      echo graph,
+           " ",   strutils.align(perc, 5),
+           " | ", strutils.align($i, 3),
+           ": ",  l
 
 # Template for generating the parsing match proc.
 #
@@ -161,16 +149,16 @@ template skel(cases: untyped, count: int, ms: NimNode, s: NimNode, capture: NimN
     # generate code using C computed gotos, which will get highly optmized,
     # mostly eliminating the inner parser loop
 
+    var profiler: Profiler
+    profiler.start(addr ip, count)
+      
     {.push hint[XDeclaredButNotUsed]: off.}
-
-    when npegProfile:
-      profileLoop(count, cases, listing)
-    else:
-      while true:
-        {.computedGoto.}
-        cases
-
+    while true:
+      {.computedGoto.}
+      cases
     {.pop.}
+    
+    profiler.stop(listing)
 
     # When the parsing machine is done, copy the local copies of the matchstate
     # back, close the capture stack and collect all the captures in the match

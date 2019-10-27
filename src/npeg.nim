@@ -63,7 +63,7 @@ import json
 import strutils
 import npeg/[common,codegen,capture,parsepatt,grammar,dot]
 
-export NPegException, Parser, ASTNode, MatchResult, contains, items, `[]`
+export NPegException, Parser, ASTNode, MatchResult, contains, items, `[]`, start, stop
 
 # Create a parser for a PEG grammar
 
