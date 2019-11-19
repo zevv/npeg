@@ -1,3 +1,7 @@
+master
+======
+
+- Bugfix for templates generating ordered choices
 
 0.21.0
 ======

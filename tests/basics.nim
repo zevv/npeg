@@ -188,3 +188,12 @@ suite "unit tests":
       commaList(patt) <- list(patt, ",")
       a <- commaList(>+Digit)
     doAssert p.match("11,22,3").captures == ["11","22","3"]
+
+  test "templates with choices":
+    let p = peg aap:
+      one() <- "one"
+      two() <- "one"
+      three() <- "flip" | "flap"
+      aap <- one() | two() | three()
+    doAssert p.match("onetwoflip").ok
+

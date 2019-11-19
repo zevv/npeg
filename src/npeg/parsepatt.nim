@@ -58,7 +58,7 @@ proc parsePatt*(name: string, nn: NimNode, grammar: Grammar, dot: Dot = nil): Pa
             result = copyNimNode(n)
             for nc in n:
               result.add aux(nc)
-        result = aux(t.code)
+        result = aux(t.code).flattenChoice()
         when npegDebug:
           echo "template ", name, " = \n  in:  ", n.repr, "\n  out: ", result.repr
 
