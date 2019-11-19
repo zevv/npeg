@@ -51,8 +51,6 @@ proc parsePatt*(name: string, nn: NimNode, grammar: Grammar, dot: Dot = nil): Pa
       if t != nil:
         if arg.len-1 != t.args.len:
           krak arg, "Wrong number of arguments for template " & name & "(" & $(t.args.join(",")) & ")"
-        when npegDebug:
-          echo "template ", name, " = \n  in:  ", n.repr, "\n  out: ", result.repr
         proc aux(n: NimNode): NimNode =
           if n.kind == nnkIdent and n.strVal in t.args:
             result = arg[ find(t.args, n.strVal)+1 ]
@@ -61,6 +59,8 @@ proc parsePatt*(name: string, nn: NimNode, grammar: Grammar, dot: Dot = nil): Pa
             for nc in n:
               result.add aux(nc)
         result = aux(t.code)
+        when npegDebug:
+          echo "template ", name, " = \n  in:  ", n.repr, "\n  out: ", result.repr
 
     case n.kind:
 
