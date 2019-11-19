@@ -1,4 +1,4 @@
-master
+0.21.1
 ======
 
 - Bugfix for templates generating ordered choices
