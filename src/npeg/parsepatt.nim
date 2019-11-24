@@ -71,10 +71,10 @@ proc parsePatt*(name: string, nn: NimNode, grammar: Grammar, dot: Dot = nil): Pa
         result = newPatt(n.intVal)
 
       of nnkStrLit:
-        result = newPatt(n.strval, opChr)
+        result = newPatt(n.strval)
 
       of nnkCharLit:
-        result = newPatt($n.intVal.char, opChr)
+        result = newPatt($n.intVal.char)
 
       of nnkCall:
         var name: string

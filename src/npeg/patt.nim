@@ -63,13 +63,9 @@ proc matchesEmpty(patt: Patt): bool =
 
 ### Atoms
 
-proc newPatt*(s: string, op: Opcode): Patt =
-  case op:
-    of opChr:
-      for ch in s:
-        result.add Inst(op: opChr, ch: ch)
-    else:
-      doAssert false
+proc newPatt*(s: string): Patt =
+  for ch in s:
+    result.add Inst(op: opChr, ch: ch)
 
 
 # Calculate how far captures or choices can be shifted into this pattern
