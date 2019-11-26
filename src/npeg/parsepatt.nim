@@ -215,6 +215,8 @@ proc parseGrammar*(ns: NimNode, dot: Dot=nil, dumpRailroad = true): Grammar =
             echo parseRailroad(n[2], result).wrap(name)
 
       elif n[1].kind == nnkCall:
+        if n.len > 3:
+          error "Code blocks can not be used on templates", n[3]
         var t = Template(name: n[1][0].strVal, code: n[2])
         for i in 1..<n[1].len:
           t.args.add n[1][i].strVal
