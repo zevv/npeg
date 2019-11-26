@@ -187,10 +187,6 @@ template skel(cases: untyped, count: int, ms: NimNode, s: NimNode, capture: NimN
   Parser[userDataType](fn: match)
 
 
-dumpAstGen():
-  proc foo() =
-    echo foo
-
 # Convert the list of parser instructions into a Nim finite state machine
 
 proc genCode*(program: Program, userDataType: NimNode, userDataId: NimNode): NimNode =
