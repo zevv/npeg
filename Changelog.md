@@ -1,3 +1,10 @@
+
+0.21.2
+======
+
+- Fixed the way dollar captures are rewritten to avoid the name space clash
+  which was introduced by Nim PR #12712.
+
 0.21.1
 ======
 

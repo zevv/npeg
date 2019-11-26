@@ -46,9 +46,7 @@ proc mkDollarCaptures(n: NimNode): NimNode =
   if n.kind == nnkPrefix and
        n[0].kind == nnkIdent and n[0].eqIdent("$") and
        n[1].kind == nnkIntLit:
-    let i = int(n[1].intVal)
-    result = quote do:
-      capture[`i`].s
+    result = newDotExpr(nnkBracketExpr.newTree(ident("capture"), n[1]), ident("s"))
     proc cli(n2: NimNode) =
       n2.copyLineInfo(n)
       for nc in n2: cli(nc)

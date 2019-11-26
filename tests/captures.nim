@@ -56,7 +56,7 @@ suite "captures":
     doAssert t.number == 123
 
   test "Capture out of range":
-    expect NPegException:
+    expect NPegException, IndexError:
       let p = peg "l":
         l <- 1: echo $1
       discard p.match("a")
