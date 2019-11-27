@@ -964,6 +964,17 @@ a single character left to match" - which is only true for the end of the
 string.
 
 
+### Non-consuming atoms and captures
+
+The lookahead(`&`) and not(`!`) operators may not consume any input, and make
+sure that after matching the internal parsing state of the parser is reset to
+as is was before the operator was started, including the state of the captures.
+This means that any captures made inside a `&` and `!` block also are
+discarted. It is possible however to capture the contents of a non-consuming
+block with a code block capture, as these are _always_ executed, even the the
+parser state is rolled back afterwards.
+
+
 ### Parsing error handling
 
 NPeg offers a number of ways to handle errors during parsing a subject string:
