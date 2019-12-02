@@ -971,7 +971,7 @@ sure that after matching the internal parsing state of the parser is reset to
 as is was before the operator was started, including the state of the captures.
 This means that any captures made inside a `&` and `!` block also are
 discarted. It is possible however to capture the contents of a non-consuming
-block with a code block capture, as these are _always_ executed, even the the
+block with a code block capture, as these are _always_ executed, even when the
 parser state is rolled back afterwards.
 
 
