@@ -6,7 +6,7 @@ NPeg is a pure Nim pattern matching library. It provides macros to compile
 patterns and grammars (PEGs) to Nim procedures which will parse a string and
 collect selected parts of the input. PEGs are not unlike regular expressions,
 but offer more power and flexibility, and have less ambiguities. (More about 
-PEGs on [wikipedia](https://en.wikipedia.org/wiki/Parsing_expression_grammar))
+PEGs on [Wikipedia](https://en.wikipedia.org/wiki/Parsing_expression_grammar))
 
 ![Graph](/doc/syntax-diagram.png)
 
@@ -113,7 +113,7 @@ MatchResult = object
 * `matchMax`: The highest index into the subject that was reached during
   parsing, *even if matching was backtracked or did not succeed*. This offset
   is usually a good indication of the location where the matching error
-  occured.
+  occurred.
 
 The string captures made during the parsing can be accessed with:
 
@@ -255,7 +255,7 @@ common atoms, corresponding to POSIX character classes:
 
 ### Atoms
 
-Atoms are the basic building blocks for a grammer, describing the parts of the
+Atoms are the basic building blocks for a grammar, describing the parts of the
 subject that should be matched.
 
 - Integer literal: `0` / `1` / `n`
@@ -446,7 +446,7 @@ patterns.
 
 Precedence operators is an experimental feature which allows for the
 construction of "precedence climbing" or "Pratt parsers" with NPeg. The main
-use for this feature is building parsers for programming langues that follow
+use for this feature is building parsers for programming languages that follow
 the usual precedence and associativity rules of arithmetic expressions.
 
 - Left associative precedence of `N`: `P ^ N`
@@ -727,7 +727,7 @@ example to match so called here-documents in programming languages.
 For this, NPeg offers the `R` operator with the following two uses:
 
 * The `R(name, P)` pattern creates a named reference for pattern `P` which can
-  be refered to by name in other places in the grammar.
+  be referred to by name in other places in the grammar.
 
 * The pattern `R(name)` matches the contents of the named reference that
   earlier been stored with `R(name, P)` pattern.
@@ -806,7 +806,7 @@ When in doubt check the generated parser instructions by compiling with the
 information.
 
 
-### Templates, or parameterised rules
+### Templates, or parameterized rules
 
 When building more complex grammars you may find yourself duplicating certain
 constructs in patterns over and over again. To avoid code repetition (DRY),
@@ -814,7 +814,7 @@ NPeg provides a simple mechanism to allow the creation of parameterized rules.
 In good Nim-fashion these rules are called "templates". Templates are defined
 just like normal rules, but have a list of arguments, which are referred to in
 the rule. Technically, templates just perform a basic search-and-replace
-operation: every occurence of a named argument is replaced by the exact pattern
+operation: every occurrence of a named argument is replaced by the exact pattern
 passed to the template when called.
 
 For example, consider the following grammar:
@@ -862,7 +862,7 @@ reusable patterns as basic building blocks.
 For this, NPeg keeps track of a global library of patterns and templates. The
 `grammar` macro can be used to add rules or templates to this library. All
 patterns in the library will be stored with a *qualified* identifier in the
-form `libraryname.patternname`, by which they can be refered to at a later
+form `libraryname.patternname`, by which they can be referred to at a later
 time.
 
 For example, the following fragment defines three rules in the library with the
@@ -886,7 +886,7 @@ let r = p.match("123,0x42,0644")
 NPeg offers a number of pre-defined libraries for your convenience, these can
 be found in the `npeg/lib` directory. A library an be imported with the regular
 Nim `import` statement, all rules defined in the imported file will then be
-added to NPegs global pattern library. For example:
+added to NPeg's global pattern library. For example:
 
 ```nim
 import npeg/lib/uri
@@ -896,17 +896,17 @@ import npeg/lib/uri
 ### Library rule overriding/shadowing
 
 To allow the user to add custom captures to imported grammars or rules, it is
-possible to *override* or *shadow* an existing rule in a grammer.
+possible to *override* or *shadow* an existing rule in a grammar.
 
 Overriding will replace the rule from the library with the provided new rule,
 allowing the caller to change parts of an imported grammar. A overridden rule
 is allowed to reference the original rule by name, which will cause the new
 rule to *shadow* the original rule. This will effectively rename the original
 rule and replace it with the newly defined rule which will call the original
-refered rule.
+referred rule.
 
 For example, the following snippet will reuse the grammar from the `uri`
-library and capture some parts of the URI in a nim object:
+library and capture some parts of the URI in a Nim object:
 
 ```nim
 import npeg/lib/uri
@@ -934,7 +934,7 @@ echo myUri  # --> (host: "nim-lang.org", scheme: "http", path: "/one/two/three",
 ## Some notes on using PEGs
 
 
-### Achoring and searching
+### Anchoring and searching
 
 Unlike regular expressions, PEGs are always matched in *anchored* mode only: the
 defined pattern is matched from the start of the subject string. For example,
@@ -970,7 +970,7 @@ The lookahead(`&`) and not(`!`) operators may not consume any input, and make
 sure that after matching the internal parsing state of the parser is reset to
 as is was before the operator was started, including the state of the captures.
 This means that any captures made inside a `&` and `!` block also are
-discarted. It is possible however to capture the contents of a non-consuming
+discarded. It is possible however to capture the contents of a non-consuming
 block with a code block capture, as these are _always_ executed, even when the
 parser state is rolled back afterwards.
 
@@ -980,7 +980,7 @@ parser state is rolled back afterwards.
 NPeg offers a number of ways to handle errors during parsing a subject string:
 
 The `ok` field in the `MatchResult` indicates if the parser was successful:
-when the complete pattern has been mached this value will be set to `true`,
+when the complete pattern has been matched this value will be set to `true`,
 if the complete pattern did not match the subject the value will be `false`.
 
 In addition to the `ok` field, the `matchMax` field indicates the maximum
@@ -1045,15 +1045,15 @@ is problematic because it is mutually left-recursive through the non-terminal
 `B`.
 
 Note that loops of patterns that can match the empty string will not result in
-the expected behaviour. For example, the rule `*0` will cause the parser to
+the expected behavior. For example, the rule `*0` will cause the parser to
 stall and go into an infinite loop.
 
 
 ### UTF-8 / Unicode
 
-NPeg has no built-in support for unicode or UTF-8, instead is simply able to
+NPeg has no built-in support for Unicode or UTF-8, instead is simply able to
 parse UTF-8 documents just as like any other string. NPeg comes with a simple
-utf8 grammar library which should simplify common operations like matching a
+UTF-8 grammar library which should simplify common operations like matching a
 single code point or character class. The following grammar splits an UTF-8
 document into separate characters/glyphs by using the `utf8.any` rule:
 
@@ -1214,7 +1214,7 @@ those to your liking:
 
 ## Tracing, debugging and profiling
 
-Npeg has a number of compile time flags to enable tracing and debugging of the
+NPeg has a number of compile time flags to enable tracing and debugging of the
 generated parser:
 
 * `-d:npegTrace`: Enable compile time and run time tracing. Please refer to the 
@@ -1223,17 +1223,17 @@ generated parser:
 * `-d:npegGraph`: Dump syntax diagrams of all parsed rules at compile time.
 
 * `-d:npegProfile`: Enables run time profiling. This will dump an annotated
-  listing of NPegs compiled program with total time spent, count and fail count
+  listing of NPeg's compiled program with total time spent, count and fail count
   for each instruction.
 
-These flags are ment for debugging NPeg itself, and are typically not useful
+These flags are meant for debugging NPeg itself, and are typically not useful
 to the end user:
 
-* `-d:npegDebug`: Enable more debug info. Ment for NPeg development debugging
+* `-d:npegDebug`: Enable more debug info. Meant for NPeg development debugging
   purposes only.
 
 * `-d:npegExpand`: Dump the generated Nim code for all parsers defined in the
-  program. Ment for NPeg development debugging purposes only.
+  program. Meant for NPeg development debugging purposes only.
 
 
 ## Random stuff and frequently asked questions
@@ -1245,14 +1245,14 @@ The NPeg syntax is similar, but not exactly the same as the official PEG
 syntax: it uses some different operators, and prefix instead of postfix
 operators. The reason for this is that the NPeg grammar is parsed by a Nim
 macro in order to allow code block captures to embed Nim code, which puts some
-limitations on the available syntax. Also, NPegs operators are chosen so that
+limitations on the available syntax. Also, NPeg's operators are chosen so that
 they have the right precedence for PEGs.
 
 
 ### Can NPeg be used to parse EBNF grammars?
 
 Almost, but not quite. Although PEGS and EBNF look quite similar, there are
-some subtle but important diferences which do not allow a literal translation
+some subtle but important differences which do not allow a literal translation
 from EBNF to PEG. Notable differences are left recursion and ordered choice.
 Also, see "From EBNF to PEG" from Roman R. Redziejowski.
 
@@ -1273,9 +1273,9 @@ doAssert parser.match("3*(4+15)+2").ok
 ```
 
 
-### A complete Json parser
+### A complete JSON parser
 
-The following PEG defines a complete parser for the Json language - it will not produce
+The following PEG defines a complete parser for the JSON language - it will not produce
 any captures, but simple traverse and validate the document:
 
 ```nim
@@ -1406,5 +1406,5 @@ require me to better understand what I'm doing first. In no particular order:
   improve performance, but no clue where to start yet.
 
 - Parallelization: I wonder if parsing can parallelized: when reaching an
-  ordered choice, mulptile threads should be able to try to parse each
+  ordered choice, multiple threads should be able to try to parse each
   individual choice. I do see problems with captures here, though.
