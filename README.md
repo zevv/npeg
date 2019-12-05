@@ -69,7 +69,7 @@ A brief explanation of the above code:
   and `{'0'..'9'}`.
 
 * The rule `pair` matches a `word`, followed by an equals sign (`=`), followed
-  by a `number.
+  by a `number`.
 
 * The `word` and `number` in the `pair` rule are captured with the `>`
   operator. The Nim code fragment below this rule is executed for every match,
