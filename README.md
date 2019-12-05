@@ -6,7 +6,7 @@ NPeg is a pure Nim pattern matching library. It provides macros to compile
 patterns and grammars (PEGs) to Nim procedures which will parse a string and
 collect selected parts of the input. PEGs are not unlike regular expressions,
 but offer more power and flexibility, and have less ambiguities. (More about 
-PEGs on [wikipedia](https://en.wikipedia.org/wiki/Parsing_expression_grammar))
+PEGs on [Wikipedia](https://en.wikipedia.org/wiki/Parsing_expression_grammar))
 
 ![Graph](/doc/syntax-diagram.png)
 
@@ -58,18 +58,18 @@ Output:
 A brief explanation of the above code:
 
 * The macro `peg` is used to create a parser object, which uses `pairs` as the
-  initial grammar rule to match
+  initial grammar rule to match.
 
 * The rule `pairs` matches one `pair`, followed by zero or more times (`*`) a
   comma followed by a `pair`.
 
 * The rules `word` and `number` match a sequence of one or more (`+`)
   alphabetic characters or digits, respectively. The `Alpha` and `Digit` rules
-  are pre-defined rules matching the character classes `{'A'..'Z','a'..'z'}` and 
-  `{'0'..'9'}`
+  are pre-defined rules matching the character classes `{'A'..'Z','a'..'z'}` 
+  and `{'0'..'9'}`.
 
 * The rule `pair` matches a `word`, followed by an equals sign (`=`), followed
-  by a `number.
+  by a `number`.
 
 * The `word` and `number` in the `pair` rule are captured with the `>`
   operator. The Nim code fragment below this rule is executed for every match,
@@ -80,7 +80,7 @@ A brief explanation of the above code:
 
 The `patt()` and `peg()` macros can be used to compile parser functions:
 
-- `patt()` creates a parser from a single anonymous pattern
+- `patt()` creates a parser from a single anonymous pattern.
 
 - `peg()` allows the definition of a set of (potentially recursive) rules 
           making up a complete grammar.
@@ -113,7 +113,7 @@ MatchResult = object
 * `matchMax`: The highest index into the subject that was reached during
   parsing, *even if matching was backtracked or did not succeed*. This offset
   is usually a good indication of the location where the matching error
-  occured.
+  occurred.
 
 The string captures made during the parsing can be accessed with:
 
@@ -164,7 +164,8 @@ let parser = peg "ident":
 doAssert parser.match("lowercaseword").ok
 ```
 
-The order in which the grammar patterns are defined affects the generated parser.
+The order in which the grammar patterns are defined affects the generated
+parser.
 Although NPeg could always reorder, this is a design choice to give the user
 more control over the generated parser:
 
@@ -182,9 +183,9 @@ more control over the generated parser:
 The NPeg syntax is similar to normal PEG notation, but some changes were made
 to allow the grammar to be properly parsed by the Nim compiler:
 
-- NPeg uses prefixes instead of suffixes for `*`, `+`, `-` and `?`
-- Ordered choice uses `|` instead of `/` because of operator precedence
-- The explicit `*` infix operator is used for sequences
+- NPeg uses prefixes instead of suffixes for `*`, `+`, `-` and `?`.
+- Ordered choice uses `|` instead of `/` because of operator precedence.
+- The explicit `*` infix operator is used for sequences.
 
 NPeg patterns and grammars can be composed from the following parts:
 
@@ -255,33 +256,33 @@ common atoms, corresponding to POSIX character classes:
 
 ### Atoms
 
-Atoms are the basic building blocks for a grammer, describing the parts of the
+Atoms are the basic building blocks for a grammar, describing the parts of the
 subject that should be matched.
 
 - Integer literal: `0` / `1` / `n`
 
-  The int literal atom `n` matches exactly n number of bytes. `0` always matches,
-  but does not consume any data.
+  The int literal atom `n` matches exactly n number of bytes. `0` always
+  matches, but does not consume any data.
 
 
 - Character and string literals: `'x'` / `"xyz"` / `i"xyz"`
 
-  Characters and strings are literally matched. If a string is prefixed with `i`,
-  it will be matched case insensitive.
+  Characters and strings are literally matched. If a string is prefixed with
+  `i`, it will be matched case insensitive.
 
 
 - Character sets: `{'x','y'}`
 
-  Characters set notation is similar to native Nim. A set consists of zero or more
-  comma separated characters or character ranges.
+  Characters set notation is similar to native Nim. A set consists of zero or
+  more comma separated characters or character ranges.
 
   ```nim
    {'x'..'y'}    # matches any character in the range from 'x'..'y'
    {'x','y','z'} # matches any character from the set 'x', 'y', and 'z'
   ```
 
-  The set syntax `{}` is flexible and can take multiple ranges and characters in
-  one expression, for example `{'0'..'9','a'..'f','A'..'F'}`.
+  The set syntax `{}` is flexible and can take multiple ranges and characters
+  in one expression, for example `{'0'..'9','a'..'f','A'..'F'}`.
 
 
 ### Operators
@@ -296,10 +297,10 @@ patterns.
   o──[P1]───[P2]──o
   ```
 
-  The pattern `P1 * P2` returns a new pattern that matches only if first `P1` matches,
-  followed by `P2`.
+  The pattern `P1 * P2` returns a new pattern that matches only if first `P1`
+  matches, followed by `P2`.
 
-  For example, `"foo" * "bar"` would only match the string `"foobar"`
+  For example, `"foo" * "bar"` would only match the string `"foobar"`.
 
 
 - Ordered choice: `P1 | P2`
@@ -313,10 +314,12 @@ patterns.
   matching will proceed without trying `P2`. Only if `P1` can not be matched,
   NPeg will backtrack and try to match `P2` instead.
 
-  For example `("foo" | "bar") * "fizz"` would match both `"foofizz"` and `"barfizz"`
+  For example `("foo" | "bar") * "fizz"` would match both `"foofizz"` and
+  `"barfizz"`.
 
   NPeg optimizes the `|` operator for characters and character sets: The
-  pattern `'a' | 'b' | 'c'` will be rewritten to a character set `{'a','b','c'}`
+  pattern `'a' | 'b' | 'c'` will be rewritten to a character set
+  `{'a','b','c'}`.
 
 
 - Difference: `P1 - P2`
@@ -330,7 +333,8 @@ patterns.
   ```
 
   NPeg optimizes the `-` operator for characters and character sets: The
-  pattern `{'a','b','c'} - 'b'` will be rewritten to the character set `{'a','c'}`
+  pattern `{'a','b','c'} - 'b'` will be rewritten to the character set
+  `{'a','c'}`.
 
 
 - Grouping: `(P)`
@@ -345,11 +349,13 @@ patterns.
   o──[P]──o
   ```
 
-  The pattern `!P` returns a pattern that matches only if the input does not match `P`.
+  The pattern `!P` returns a pattern that matches only if the input does not
+  match `P`.
   In contrast to most other patterns, this pattern does not consume any input.
 
-  A common usage for this operator is the pattern `!1`, meaning "only succeed if there
-  is not a single character left to match" - which is only true for the end of the string.
+  A common usage for this operator is the pattern `!1`, meaning "only succeed
+  if there is not a single character left to match" - which is only true for
+  the end of the string.
 
 
 - And-predicate: `&P`
@@ -361,8 +367,8 @@ patterns.
   ```
 
   The pattern `&P` matches only if the input matches `P`, but will *not*
-  consume any input. This is equivalent to `!!P`. This is denoted by a double negation
-  in the railroad diagram, which is not very pretty unfortunately.
+  consume any input. This is equivalent to `!!P`. This is denoted by a double
+  negation in the railroad diagram, which is not very pretty unfortunately.
 
 - Optional: `?P`
 
@@ -371,10 +377,10 @@ patterns.
   o─┴─[P]─┴─o
   ```
 
-  The pattern `?P` matches if `P` can be matched zero or more times, so essentially
-  succeeds if `P` either matches or not.
+  The pattern `?P` matches if `P` can be matched zero or more times, so
+  essentially succeeds if `P` either matches or not.
 
-  For example, `?"foo" * bar"` matches both `"foobar"` and `"bar"`
+  For example, `?"foo" * bar"` matches both `"foobar"` and `"bar"`.
 
 
 - Match zero or more times: `*P`
@@ -388,7 +394,8 @@ patterns.
   The pattern `*P` tries to match as many occurrences of pattern `P` as
   possible - this operator always behaves *greedily*.
 
-  For example, `*"foo" * "bar"` matches `"bar"`, `"fooboar"`, `"foofoobar"`, etc
+  For example, `*"foo" * "bar"` matches `"bar"`, `"fooboar"`, `"foofoobar"`,
+  etc.
 
 
 - Match one or more times: `+P`
@@ -398,15 +405,15 @@ patterns.
     ╰──«──╯
   ```
 
-  The pattern `+P` matches `P` at least once, but also more times. It is equivalent
-  to the `P * *P` - this operator always behave *greedily*
+  The pattern `+P` matches `P` at least once, but also more times.
+  It is equivalent to the `P * *P` - this operator always behave *greedily*.
 
 
 - Search: `@P`
 
   This operator searches for pattern `P` using an optimized implementation. It
-  is equivalent to `s <- *(1 - P) * P`, which can be read as "try to match as many
-  characters as possible not matching `P`, and then match `P`:
+  is equivalent to `s <- *(1 - P) * P`, which can be read as "try to match as
+  many characters as possible not matching `P`, and then match `P`:
 
   ```
     ╭─────»─────╮
@@ -446,7 +453,7 @@ patterns.
 
 Precedence operators is an experimental feature which allows for the
 construction of "precedence climbing" or "Pratt parsers" with NPeg. The main
-use for this feature is building parsers for programming langues that follow
+use for this feature is building parsers for programming languages that follow
 the usual precedence and associativity rules of arithmetic expressions.
 
 - Left associative precedence of `N`: `P ^ N`
@@ -469,7 +476,7 @@ the `^` operator is matched, either one of the next three cases applies:
 
 - `P ^ N` where `N > 0` and `N` is lower then the current precedence: in this
   case the current precedence is set to `N` and parsing of pattern `P`
-  continues
+  continues.
 
 - `P ^ N` where `N > 0` and `N` is higher or equal then the current precedence:
   parsing will fail and backtrack.
@@ -504,8 +511,8 @@ s o────[P]────o
      ╰╶╶╶╶╶╯
 ```
 
-NPeg supports a number of ways to capture data when parsing a string. The various
-capture methods are described here, including a concise example.
+NPeg supports a number of ways to capture data when parsing a string.
+The various capture methods are described here, including a concise example.
 
 The capture examples below build on the following small PEG, which parses
 a comma separated list of key-value pairs:
@@ -558,7 +565,7 @@ NPeg. This allows you to define a grammar with embedded Nim code for handling
 the data during parsing.
 
 Note that for code block captures, the Nim code gets executed during parsing,
-*even if the match is part of a pattern that fails and is later backtracked*
+*even if the match is part of a pattern that fails and is later backtracked*.
 
 When a grammar rule ends with a colon `:`, the next indented block in the
 grammar is interpreted as Nim code, which gets executed when the rule has been
@@ -575,10 +582,10 @@ For convenience there is syntactic sugar available in the code block which
 allows to use the variables `$0` to `$9` to be used to access the captured
 strings. The `$` operator uses then usual Nim precedence, thus these variables
 might need parentheses or different ordering in some cases, for example
-`$1.parseInt` should be written as `parseInt($1)`)
+`$1.parseInt` should be written as `parseInt($1)`.
 
 - The total subject matched by the code block rule is available in `capture[0]`
-  or `$0`
+  or `$0`.
 
 - Any additional explicit `>` string captures made by the rule or any of
   its child rules will be available as `capture[1]`, `capture[2]`, ... or
@@ -591,7 +598,7 @@ let p = peg foo:
     echo "$0 = ", $0
     echo "$1 = ", $1
     echo "$2 = ", $2
-	     
+       
 echo p.match("abc").ok
 ```
 
@@ -628,7 +635,7 @@ let parser = peg "pairs":
 let r = parser.match(data)
 ```
 
-After the parsing finished, the `words` table will now contain
+After the parsing finished, the `words` table will now contain:
 
 ```nim
 {"two": 2, "three": 3, "one": 1, "four": 4}
@@ -727,7 +734,7 @@ example to match so called here-documents in programming languages.
 For this, NPeg offers the `R` operator with the following two uses:
 
 * The `R(name, P)` pattern creates a named reference for pattern `P` which can
-  be refered to by name in other places in the grammar.
+  be referred to by name in other places in the grammar.
 
 * The pattern `R(name)` matches the contents of the named reference that
   earlier been stored with `R(name, P)` pattern.
@@ -740,8 +747,8 @@ patt R("c", 1) * *(1 - R("c")) * R("c") * !1
 ```
 
 The first part of the rule `R("c", 1)` will match any character, and store this
-in the named reference `c`. The second part will match a sequence of zero or more
-characters that do not match reference `c`, followed by reference `c`.
+in the named reference `c`. The second part will match a sequence of zero or
+more characters that do not match reference `c`, followed by reference `c`.
 
 
 ## More about grammars
@@ -757,7 +764,7 @@ two ways:
   rules apply.
 
 * NPeg checks the size of the total grammar, and if it thinks it is too large
-  it will fail compilation with the error message `NPeg: grammar too complex`
+  it will fail compilation with the error message `NPeg: grammar too complex`.
 
 Check the section "Compile-time configuration" below for more details about too
 complex grammars.
@@ -806,7 +813,7 @@ When in doubt check the generated parser instructions by compiling with the
 information.
 
 
-### Templates, or parameterised rules
+### Templates, or parameterized rules
 
 When building more complex grammars you may find yourself duplicating certain
 constructs in patterns over and over again. To avoid code repetition (DRY),
@@ -814,8 +821,8 @@ NPeg provides a simple mechanism to allow the creation of parameterized rules.
 In good Nim-fashion these rules are called "templates". Templates are defined
 just like normal rules, but have a list of arguments, which are referred to in
 the rule. Technically, templates just perform a basic search-and-replace
-operation: every occurence of a named argument is replaced by the exact pattern
-passed to the template when called.
+operation: every occurrence of a named argument is replaced by the exact
+pattern passed to the template when called.
 
 For example, consider the following grammar:
 
@@ -862,7 +869,7 @@ reusable patterns as basic building blocks.
 For this, NPeg keeps track of a global library of patterns and templates. The
 `grammar` macro can be used to add rules or templates to this library. All
 patterns in the library will be stored with a *qualified* identifier in the
-form `libraryname.patternname`, by which they can be refered to at a later
+form `libraryname.patternname`, by which they can be referred to at a later
 time.
 
 For example, the following fragment defines three rules in the library with the
@@ -886,7 +893,7 @@ let r = p.match("123,0x42,0644")
 NPeg offers a number of pre-defined libraries for your convenience, these can
 be found in the `npeg/lib` directory. A library an be imported with the regular
 Nim `import` statement, all rules defined in the imported file will then be
-added to NPegs global pattern library. For example:
+added to NPeg's global pattern library. For example:
 
 ```nim
 import npeg/lib/uri
@@ -896,17 +903,17 @@ import npeg/lib/uri
 ### Library rule overriding/shadowing
 
 To allow the user to add custom captures to imported grammars or rules, it is
-possible to *override* or *shadow* an existing rule in a grammer.
+possible to *override* or *shadow* an existing rule in a grammar.
 
 Overriding will replace the rule from the library with the provided new rule,
 allowing the caller to change parts of an imported grammar. A overridden rule
 is allowed to reference the original rule by name, which will cause the new
 rule to *shadow* the original rule. This will effectively rename the original
 rule and replace it with the newly defined rule which will call the original
-refered rule.
+referred rule.
 
 For example, the following snippet will reuse the grammar from the `uri`
-library and capture some parts of the URI in a nim object:
+library and capture some parts of the URI in a Nim object:
 
 ```nim
 import npeg/lib/uri
@@ -934,11 +941,11 @@ echo myUri  # --> (host: "nim-lang.org", scheme: "http", path: "/one/two/three",
 ## Some notes on using PEGs
 
 
-### Achoring and searching
+### Anchoring and searching
 
-Unlike regular expressions, PEGs are always matched in *anchored* mode only: the
-defined pattern is matched from the start of the subject string. For example,
-the pattern `"bar"` does not match the string `"foobar"`.
+Unlike regular expressions, PEGs are always matched in *anchored* mode only:
+the defined pattern is matched from the start of the subject string.
+For example, the pattern `"bar"` does not match the string `"foobar"`.
 
 To search for a pattern in a stream, a construct like this can be used:
 
@@ -970,7 +977,7 @@ The lookahead(`&`) and not(`!`) operators may not consume any input, and make
 sure that after matching the internal parsing state of the parser is reset to
 as is was before the operator was started, including the state of the captures.
 This means that any captures made inside a `&` and `!` block also are
-discarted. It is possible however to capture the contents of a non-consuming
+discarded. It is possible however to capture the contents of a non-consuming
 block with a code block capture, as these are _always_ executed, even when the
 parser state is rolled back afterwards.
 
@@ -980,7 +987,7 @@ parser state is rolled back afterwards.
 NPeg offers a number of ways to handle errors during parsing a subject string:
 
 The `ok` field in the `MatchResult` indicates if the parser was successful:
-when the complete pattern has been mached this value will be set to `true`,
+when the complete pattern has been matched this value will be set to `true`,
 if the complete pattern did not match the subject the value will be `false`.
 
 In addition to the `ok` field, the `matchMax` field indicates the maximum
@@ -990,9 +997,10 @@ matching failed, the value of `matchMax` is usually a good indication of where
 in the subject string the error occurred.
 
 When, during matching, the parser reaches an `E"message"` atom in the grammar,
-NPeg will raise an `NPegException` exception with the given message. The typical
-use case for this atom is to be combine with the ordered choice `|` operator to
-generate helpful error messages. The following example illustrates this:
+NPeg will raise an `NPegException` exception with the given message.
+The typical use case for this atom is to be combine with the ordered choice `|`
+operator to generate helpful error messages.
+The following example illustrates this:
 
 ```nim
 let parser = peg "list":
@@ -1011,8 +1019,9 @@ can this not be matched the `E"word"` matches instead, raising an exception:
 Error: unhandled exception: Parsing error at #14: expected "word" [NPegException]
 ```
 
-The `NPegException` type contains the same two fields as `MatchResult` to indicate
-where in the subject string the match failed: `matchLen` and `matchMax`:
+The `NPegException` type contains the same two fields as `MatchResult` to
+indicate where in the subject string the match failed: `matchLen` and
+`matchMax`:
 
 ```nim
 let a = patt 4 * E"boom"
@@ -1045,15 +1054,15 @@ is problematic because it is mutually left-recursive through the non-terminal
 `B`.
 
 Note that loops of patterns that can match the empty string will not result in
-the expected behaviour. For example, the rule `*0` will cause the parser to
+the expected behavior. For example, the rule `*0` will cause the parser to
 stall and go into an infinite loop.
 
 
 ### UTF-8 / Unicode
 
-NPeg has no built-in support for unicode or UTF-8, instead is simply able to
+NPeg has no built-in support for Unicode or UTF-8, instead is simply able to
 parse UTF-8 documents just as like any other string. NPeg comes with a simple
-utf8 grammar library which should simplify common operations like matching a
+UTF-8 grammar library which should simplify common operations like matching a
 single code point or character class. The following grammar splits an UTF-8
 document into separate characters/glyphs by using the `utf8.any` rule:
 
@@ -1087,13 +1096,14 @@ inf o──"INF:"─»───[number]───»┴─","─»┴┬─[lf]─
                 ╰╶╶╶╶╶╶╶╶╶╶╯          ╰────«─────╯           ╰╶╶╶╶╶╶╶╯   
 ```
 
-* Optionals (`?`) are indicated by a forward arrow overhead
-* Repeats ('+') are indicated by a backwards arrow underneath
-* Literals (strings, chars, sets) are printed in purple
-* Non-terminals are printed in cyan between square brackets
+* Optionals (`?`) are indicated by a forward arrow overhead.
+* Repeats ('+') are indicated by a backwards arrow underneath.
+* Literals (strings, chars, sets) are printed in purple.
+* Non-terminals are printed in cyan between square brackets.
 * Not-predicates (`!`) are overlined in red. Note that the diagram does not
   make it clear that the input for not-predicates is not consumed.
-* Captures are boxed in a gray rectangle, optionally including the capture name
+* Captures are boxed in a gray rectangle, optionally including the capture
+  name.
 
 ### Grammar graphs
 
@@ -1112,16 +1122,17 @@ each grammar in the code and write it to the given directory.
 * Rule colors represent the relative size/complexity of a rule:
   black=<10, orange=10..100, red=>100
 
-Large rules result in larger generated code and slow compile times. Rule size can
-generally be decreased by changing the rule order in a grammar to allow NPeg to
-call rules instead of inlining them.
+Large rules result in larger generated code and slow compile times. Rule size
+can generally be decreased by changing the rule order in a grammar to allow
+NPeg to call rules instead of inlining them.
 
 
 ### Tracing
 
-When compiled with `-d:npegTrace`, NPeg will dump its intermediate representation
-of the compiled PEG, and will dump a trace of the execution during matching.
-These traces can be used for debugging or optimization of a grammar.
+When compiled with `-d:npegTrace`, NPeg will dump its intermediate
+representation of the compiled PEG, and will dump a trace of the execution
+during matching. These traces can be used for debugging or optimization of a
+grammar.
 
 For example, the following program:
 
@@ -1157,12 +1168,12 @@ word:
 At runtime, the following trace is generated. The trace consists of a number
 of columns:
 
-1. the current instruction pointer, which maps to the compile time dump
-2. the index into the subject
-3. the substring of the subject
-4. the name of the rule from which this instruction originated
-5. the instruction being executed
-6. the backtrace stack depth
+1. The current instruction pointer, which maps to the compile time dump.
+2. The index into the subject.
+3. The substring of the subject.
+4. The name of the rule from which this instruction originated.
+5. The instruction being executed.
+6. The backtrace stack depth.
 
 ```
   0|  0|one two                 |line           |call -> word:6                          |
@@ -1214,26 +1225,26 @@ those to your liking:
 
 ## Tracing, debugging and profiling
 
-Npeg has a number of compile time flags to enable tracing and debugging of the
+NPeg has a number of compile time flags to enable tracing and debugging of the
 generated parser:
 
 * `-d:npegTrace`: Enable compile time and run time tracing. Please refer to the 
-  section 'Tracing' for more details
+  section 'Tracing' for more details.
 
 * `-d:npegGraph`: Dump syntax diagrams of all parsed rules at compile time.
 
 * `-d:npegProfile`: Enables run time profiling. This will dump an annotated
-  listing of NPegs compiled program with total time spent, count and fail count
-  for each instruction.
+  listing of NPeg's compiled program with total time spent, count and fail
+  count for each instruction.
 
-These flags are ment for debugging NPeg itself, and are typically not useful
+These flags are meant for debugging NPeg itself, and are typically not useful
 to the end user:
 
-* `-d:npegDebug`: Enable more debug info. Ment for NPeg development debugging
+* `-d:npegDebug`: Enable more debug info. Meant for NPeg development debugging
   purposes only.
 
 * `-d:npegExpand`: Dump the generated Nim code for all parsers defined in the
-  program. Ment for NPeg development debugging purposes only.
+  program. Meant for NPeg development debugging purposes only.
 
 
 ## Random stuff and frequently asked questions
@@ -1245,14 +1256,14 @@ The NPeg syntax is similar, but not exactly the same as the official PEG
 syntax: it uses some different operators, and prefix instead of postfix
 operators. The reason for this is that the NPeg grammar is parsed by a Nim
 macro in order to allow code block captures to embed Nim code, which puts some
-limitations on the available syntax. Also, NPegs operators are chosen so that
+limitations on the available syntax. Also, NPeg's operators are chosen so that
 they have the right precedence for PEGs.
 
 
 ### Can NPeg be used to parse EBNF grammars?
 
 Almost, but not quite. Although PEGS and EBNF look quite similar, there are
-some subtle but important diferences which do not allow a literal translation
+some subtle but important differences which do not allow a literal translation
 from EBNF to PEG. Notable differences are left recursion and ordered choice.
 Also, see "From EBNF to PEG" from Roman R. Redziejowski.
 
@@ -1273,10 +1284,10 @@ doAssert parser.match("3*(4+15)+2").ok
 ```
 
 
-### A complete Json parser
+### A complete JSON parser
 
-The following PEG defines a complete parser for the Json language - it will not produce
-any captures, but simple traverse and validate the document:
+The following PEG defines a complete parser for the JSON language - it will not
+produce any captures, but simple traverse and validate the document:
 
 ```nim
 let s = peg "doc":
@@ -1391,20 +1402,20 @@ More examples can be found in tests/examples.nim.
 Here are some things I'd like to have implemented one day. Some are hard and
 require me to better understand what I'm doing first. In no particular order:
 
-- Design and implement a proper API for code block captures. The current API feels
-  fragile and fragmented (`capture[], $1/$2, fail(), validate()`), and does not
-  offer solid primitives to make custom match functions yet, something better
-  should be in place before NPeg goes v1.0.
+- Design and implement a proper API for code block captures. The current API
+  feels fragile and fragmented (`capture[], $1/$2, fail(), validate()`), and
+  does not offer solid primitives to make custom match functions yet, something
+  better should be in place before NPeg goes v1.0.
 
 - Resuming/streaming: The current parser is almost ready to be invoked multiple
-  times, resuming parsing where it left off - this should allow parsing of (infinite)
-  streams. The only problem not solved yet is how to handle captures: when a block
-  of data is parsed it might contain data which must later be available to collect
-  the capture. Not sure how to handle this yet.
+  times, resuming parsing where it left off - this should allow parsing of
+  (infinite) streams. The only problem not solved yet is how to handle
+  captures: when a block of data is parsed it might contain data which must
+  later be available to collect the capture. Not sure how to handle this yet.
 
 - Memoization: I guess it would be possible to add (limited) memoization to 
   improve performance, but no clue where to start yet.
 
 - Parallelization: I wonder if parsing can parallelized: when reaching an
-  ordered choice, mulptile threads should be able to try to parse each
+  ordered choice, multiple threads should be able to try to parse each
   individual choice. I do see problems with captures here, though.

@@ -1,15 +1,15 @@
 
 ## Introduction
 
-This document briefly descibes the inner workings of Npeg.
+This document briefly describes the inner workings of NPeg.
 
 The main PEG algorithm is based on the Paper "A Text Pattern-Matching Tool
 based on Parsing Expression Grammars" by Roberto Ierusalimschy, who is also the
-author or LPEG. While LPEG uses a VM approach for parsing, Npeg adds an
+author or LPEG. While LPEG uses a VM approach for parsing, NPeg adds an
 additional step where the VM code is compiled to native Nim code which does the
 parsing.
 
-This is how Npeg works in short:
+This is how NPeg works in short:
 
 - The grammar is parsed by a Nim macro which recursively transforms this into
   a sequence of VM instructions for each grammar rule.
@@ -25,7 +25,7 @@ This is how Npeg works in short:
 
 The following data structures are used for compiling the grammar:
 
-- `Inst`, short for "instruction": This is a object varaint which implements a
+- `Inst`, short for "instruction": This is a object variant which implements a
   basic VM instruction. It consists of the opcode and a number of data fields.
 
 - `Patt`, short for "pattern": A pattern is a sequence of instructions
@@ -63,9 +63,9 @@ describe how a pattern is built from Nim code, all of which lives in `patt.nim`
 - this mechanism is later used by the macro which is parsing the actual PEG
 grammar.
 
-The basic atoms are constructed by the `newPatt()` procs. These take an
+The basic atoms are constructed by the `newPatt()` procedures. These take an
 argument describing what needs to be matched in the subject, and deliver a
-short sequence of instructions. For example, the `newPatt("foo")` proc
+short sequence of instructions. For example, the `newPatt("foo")` procedure
 will create a pattern consisting of a single instruction: 
 
 ```
@@ -93,10 +93,10 @@ of patterns indexed by name.
 
 ## PEG DSL to grammar
 
-The user defines their Npeg grammar in a Nim code block, which consists of a
+The user defines their NPeg grammar in a Nim code block, which consists of a
 number of named patterns. The whole grammar is handled by the `parseGrammar()`
 which iterates all individual named patterns. Each pattern is passed to the
-`parsePatt()` amcro, which transforms the Nim code block AST into a Npeg
+`parsePatt()` macro, which transforms the Nim code block AST into a NPeg
 grammar. This macro recursively goes through the Nim AST and calls `newPatt()`
 for building atoms, and calls the various operators acting on patterns to grow
 the grammar.
@@ -104,9 +104,10 @@ the grammar.
 
 ## Grammar to Nim code
 
-The `genCode()` proc is used to convert the list of instructions into Nim code
-which implements the actual parser. This proc builds a `case` statement for each
-VM instruction, and inserts a template for each opcode for each case.
+The `genCode()` procedure is used to convert the list of instructions into Nim
+code which implements the actual parser. This procedure builds a `case`
+statement for each VM instruction, and inserts a template for each opcode for
+each case.
 
 
 ## Example
@@ -161,5 +162,3 @@ which is then translated into the following `case` statement:
     else:
       opFailFn()
 ```
-
-
