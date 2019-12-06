@@ -4,6 +4,7 @@
 
 - Fixed off-by-one error in range `P[m..n]` operator, which would also match
   `P` times `n+1`
+- Various documentation improvements
 
 0.21.2
 ======
