@@ -216,7 +216,7 @@ proc `{}`*(p: Patt, n: BiggestInt): Patt =
 
 proc `{}`*(p: Patt, range: HSlice[system.BiggestInt, system.BiggestInt]): Patt =
   result.add p{range.a}
-  for i in range.a..range.b:
+  for i in range.a..<range.b:
     result.add ?p
 
 
