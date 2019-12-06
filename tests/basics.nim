@@ -66,13 +66,16 @@ suite "unit tests":
     doAssert     patt(1[5]).match("aaaa").ok == false
 
   test "[m..n]: count":
-    doAssert     patt('a'[5]).match("aaaa").ok == false
-    doAssert     patt('a'[2..4]).match("a").ok == false
-    doAssert     patt('a'[2..4]).match("aa").ok
-    doAssert     patt('a'[2..4]).match("aaa").ok
-    doAssert     patt('a'[2..4]).match("aaaa").ok
-    doAssert     patt('a'[2..4]).match("aaaaa").ok
-    doAssert     patt('a'[2..4]).match("aaaab").ok
+    doAssert     patt('a'[2..4] * !1).match("").ok == false
+    doAssert     patt('a'[2..4] * !1).match("a").ok == false
+    doAssert     patt('a'[2..4] * !1).match("aa").ok
+    doAssert     patt('a'[2..4] * !1).match("aaa").ok
+    doAssert     patt('a'[2..4] * !1).match("aaaa").ok
+    doAssert     patt('a'[2..4] * !1).match("aaaaa").ok == false
+
+    doAssert     patt('a'[0..1] * !1).match("").ok
+    doAssert     patt('a'[0..1] * !1).match("a").ok
+    doAssert     patt('a'[0..1] * !1).match("aa").ok == false
 
   test "|: ordered choice":
     doAssert     patt("ab" | "cd").match("ab").ok

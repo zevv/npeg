@@ -1,4 +1,10 @@
 
+0.21.3
+======
+
+- Fixed off-by-one error in range `P[m..n]` operator, which would also match
+  `P` times `n+1`
+
 0.21.2
 ======
 
