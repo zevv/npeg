@@ -1,24 +1,24 @@
 
-0.21.3
-======
+0.21.3 - 2019-12-06
+===================
 
 - Fixed off-by-one error in range `P[m..n]` operator, which would also match
   `P` times `n+1`
 - Various documentation improvements
 
-0.21.2
-======
+0.21.2 - 2019-11-26
+===================
 
 - Fixed the way dollar captures are rewritten to avoid the name space clash
   which was introduced by Nim PR #12712.
 
-0.21.1
-======
+0.21.1 - 2019-11-19
+===================
 
 - Bugfix for templates generating ordered choices
 
-0.21.0
-======
+0.21.0 - 2019-10-28
+===================
 
 - anonymous `patt` patterns now also take a code block
 
@@ -31,16 +31,16 @@
   was added to the implementation. If you use Json or AST captures and think
   deprecation is a mistake, let me know.
 
-0.20.0
-======
+0.20.0 - 2019-10-18
+===================
 
 - Added precedence operators - this allows constructions of Pratt parsers with
   bounded left recursion and operator precedence.
 - Added run time profiler, enable with -d:npegProfile
 - Performance improvements
 
-0.19.0
-======
+0.19.0 - 2019-10-11
+===================
 
 - Significant performance improvements
 - Changed semantincs of code block captures: $0 now always captures the
@@ -51,36 +51,36 @@
   back on the stack
 - Check for loops caused by repeat of empty strings at compile time
 
-0.18.0
-======
+0.18.0 - 2019-09-26
+===================
 
 - Runtime performance improvements
 
-0.17.1
-======
+0.17.1 - 2019-09-19
+===================
 
 - Bugfix release (removed lingering debug echo)
 
-0.17.0
-======
+0.17.0 - 2019-09-17
+===================
 
 - Various runtime and compiletime performance improvements
 
-0.16.0
-======
+0.16.0 - 2019-09-08
+===================
 
 - Templates can now also be used in libraries
 - Added railroad diagram generation with -d:npegGraph
 - Improved error reporting
 
-0.15.0
-======
+0.15.0 - 2019-08-31
+===================
 
 - Generic parser API changed: the peg() macro now explicity passes the
   userdata type and identifier.
 
-0.14.1
-======
+0.14.1 - 2019-08-28
+===================
 
 - Added templates / parameterised rules
 - Added custom match validation in code block capture
@@ -91,23 +91,22 @@
 - Added AST capture type for building simple abstract syntax trees
 - Added Jb() capture for Json booleans
 
-0.13.0
-======
+0.13.0 - 2019-07-21
+===================
 
 - The capture[] variable available inside code block matches now allows access
   to the match offset as well. This is an API change since the type of capture
   changed from seq[string] to seq[Capture].
 
-
-0.12.0
-======
+0.12.0 - 2019-07-14
+===================
 
 - Documentation updates
 - Made some error bounds compile-time configurable
 - Fix for more strict Nim compiler checks
 
-0.11.0
-======
+0.11.0 - 2019-05-29
+===================
 
 - Added support for named backreferences
 - Added safeguards to prevent grammars growing out of bounds
@@ -115,36 +114,36 @@
 - Added `matchLen` and `matchMax` fields to `NPegException`
 - Improved pattern syntax error messages
 
-0.10.0
-======
+0.10.0 - 2019-04-24
+===================
 
 - Fixed 'Graph' character class
 
-0.9.0
-=====
+0.9.0 - 2019-03-31
+==================
 
 - Some syntax changes to fix compilation with mainline Nim 0.19.4
 
-0.8.0
-=====
+0.8.0 - 2019-03-30
+==================
 
 - Added syntactic sugar for accessing the captures[] seq in capture
   code blocks with dollar-number variables $1..$9
 
-0.7.0
-=====
+0.7.0 - 2019-03-29
+==================
 
 - Action callbacks (%) dropped in favour of Nim code block callbacks.
 
-0.6.0
-=====
+0.6.0 - 2019-03-27
+==================
 
 - API change: count syntax changed from {n} to [n].
 
 - Optimizations in code generation
 
-0.5.0
-=====
+0.5.0 - 2019-03-27
+==================
 
 - API change: peg() and patt() now return an object of type Parser
   instead of a proc, and the function match(p: Parser) is now used for
@@ -157,8 +156,8 @@
 
 - Added `&` and predicate
 
-0.4.0
-=====
+0.4.0 - 2019-03-24
+==================
 
 - Improved tracing output, during trace the originating rule name
   for each instruction is dumped.
