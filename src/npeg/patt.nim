@@ -51,7 +51,7 @@ proc matchesEmpty(patt: Patt): bool =
       of opJump: ip += i.callOffset
       of opCapOpen, opCapClose, opNop, opSpan, opPrecPush, opPrecPop: inc ip
       of opErr, opReturn, opCall: return false
-      of opAny, opChr, opSet, opBackRef, opFail:
+      of opAny, opChr, opSet, opBackRef, opFail, opToken:
         if i.failOffset != 0:
           ip += i.failOffset
         elif backStack.top > 0:
@@ -67,6 +67,8 @@ proc newPatt*(s: string): Patt =
   for ch in s:
     result.add Inst(op: opChr, ch: ch)
 
+proc newPattToken*(s: string): Patt =
+  result.add Inst(op: opToken, token: s)
 
 # Calculate how far captures or choices can be shifted into this pattern
 # without consequences; this allows the pattern to fail before pushing to the

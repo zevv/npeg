@@ -66,10 +66,10 @@ export NPegException, Parser, ASTNode, MatchResult, contains, items, `[]`
 
 # Create a parser for a PEG grammar
 
-proc pegAux(name: string, userDataType: NimNode, userDataId: string, n: NimNode): NimNode =
+proc pegAux(name: string, subjectType: NimNode, userDataType: NimNode, userDataId: string, n: NimNode): NimNode =
   var dot = newDot(name)
   var grammar = parseGrammar(n, dot)
-  let code = grammar.link(name, dot).genCode(userDataType, ident(userDataId))
+  let code = grammar.link(name, dot).genCode(subjectType, userDataType, ident(userDataId))
   dot.dump()
   code
 
@@ -78,8 +78,12 @@ macro peg*(name: untyped, n: untyped): untyped =
   ## grammar rule where parsing starts. This macro returns a `Parser` type
   ## which can later be used for matching subjects with the `match()` proc
   let userDataType = bindSym("bool")
-  pegAux(name.strVal, userDataType, "userdata", n)
+  let subjectType = bindSym("char")
+  pegAux(name.strVal, subjectType, userDataType, "userdata", n)
 
+macro peg2*(name: untyped, subjectType: untyped, n: untyped): untyped =
+  let userDataType = bindSym("bool")
+  pegAux(name.strVal, subjectType, userDataType, "userdata", n)
 
 macro peg*(name: untyped, userData: untyped, n: untyped): untyped =
   ## Construct a typed parser from the given PEG grammar. `name` is the initial
@@ -90,7 +94,8 @@ macro peg*(name: untyped, userData: untyped, n: untyped): untyped =
   ## This macro returns a `Parser` type which can later be used for matching
   ## subjects with the `match()` proc
   expectKind(userData, nnkExprColonExpr)
-  pegAux name.strVal, userData[1], userData[0].strVal, n
+  let subjectType = bindSym("char")
+  pegAux name.strVal, subjectType, userData[1], userData[0].strVal, n
 
 
 template patt*(n: untyped): untyped =
@@ -117,7 +122,7 @@ macro grammar*(libNameNode: untyped, n: untyped) =
   libStore(libName, grammar)
 
 
-proc match*[T](p: Parser, s: Subject, userData: var T): MatchResult =
+proc match*[S,T](p: Parser[S,T], s: openArray[S], userData: var T): MatchResult =
   ## Match a subject string with the given generic parser. The returned
   ## `MatchResult` contains the result of the match and can be used to query
   ## any captures.
@@ -125,7 +130,7 @@ proc match*[T](p: Parser, s: Subject, userData: var T): MatchResult =
   p.fn(ms, s, userData)
 
 
-proc match*(p: Parser, s: Subject): MatchResult =
+proc match*[S](p: Parser, s: openArray[S]): MatchResult =
   ## Match a subject string with the given parser. The returned `MatchResult`
   ## contains the result of the match and can be used to query any captures.
   var userData: bool # dummy if user does not provide a type

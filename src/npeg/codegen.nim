@@ -33,8 +33,8 @@ type
     backStack*: Stack[BackFrame]
     precStack*: Stack[PrecFrame]
 
-  Parser*[T] = object
-    fn*: proc(ms: var MatchState, s: Subject, userdata: var T): MatchResult
+  Parser*[S, T] = object
+    fn*: proc(ms: var MatchState, s: openArray[S], userdata: var T): MatchResult
 
 
 # This macro translates `$1`.. into `capture[1]`.. for use in code block
@@ -126,9 +126,9 @@ when npegProfile:
 
 template skel(cases: untyped, count: int, ms: NimNode, s: NimNode, capture: NimNode,
               listing: seq[string],
-              userDataType: untyped, userDataId: NimNode) =
+              subjectType: untyped, userDataType: untyped, userDataId: NimNode) =
 
-  let match = proc(ms: var MatchState, s: Subject, userDataId: var userDataType): MatchResult =
+  proc match[S](ms: var MatchState, s: openArray[S], userDataId: var userDataType): MatchResult =
 
     # Create local instances of performance-critical MatchState vars, this saves a
     # dereference on each access
@@ -140,7 +140,7 @@ template skel(cases: untyped, count: int, ms: NimNode, s: NimNode, capture: NimN
 
     # Debug trace. Slow and expensive
 
-    proc doTrace(ms: var MatchState, iname, opname: string, s: Subject, msg: string) =
+    proc doTrace(ms: var MatchState, iname, opname: string, s: openArray[S], msg: string) =
       when npegTrace:
         echo align(if ip >= 0: $ip else: "", 3) &
           "|" & align($(peek(ms.precStack)), 3) &
@@ -150,7 +150,7 @@ template skel(cases: untyped, count: int, ms: NimNode, s: NimNode, capture: NimN
           "|" & alignLeft(opname & " " & msg, 40) &
           "|" & repeat("*", ms.backStack.top)
 
-    template trace(ms: var MatchState, iname, opname: string, s: Subject, msg = "") =
+    template trace(ms: var MatchState, iname, opname: string, s: openArray[S], msg = "") =
       when npegTrace:
         doTrace(ms, iname, opname, s, msg)
 
@@ -179,15 +179,15 @@ template skel(cases: untyped, count: int, ms: NimNode, s: NimNode, capture: NimN
     ms.simax = simax
     result.matchLen = ms.si
     result.matchMax = ms.simax
-    if result.ok and ms.capStack.top > 0:
-      result.cs = fixCaptures(s, ms.capStack, FixAll)
+    #if result.ok and ms.capStack.top > 0:
+    #  result.cs = fixCaptures(s, ms.capStack, FixAll)
 
-  Parser[userDataType](fn: match)
+  Parser[subjectType, userDataType](fn: match)
 
 
 # Convert the list of parser instructions into a Nim finite state machine
 
-proc genCode*(program: Program, userDataType: NimNode, userDataId: NimNode): NimNode =
+proc genCode*(program: Program, subjectType: NimNode, userDataType: NimNode, userDataId: NimNode): NimNode =
 
   var cases = quote do:
     case ip
@@ -211,6 +211,16 @@ proc genCode*(program: Program, userDataType: NimNode, userDataId: NimNode): Nim
         quote do:
           trace ms, `iname`, `opName`, s, "\"" & escapeChar(`ch`) & "\""
           if si < s.len and s[si] == `ch`.char:
+            inc si
+            ip = `ipNext`
+          else:
+            ip = `ipFail`
+
+      of opToken:
+        let tok = newLit(i.token)
+        quote do:
+          trace ms, `iname`, `opName`, s, " [" & `tok` & "]"
+          if si < s.len and $s[si] == `tok`:
             inc si
             ip = `ipNext`
           else:
@@ -401,7 +411,7 @@ proc genCode*(program: Program, userDataType: NimNode, userDataId: NimNode): Nim
 
   result = getAst skel(cases, program.patt.high, ident "ms", ident "s", ident "capture",
                        program.listing,
-                       userDataType, userDataId)
+                       subjectType, userDataType, userDataId)
 
   when npegExpand:
     echo result.repr

@@ -53,11 +53,12 @@ type
     key*: string
     val*: string
 
-  Subject* = openArray[char]
+  Subject*[T] = openArray[T]
 
   Opcode* = enum
     opChr,          # Matching: Literal character
     opSet,          # Matching: Character set and/or range
+    opToken,        # Matching: Token
     opAny,          # Matching: Any character
     opNop,          # Matching: Always matches, consumes nothing
     opSpan          # Matching: Match a sequence of 0 or more character sets
@@ -85,6 +86,8 @@ type
         siOffset*: int
       of opChr:
         ch*: char
+      of opToken:
+        token*: string
       of opCall, opJump:
         callLabel*: string
         callOffset*: int
@@ -193,7 +196,7 @@ template krak*(msg: string) =
 # Misc helper functions
 #
 
-proc subStrCmp*(s: Subject, slen: int, si: int, s2: string): bool =
+proc subStrCmp*[S](s: openArray[S], slen: int, si: int, s2: string): bool =
   if si > slen - s2.len:
     return false
   for i in 0..<s2.len:
@@ -202,7 +205,7 @@ proc subStrCmp*(s: Subject, slen: int, si: int, s2: string): bool =
   return true
 
 
-proc subIStrCmp*(s: Subject, slen: int, si: int, s2: string): bool =
+proc subIStrCmp*[S](s: openArray[S], slen: int, si: int, s2: string): bool =
   if si > slen - s2.len:
     return false
   for i in 0..<s2.len:
@@ -266,6 +269,8 @@ proc escapeChar*(c: char): string =
   else:
     result = "\\x" & tohex(c.int, 2).toLowerAscii
 
+proc escapeChar*[S](c: S): string = $c & " "
+
 proc dumpSet*(cs: CharSet): string =
   result.add "{"
   var c = 0
@@ -284,7 +289,7 @@ proc dumpSet*(cs: CharSet): string =
 # Create a friendly version of the given string, escaping not-printables
 # and no longer then `l`
 
-proc dumpString*(s: Subject, o:int=0, l:int=1024): string =
+proc dumpString*[S](s: openArray[S], o:int=0, l:int=1024): string =
   var i = o
   while i < s.len:
     let a = escapeChar s[i]
@@ -326,7 +331,7 @@ proc `$`*(program: Program): string =
     result.add align($ip, 4) & ": " & `$`(i, ip) & "\n"
 
 
-proc slice*(s: Subject, iFrom, iTo: int): string =
+proc slice*[S](s: openArray[S], iFrom, iTo: int): string =
   let len = iTo - iFrom
   result.setLen(len)
   for i in 0..<len:

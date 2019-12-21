@@ -163,6 +163,9 @@ proc parsePatt*(name: string, nn: NimNode, grammar: Grammar, dot: Dot = nil): Pa
           of "E": result = newErrorPatt(n[1].strval)
           else: krak n, "unhandled string prefix"
 
+      of nnkBracket:
+        result = newPattToken(n[0].strVal)
+
       else:
         echo n.astGenRepr
         krak n, "syntax error"

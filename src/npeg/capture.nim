@@ -23,7 +23,7 @@ type
 # Convert all closed CapFrames on the capture stack to a list of Captures, all
 # consumed frames are removed from the CapStack
 
-proc fixCaptures*(s: Subject, capStack: var Stack[CapFrame], fm: FixMethod): Captures =
+proc fixCaptures*[S](s: openArray[S], capStack: var Stack[CapFrame], fm: FixMethod): Captures =
 
   assert capStack.top > 0
   assert capStack.peek.cft == cftCLose
