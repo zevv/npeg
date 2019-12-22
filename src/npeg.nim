@@ -66,10 +66,10 @@ export NPegException, Parser, ASTNode, MatchResult, contains, items, `[]`
 
 # Create a parser for a PEG grammar
 
-proc pegAux(name: string, userDataType: NimNode, userDataId: string, n: NimNode): NimNode =
+proc pegAux(name: string, userDataType, userDataId: NimNode, n: NimNode): NimNode =
   var dot = newDot(name)
   var grammar = parseGrammar(n, dot)
-  let code = grammar.link(name, dot).genCode(userDataType, ident(userDataId))
+  let code = grammar.link(name, dot).genCode(userDataType, userDataId)
   dot.dump()
   code
 
@@ -77,9 +77,7 @@ macro peg*(name: untyped, n: untyped): untyped =
   ## Construct a parser from the given PEG grammar. `name` is the initial
   ## grammar rule where parsing starts. This macro returns a `Parser` type
   ## which can later be used for matching subjects with the `match()` proc
-  let userDataType = bindSym("bool")
-  pegAux(name.strVal, userDataType, "userdata", n)
-
+  pegAux name.strVal, ident "bool", ident "userdata", n
 
 macro peg*(name: untyped, userData: untyped, n: untyped): untyped =
   ## Construct a typed parser from the given PEG grammar. `name` is the initial
@@ -90,8 +88,7 @@ macro peg*(name: untyped, userData: untyped, n: untyped): untyped =
   ## This macro returns a `Parser` type which can later be used for matching
   ## subjects with the `match()` proc
   expectKind(userData, nnkExprColonExpr)
-  pegAux name.strVal, userData[1], userData[0].strVal, n
-
+  pegAux name.strVal, userData[1], userData[0], n
 
 template patt*(n: untyped): untyped =
   ## Construct a parser from a single PEG rule. This is similar to the regular
