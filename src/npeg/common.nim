@@ -38,17 +38,8 @@ type
   
   CapKind* = enum
     ckStr,          # Plain string capture
-    ckJString,      # JSON string capture
-    ckJBool,        # JSON Bool capture
-    ckJInt,         # JSON Int capture
-    ckJFloat,       # JSON Float capture
-    ckJArray,       # JSON Array
-    ckJObject,      # JSON Object
-    ckJFieldFixed,  # JSON Object field with fixed tag
-    ckJFieldDynamic,# JSON Object field with dynamic tag
     ckAction,       # Action capture, executes Nim code at match time
     ckRef           # Reference
-    ckAST,          # Abstract syntax tree capture
     ckClose,        # Closes capture
 
   CapFrame* = object

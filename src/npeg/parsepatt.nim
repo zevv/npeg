@@ -91,18 +91,9 @@ proc parsePatt*(name: string, nn: NimNode, grammar: Grammar, dot: Dot = nil): Pa
           result = choice(n[1..^1].map(aux))
         elif n.len == 2:
           case name
-            of "Js": result = newPatt(aux n[1], ckJString)
-            of "Ji": result = newPatt(aux n[1], ckJInt)
-            of "Jb": result = newPatt(aux n[1], ckJBool)
-            of "Jf": result = newPatt(aux n[1], ckJFloat)
-            of "Ja": result = newPatt(aux n[1], ckJArray)
-            of "Jo": result = newPatt(aux n[1], ckJObject)
-            of "Jt": result = newPatt(aux n[1], ckJFieldDynamic)
             of "R": result = newBackrefPatt(n[1].strVal)
         elif n.len == 3:
           case name
-            of "Jf": result = newPatt(aux n[2], ckJFieldFixed, n[1].strVal)
-            of "A": result = newPatt(aux n[2], ckAST, n[1].strVal)
             of "R": result = newPatt(aux n[2], ckRef, n[1].strVal)
         if result.len == 0:
           krak n, "Unknown template or capture '" & name & "'"
