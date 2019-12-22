@@ -37,19 +37,20 @@ type
     fn*: proc(ms: var MatchState, s: Subject, userdata: var T): MatchResult
 
 
-# This macro translates `$1`.. into `capture[1]`.. for use in code block
-# captures.  The source nimnode lineinfo is recursively copied to the newly
-# genreated node to make sure "Capture out of range" exceptions are properly
-# traced.
+# This macro translates `$1`.. into `capture[1].s`.. and `@1` into `capture[1].si` 
+# for use in code block captures. The source nimnode lineinfo is recursively
+# copied to the newly genreated node to make sure "Capture out of range"
+# exceptions are properly traced.
 
-proc mkDollarCaptures(n: NimNode): NimNode =
-  if n.kind == nnkPrefix and
-       n[0].kind == nnkIdent and n[0].eqIdent("$") and
-       n[1].kind == nnkIntLit:
-    result = newDotExpr(nnkBracketExpr.newTree(ident("capture"), n[1]), ident("s"))
-    proc cli(n2: NimNode) =
-      n2.copyLineInfo(n)
-      for nc in n2: cli(nc)
+proc rewriteCodeBlock(n: NimNode): NimNode =
+  proc cli(n2: NimNode) =
+    n2.copyLineInfo(n)
+    for nc in n2: cli(nc)
+  if n.kind == nnkPrefix and n[0].kind == nnkIdent and n[1].kind == nnkIntLit:
+    if n[0].eqIdent("$"):
+      result = newDotExpr(nnkBracketExpr.newTree(ident("capture"), n[1]), ident("s"))
+    elif n[0].eqIdent("@"):
+      result = newDotExpr(nnkBracketExpr.newTree(ident("capture"), n[1]), ident("si"))
     cli(result)
   elif n.kind == nnkNilLit:
     result = quote do:
@@ -57,7 +58,7 @@ proc mkDollarCaptures(n: NimNode): NimNode =
   else:
     result = copyNimNode(n)
     for nc in n:
-      result.add mkDollarCaptures(nc)
+      result.add rewriteCodeBlock(nc)
 
 
 proc initMatchState*(): MatchState =
@@ -278,7 +279,7 @@ proc genCode*(program: Program, userDataType: NimNode, userDataId: NimNode): Nim
 
         case i.capKind:
           of ckAction:
-            let code = mkDollarCaptures(i.capAction)
+            let code = rewriteCodeBlock(i.capAction)
             quote do:
               trace ms, `iname`, `opName`, s, "ckAction -> " & $si
               push(ms.capStack, CapFrame(cft: cftClose, si: si, ck: `ck`))

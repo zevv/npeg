@@ -16,12 +16,11 @@ suite "captures":
     doAssert     patt(>(>1 * >1)).match("ab").captures == @["ab", "a", "b"]
 
   test "code block captures":
-    var a: string
     let p = peg "foo":
       foo <- >1:
-        a = $1
+        doAssert $1 == "a"
+        doAssert @1 == 0
     doAssert p.match("a").ok
-    doassert a == "a"
 
   test "code block captures 2":
     let p = peg("foo", v: string):
@@ -36,6 +35,13 @@ suite "captures":
         a = $1
     doAssert p.match("a").ok
     doassert a == "a"
+  
+  test "code block captures 4":
+    let p = peg "foo":
+      foo <- +Digit * >1:
+        doAssert $1 == "a"
+        doAssert @1 == 4
+    doAssert p.match("1234a").ok
 
   test "code block captures with typed parser":
 
