@@ -1,4 +1,10 @@
 
+master
+======
+
+- Dropped Json and AST captures - no complains heard since deprecation, and it
+  simplifies the code base to aid new features.
+
 0.21.3 - 2019-12-06
 ===================
 
