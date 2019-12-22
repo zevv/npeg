@@ -164,7 +164,7 @@ proc parsePatt*(name: string, nn: NimNode, grammar: Grammar, dot: Dot = nil): Pa
           else: krak n, "unhandled string prefix"
 
       of nnkBracket:
-        result.add newPatt(1)
+        result.add newTokenPatt n[0]
 
       else:
         echo n.astGenRepr

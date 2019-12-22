@@ -33,8 +33,8 @@ type
     backStack*: Stack[BackFrame]
     precStack*: Stack[PrecFrame]
 
-  Parser*[T] = object
-    fn*: proc(ms: var MatchState, s: Subject, userdata: var T): MatchResult
+  Parser*[S, T] = object
+    fn*: proc(ms: var MatchState, s: openArray[S], userdata: var T): MatchResult
 
 
 # This macro translates `$1`.. into `capture[1].s`.. and `@1` into `capture[1].si` 
@@ -143,6 +143,16 @@ proc genCasesCode*(program: Program, userDataType: NimNode, userDataId: NimNode,
         quote do:
           trace `ms`, `iname`, `opName`, `s`, "\"" & escapeChar(`ch`) & "\""
           if `si` < `s`.len and `s`[`si`] == `ch`.char:
+            inc `si`
+            `ip` = `ipNext`
+          else:
+            `ip` = `ipFail`
+
+      of opToken:
+        let token = i.token
+        quote do:
+          trace `ms`, `iname`, `opName`, `s`, $`token`
+          if `si` < `s`.len and `s`[`si`] == `token`.int:
             inc `si`
             `ip` = `ipNext`
           else:
@@ -335,30 +345,30 @@ proc genCasesCode*(program: Program, userDataType: NimNode, userDataId: NimNode,
 # Generate code for tracing the parser. An empty stub is generated if tracing
 # is disabled
 
-proc genTraceCode*(program: Program, userDataType: NimNode, userDataId: NimNode, ms, s, si, simax, ip: NimNode): NimNode =
+proc genTraceCode*[S](program: Program, userDataType: NimNode, userDataId: NimNode, ms, s, si, simax, ip: NimNode): NimNode =
   
   when npegTrace:
     result = quote do:
-      proc doTrace(`ms`: var MatchState, iname, opname: string, `s`: Subject, msg: string) =
+      proc doTrace(`ms`: var MatchState, iname, opname: string, `s`: openArray[S], msg: string) =
           echo align(if `ip` >= 0: $`ip` else: "", 3) &
             "|" & align($(peek(`ms`.precStack)), 3) &
             "|" & align($`si`, 3) &
-            "|" & alignLeft(dumpString(`s`, `si`, 24), 24) &
+            "|" & alignLeft(dumpSubject(`s`, `si`, 24), 24) &
             "|" & alignLeft(iname, 15) &
             "|" & alignLeft(opname & " " & msg, 40) &
             "|" & repeat("*", `ms`.backStack.top)
 
-      template trace(`ms`: var MatchState, iname, opname: string, `s`: Subject, msg = "") =
+      template trace(`ms`: var MatchState, iname, opname: string, `s`: openArray[S], msg = "") =
         doTrace(`ms`, iname, opname, `s`, msg)
 
   else:
     result = quote do:
-      template trace(`ms`: var MatchState, iname, opname: string, `s`: Subject, msg = "") =
+      template trace(`ms`: var MatchState, iname, opname: string, `s`: openArray[S], msg = "") =
         discard
 
 # Convert the list of parser instructions into a Nim finite state machine
 
-proc genCode*(program: Program, userDataType: NimNode, userDataId: NimNode): NimNode =
+proc genCode*[S](program: Program, userDataType: NimNode, userDataId: NimNode): NimNode =
 
   let
     count = program.patt.high
@@ -370,7 +380,7 @@ proc genCode*(program: Program, userDataType: NimNode, userDataId: NimNode): Nim
     simax = ident "simax" & suffix
 
     casesCode = genCasesCode(program, userdataType, userDataId, ms, s, si, simax, ip)
-    traceCode = genTraceCode(program, userdataType, userDataId, ms, s, si, simax, ip)
+    traceCode = genTraceCode[S](program, userdataType, userDataId, ms, s, si, simax, ip)
 
   # Generate the parser main loop. The .computedGoto.
   # pragma will generate code using C computed gotos, which will get highly
@@ -390,7 +400,7 @@ proc genCode*(program: Program, userDataType: NimNode, userDataId: NimNode): Nim
 
   result = quote do:
 
-    proc fn(`ms`: var MatchState, `s`: Subject, `userDataId`: var `userDataType`): MatchResult {.gensym.} =
+    proc fn(`ms`: var MatchState, `s`: openArray[S], `userDataId`: var `userDataType`): MatchResult {.gensym.} =
 
       # Create local instances of performance-critical MatchState vars, this saves a
       # dereference on each access
@@ -418,7 +428,7 @@ proc genCode*(program: Program, userDataType: NimNode, userDataId: NimNode): Nim
       if result.ok and `ms`.capStack.top > 0:
         result.cs = fixCaptures(`s`, `ms`.capStack, FixAll)
 
-    Parser[`userDataType`](fn: fn)
+    Parser[S,`userDataType`](fn: fn)
 
   when npegExpand:
     echo result.repr

@@ -51,7 +51,7 @@ proc matchesEmpty(patt: Patt): bool =
       of opJump: ip += i.callOffset
       of opCapOpen, opCapClose, opNop, opSpan, opPrecPush, opPrecPop: inc ip
       of opErr, opReturn, opCall: return false
-      of opAny, opChr, opSet, opBackRef, opFail:
+      of opAny, opChr, opToken, opSet, opBackRef, opFail:
         if i.failOffset != 0:
           ip += i.failOffset
         elif backStack.top > 0:
@@ -59,13 +59,6 @@ proc matchesEmpty(patt: Patt): bool =
         else:
           return false
   return true
-
-
-### Atoms
-
-proc newPatt*(s: string): Patt =
-  for ch in s:
-    result.add Inst(op: opChr, ch: ch)
 
 
 # Calculate how far captures or choices can be shifted into this pattern
@@ -80,6 +73,15 @@ proc canShift(p: Patt, enable: static[bool]): (int, int) =
       result = (1, 1)
     else:
       discard
+
+### Atoms
+
+proc newPatt*(s: string): Patt =
+  for ch in s:
+    result.add Inst(op: opChr, ch: ch)
+
+proc newTokenPatt*(n: NimNode): Patt =
+  result.add Inst(op: opToken, token: n)
 
 proc newPatt*(p: Patt, ck: CapKind, name = ""): Patt =
   let (siShift, ipShift) = p.canShift(npegOptCapShift)

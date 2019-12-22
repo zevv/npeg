@@ -53,10 +53,9 @@ type
     key*: string
     val*: string
 
-  Subject* = openArray[char]
-
   Opcode* = enum
     opChr,          # Matching: Literal character
+    opToken,        # Matching: Token
     opSet,          # Matching: Character set and/or range
     opAny,          # Matching: Any character
     opNop,          # Matching: Always matches, consumes nothing
@@ -85,6 +84,8 @@ type
         siOffset*: int
       of opChr:
         ch*: char
+      of opToken:
+        token*: NimNode
       of opCall, opJump:
         callLabel*: string
         callOffset*: int
@@ -193,7 +194,7 @@ template krak*(msg: string) =
 # Misc helper functions
 #
 
-proc subStrCmp*(s: Subject, slen: int, si: int, s2: string): bool =
+proc subStrCmp*(s: openArray[char], slen: int, si: int, s2: string): bool =
   if si > slen - s2.len:
     return false
   for i in 0..<s2.len:
@@ -202,7 +203,7 @@ proc subStrCmp*(s: Subject, slen: int, si: int, s2: string): bool =
   return true
 
 
-proc subIStrCmp*(s: Subject, slen: int, si: int, s2: string): bool =
+proc subIStrCmp*(s: openArray[char], slen: int, si: int, s2: string): bool =
   if si > slen - s2.len:
     return false
   for i in 0..<s2.len:
@@ -284,10 +285,13 @@ proc dumpSet*(cs: CharSet): string =
 # Create a friendly version of the given string, escaping not-printables
 # and no longer then `l`
 
-proc dumpString*(s: Subject, o:int=0, l:int=1024): string =
+proc dumpSubject*[S](s: openArray[S], o:int=0, l:int=1024): string =
   var i = o
   while i < s.len:
-    let a = escapeChar s[i]
+    when S is string:
+      let a = escapeChar s[i]
+    else:
+      let a = $s[i]
     if result.len >= l-a.len:
       return
     result.add a
@@ -326,12 +330,17 @@ proc `$`*(program: Program): string =
     result.add align($ip, 4) & ": " & `$`(i, ip) & "\n"
 
 
-proc slice*(s: Subject, iFrom, iTo: int): string =
+proc slice*(s: openArray[char], iFrom, iTo: int): string =
   let len = iTo - iFrom
   result.setLen(len)
   for i in 0..<len:
     result[i] = s[i+iFrom]
 
+proc slice*[S](s: openArray[S], iFrom, iTo: int): seq[S] =
+  let len = iTo - iFrom
+  result.setLen(len)
+  for i in 0..<len:
+    result[i] = s[i+iFrom]
 
 proc `$`*(t: Template): string =
   return t.name & "(" & t.args.join(", ") & ") = " & t.code.repr
