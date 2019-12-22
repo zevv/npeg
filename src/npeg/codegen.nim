@@ -117,82 +117,13 @@ when npegProfile:
     echo ""
     echo "Total instructions : ", nTotal
     echo "Total fails        : ", nTotalFail
+  
+# Generate out all the case handlers for the parser program
 
-# Template for generating the parsing match proc.
-#
-# Note: Dummy 'ms', 'userdata' and 'capture' nodes are passed into this
-# template to prevent these names from getting mangled so that the code in the
-# `peg` macro can access it.  I'd love to hear if there are better solutions
-# for this.
-
-template skel(cases: untyped, count: int, ms: NimNode, s: NimNode, capture: NimNode,
-              listing: seq[string],
-              userDataType: untyped, userDataId: NimNode) =
-
-  let match = proc(ms: var MatchState, s: Subject, userDataId: var userDataType): MatchResult =
-
-    # Create local instances of performance-critical MatchState vars, this saves a
-    # dereference on each access
-
-    var
-      ip {.inject.}: range[0..count] = ms.ip
-      si {.inject.} = ms.si
-      simax {.inject.} = ms.simax
-
-    # Debug trace. Slow and expensive
-
-    proc doTrace(ms: var MatchState, iname, opname: string, s: Subject, msg: string) =
-      when npegTrace:
-        echo align(if ip >= 0: $ip else: "", 3) &
-          "|" & align($(peek(ms.precStack)), 3) &
-          "|" & align($si, 3) &
-          "|" & alignLeft(dumpString(s, si, 24), 24) &
-          "|" & alignLeft(iname, 15) &
-          "|" & alignLeft(opname & " " & msg, 40) &
-          "|" & repeat("*", ms.backStack.top)
-
-    template trace(ms: var MatchState, iname, opname: string, s: Subject, msg = "") =
-      when npegTrace:
-        doTrace(ms, iname, opname, s, msg)
-
-    # Parser main loop. `cases` will be filled in by genCode() which uses this
-    # template as the match lambda boilerplate. The .computedGoto. pragma will
-    # generate code using C computed gotos, which will get highly optmized,
-    # mostly eliminating the inner parser loop
-
-    {.push hint[XDeclaredButNotUsed]: off.}
-
-    when npegProfile:
-      profileLoop(count, cases, listing)
-    else:
-      while true:
-        {.computedGoto.}
-        cases
-
-    {.pop.}
-
-    # When the parsing machine is done, copy the local copies of the matchstate
-    # back, close the capture stack and collect all the captures in the match
-    # result
-
-    ms.ip = ip
-    ms.si = si
-    ms.simax = simax
-    result.matchLen = ms.si
-    result.matchMax = ms.simax
-    if result.ok and ms.capStack.top > 0:
-      result.cs = fixCaptures(s, ms.capStack, FixAll)
-
-  Parser[userDataType](fn: match)
-
-
-# Convert the list of parser instructions into a Nim finite state machine
-
-proc genCode*(program: Program, userDataType: NimNode, userDataId: NimNode): NimNode =
-
-  var cases = quote do:
+proc genCasesCode*(program: Program, userDataType: NimNode, userDataId: NimNode): NimNode =
+  
+  result = quote do:
     case ip
-
 
   for ipNow, i in program.patt.pairs:
 
@@ -398,13 +329,92 @@ proc genCode*(program: Program, userDataType: NimNode, userDataId: NimNode): Nim
             trace ms, "", "opFail", s, "(error)"
             break
 
-    cases.add nnkOfBranch.newTree(newLit(ipNow), call)
+    result.add nnkOfBranch.newTree(newLit(ipNow), call)
 
-  result = getAst skel(cases, program.patt.high, ident "ms", ident "s", ident "capture",
-                       program.listing,
-                       userDataType, userDataId)
+
+# Generate code for tracing the parser. An empty stub is generated if tracing
+# is disabled
+
+proc genTraceCode*(program: Program, userDataType: NimNode, userDataId: NimNode): NimNode =
+  
+  when npegTrace:
+    result = quote do:
+      proc doTrace(`ms`: var MatchState, iname, opname: string, s: Subject, msg: string) =
+          echo align(if ip >= 0: $ip else: "", 3) &
+            "|" & align($(peek(`ms`.precStack)), 3) &
+            "|" & align($si, 3) &
+            "|" & alignLeft(dumpString(s, si, 24), 24) &
+            "|" & alignLeft(iname, 15) &
+            "|" & alignLeft(opname & " " & msg, 40) &
+            "|" & repeat("*", `ms`.backStack.top)
+
+      template trace(`ms`: var MatchState, iname, opname: string, s: Subject, msg = "") =
+        doTrace(`ms`, iname, opname, `s`, msg)
+
+  else:
+    result = quote do:
+      template trace(ms: var MatchState, iname, opname: string, s: Subject, msg = "") =
+        discard
+
+# Convert the list of parser instructions into a Nim finite state machine
+
+proc genCode*(program: Program, userDataType: NimNode, userDataId: NimNode): NimNode =
+
+  let
+    count = program.patt.high
+    ms = ident "ms"
+    s = ident "s"
+    casesCode = genCasesCode(program, userdataType, userDataId)
+    traceCode = genTraceCode(program, userdataType, userDataId)
+
+  # Generate the parser main loop. The .computedGoto.
+  # pragma will generate code using C computed gotos, which will get highly
+  # optmized, mostly eliminating the inner parser loop
+
+  when npegProfile:
+    let loopCode = quote do:
+      profileLoop(`count`, casesCode, listing)
+  else:
+    let loopCode = quote do:
+      while true:
+        {.computedGoto.}
+        `casesCode`
+
+  # This is the result of genCode: a Parser object with a pointer to the
+  # generated proc below doing the matching
+
+  result = quote do:
+
+    let match = proc(`ms`: var MatchState, `s`: Subject, `userDataId`: var `userDataType`): MatchResult =
+
+      # Create local instances of performance-critical MatchState vars, this saves a
+      # dereference on each access
+
+      var
+        ip {.inject.}: range[0..`count`] = `ms`.ip
+        si {.inject.} = `ms`.si
+        simax {.inject.} = `ms`.simax
+
+      `traceCode`
+
+      {.push hint[XDeclaredButNotUsed]: off.}
+      `loopCode`
+      {.pop.}
+
+      # When the parsing machine is done, copy the local copies of the matchstate
+      # back, close the capture stack and collect all the captures in the match
+      # result
+
+      `ms`.ip = ip
+      `ms`.si = si
+      `ms`.simax = simax
+      result.matchLen = `ms`.si
+      result.matchMax = `ms`.simax
+      if result.ok and `ms`.capStack.top > 0:
+        result.cs = fixCaptures(`s`, `ms`.capStack, FixAll)
+
+    Parser[`userDataType`](fn: match)
 
   when npegExpand:
     echo result.repr
-
 
