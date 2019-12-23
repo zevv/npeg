@@ -105,7 +105,7 @@ proc wrap*(n: Node, name: string): Node =
     result.poke fgName, (i, 0, $namer[i])
 
 proc newNode(s: string, fg = fgLine): Node =
-  let rs = s.dumpString().toRunes()
+  let rs = s.dumpSubject().toRunes()
   let n = Node(w: rs.len)
   for x in 0..<rs.len:
     n.poke fg, (x, 0, $rs[x])
@@ -241,7 +241,7 @@ proc parseRailRoad*(nn: NimNode, grammar: Grammar): Node =
         result = newNode($n.intVal, fgLit)
 
       of nnkStrLit:
-        result = newNode("\"" & $n.strval.dumpString() & "\"", fgLit)
+        result = newNode("\"" & $n.strval.dumpSubject() & "\"", fgLit)
 
       of nnkCharLit:
         result = newNode("'" & $n.intVal.char & "'", fgLit)
@@ -321,6 +321,10 @@ proc parseRailRoad*(nn: NimNode, grammar: Grammar): Node =
         case n[0].strVal:
           of "i": result = newNode(n[1].strval)
           of "E": result = newNode("ERROR", fgError)
+
+      of nnkBracket:
+        result = newNode("[" & n[0].repr & "]", fgNonterm)
+
       else:
         discard
 
