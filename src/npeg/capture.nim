@@ -11,7 +11,7 @@ type
       when S is char:
         s*: string
       else:
-        s*: seq[S]
+        s*: S
     else:
       discard
     si*: int
@@ -65,7 +65,7 @@ proc fixCaptures*[S](s: openArray[S], capStack: var Stack[CapFrame[S]], fm: FixM
           else:
             c.sPushed
         else:
-          result[i2].s = s.slice(result[i2].si, c.si)
+          result[i2].s = s[result[i2].si]
       result[i2].len = result.len - i2 - 1
   assert stack.top == 0
 
