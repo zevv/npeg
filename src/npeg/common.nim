@@ -291,7 +291,7 @@ proc dumpSet*(cs: CharSet): string =
 proc dumpSubject*[S](s: openArray[S], o:int=0, l:int=1024): string =
   var i = o
   while i < s.len:
-    when S is string:
+    when S is char:
       let a = escapeChar s[i]
     else:
       let a = s[i].repr
