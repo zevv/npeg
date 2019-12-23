@@ -2,6 +2,13 @@
 master
 ======
 
+- Changed the parsing subject from `openArray[char]` to `openArray[T]` and
+  added a 'literal' atom to the grammar. This allows NPeg to parse lists of
+  any type, making it suitable for separate lexer and parser stages.
+
+- Added `@` syntactic sugar to access the match offset inside code block
+
+  captures.
 - Dropped Json and AST captures - no complains heard since deprecation, and it
   simplifies the code base to aid new features.
 
