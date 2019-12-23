@@ -694,15 +694,14 @@ until a proper API has been implemented for this.
   echo p.match("badieda")
 ```
 
-#### Generic pegs and passing state
+#### State variables
 
 Note: This is an experimental feature, the implementation or API might change
 in the future. I'm also looking for a better name for this feature.
 
-NPeg parsers can be instantiated as generics which allows passing of data of a
-specific type to the `match()` function, this value is then available inside
-code blocks as a variable. This mitigates the need for global variables for
-storing data in access captures.
+NPeg allows passing of data of a specific type to the `match()` function, this
+value is then available inside code blocks as a variable. This mitigates the
+need for global variables for storing data in access captures.
 
 The syntax for defining a generic grammar is as follows:
 
@@ -938,6 +937,27 @@ let parser = peg "line":
 echo parser.match("http://nim-lang.org:8080/one/two/three")
 echo myUri  # --> (host: "nim-lang.org", scheme: "http", path: "/one/two/three", port: 8080)
 ```
+
+
+## Advanced topics
+
+### Parsing other types then strings
+
+NPeg was originally designed to parse strings like a regular PEG engine, but
+has since evolved into a generic parser that can parse any subject of type
+`seq[T]`. This section describes how to use this feature.
+
+- The `peg()` macro must be passed an additional argument specifying the base
+  type `T` of the subject; the generated parser will then parse a subject of
+  type `seq[T]`. When not given, the default type is `char`, and the parser
+  parsers `seq[char]`, or more typically, `string`.
+
+- When matching non-strings, some of the usual atoms like strings or character
+  sets do not make sense in a grammar, instead the grammar uses literal atoms.
+  Literals can be specified in square brackets and are interpreted as any Nim
+  code: `[foo]`, `[1+1]` or `["foo"]` are all valid literals.
+
+For an example of this feature check the example in `misc/lexparse.nim`
 
 
 ## Some notes on using PEGs
