@@ -66,10 +66,10 @@ export NPegException, Parser, ASTNode, MatchResult, contains, items, `[]`
 
 # Create a parser for a PEG grammar
 
-proc pegAux[T](name: string, userDataType, userDataId: NimNode, n: NimNode): NimNode =
+proc pegAux(name: string, subjectTYpe, userDataType, userDataId, n: NimNode): NimNode =
   var dot = newDot(name)
   var grammar = parseGrammar(n, dot)
-  let code = grammar.link(name, dot).genCode[:T](userDataType, userDataId)
+  let code = grammar.link(name, dot).genCode(subjectType, userDataType, userDataId)
   dot.dump()
   code
 
@@ -77,10 +77,10 @@ macro peg*(name: untyped, n: untyped): untyped =
   ## Construct a parser from the given PEG grammar. `name` is the initial
   ## grammar rule where parsing starts. This macro returns a `Parser` type
   ## which can later be used for matching subjects with the `match()` proc
-  pegAux[char] name.strVal, ident "bool", ident "userdata", n
+  pegAux name.strVal, ident "char", ident "bool", ident "userdata", n
 
 macro peg2*(name: untyped, n: untyped): untyped =
-  pegAux[int] name.strVal, ident "bool", ident "userdata", n
+  pegAux name.strVal, ident "int", ident "bool", ident "userdata", n
 
 macro peg*(name: untyped, userData: untyped, n: untyped): untyped =
   ## Construct a typed parser from the given PEG grammar. `name` is the initial
@@ -91,11 +91,11 @@ macro peg*(name: untyped, userData: untyped, n: untyped): untyped =
   ## This macro returns a `Parser` type which can later be used for matching
   ## subjects with the `match()` proc
   expectKind(userData, nnkExprColonExpr)
-  pegAux[char] name.strVal, userData[1], userData[0], n
+  pegAux name.strVal, ident "char", userData[1], userData[0], n
 
 macro peg2*(name: untyped, userData: untyped, n: untyped): untyped =
   expectKind(userData, nnkExprColonExpr)
-  pegAux[int] name.strVal, userData[1], userData[0], n
+  pegAux name.strVal, ident "int", userData[1], userData[0], n
 
 template patt*(n: untyped): untyped =
   ## Construct a parser from a single PEG rule. This is similar to the regular
