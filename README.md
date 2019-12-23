@@ -25,6 +25,9 @@ Some NPeg highlights:
 - NPeg offers various methods for tracing, optimizing, profiling and debugging
   your parsers.
 
+- NPeg can parse sequences of any data types, also making it suitable as a
+  stage-two parser for lexed tokens.
+
 - NPeg can draw cool diagrams.
 
 ## Quickstart
