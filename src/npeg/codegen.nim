@@ -3,6 +3,9 @@ import macros
 import strutils
 import tables
 import npeg/[common,patt,stack,capture]
+when npegProfile:
+  import math
+  import times
 
 type
 
@@ -74,28 +77,26 @@ proc initMatchState*[S](): MatchState[S] =
 # This is a variant of the main 'cases' loop with extensive profileing of
 # time spent, instruction count and fail count. Slow.
 
-when npegProfile:
-  import math
-  import times
-  template profileLoop(count: static[int], cases: untyped, listing: untyped) =
+proc genProfileCode*(listing: seq[string], count: int, ms, s, si, simax, ip, cases: NimNode): NimNode =
 
-    var tInst: array[0..count, float]
-    var nInst: array[0..count, int]
-    var nFail: array[0..count, int]
+  result = quote do:
+    var tInst: array[0..`count`, float]
+    var nInst: array[0..`count`, int]
+    var nFail: array[0..`count`, int]
     var tTotal: float
     var nTotal: int
     var nTotalFail: int
 
     while true:
-      let ipProf = ip
+      let ipProf = `ip`
       let t1 = cpuTime()
 
-      cases
+      `cases`
 
       let dt = cpuTime() - t1
       nInst[ipProf] += 1
       tInst[ipProf] += dt
-      if ip == count:
+      if `ip` == `count`:
         nFail[ipProf] += 1
         nTotalFail += 1
       tTotal += dt
@@ -105,7 +106,7 @@ when npegProfile:
 
     let tMax = sqrt(max(tInst))
     if tMax > 0:
-      for i, l in listing:
+      for i, l in `listing`:
         let graph = strutils.align(repeat("#", (int)(5.0*sqrt(tInst[i])/tMax)), 5)
         let perc = formatFloat(100.0 * tInst[i] / tTotal, ffDecimal, 1)
         echo graph,
@@ -392,8 +393,7 @@ proc genCode*(program: Program, sType, uType, uId: NimNode): NimNode =
   # optmized, mostly eliminating the inner parser loop
 
   when npegProfile:
-    let loopCode = quote do:
-      profileLoop(`count`, `casesCode`, listing)
+    let loopCode = genProfileCode(program.listing, count, ms, s, si, simax, ip, casesCode)
   else:
     let loopCode = quote do:
       while true:
