@@ -45,7 +45,7 @@ type
 # copied to the newly genreated node to make sure "Capture out of range"
 # exceptions are properly traced.
 
-proc rewriteCodeBlock(n: NimNode): NimNode =
+proc doSugar(n: NimNode): NimNode =
   proc cli(n2: NimNode) =
     n2.copyLineInfo(n)
     for nc in n2: cli(nc)
@@ -61,7 +61,7 @@ proc rewriteCodeBlock(n: NimNode): NimNode =
   else:
     result = copyNimNode(n)
     for nc in n:
-      result.add rewriteCodeBlock(nc)
+      result.add doSugar(nc)
 
 
 proc initMatchState*[S](): MatchState[S] =
@@ -80,12 +80,13 @@ proc initMatchState*[S](): MatchState[S] =
 proc genProfileCode*(listing: seq[string], count: int, ms, s, si, simax, ip, cases: NimNode): NimNode =
 
   result = quote do:
-    var tInst: array[0..`count`, float]
-    var nInst: array[0..`count`, int]
-    var nFail: array[0..`count`, int]
-    var tTotal: float
-    var nTotal: int
-    var nTotalFail: int
+    var
+      tInst: array[0..`count`, float]
+      nInst: array[0..`count`, int]
+      nFail: array[0..`count`, int]
+      tTotal: float
+      nTotal: int
+      nTotalFail: int
 
     while true:
       let ipProf = `ip`
@@ -221,7 +222,7 @@ proc genCasesCode*(program: Program, sType, uType, uId: NimNode, ms, s, si, sima
 
         case i.capKind:
           of ckAction:
-            let code = rewriteCodeBlock(i.capAction)
+            let code = doSugar(i.capAction)
             quote do:
               trace `ms`, `iname`, `opName`, `s`, "ckAction -> " & $`si`
               push(`ms`.capStack, CapFrame[`sType`](cft: cftClose, si: `si`, ck: `ck`))
