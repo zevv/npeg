@@ -42,20 +42,23 @@ type
     ckRef           # Reference
     ckClose,        # Closes capture
 
-  CapFrame* = object
+  CapFrame*[S] = object
     cft*: CapFrameType # Capture frame type
     name*: string      # Capture name
     si*: int           # Subject index
     ck*: CapKind       # Capture kind
-    sPushed*: string   # Pushed capture, overrides subject slice
+    when S is char:
+      sPushed*: string # Pushed capture, overrides subject slice
+    else:
+      sPushed*: seq[S] # Pushed capture, overrides subject slice
 
   Ref* = object
     key*: string
     val*: string
 
   Opcode* = enum
-    opChr,          # Matching: Literal character
-    opToken,        # Matching: Token
+    opChr,          # Matching: Character
+    opLit,          # Matching: Literal
     opSet,          # Matching: Character set and/or range
     opAny,          # Matching: Any character
     opNop,          # Matching: Always matches, consumes nothing
@@ -84,8 +87,8 @@ type
         siOffset*: int
       of opChr:
         ch*: char
-      of opToken:
-        token*: NimNode
+      of opLit:
+        lit*: NimNode
       of opCall, opJump:
         callLabel*: string
         callOffset*: int
@@ -291,7 +294,7 @@ proc dumpSubject*[S](s: openArray[S], o:int=0, l:int=1024): string =
     when S is string:
       let a = escapeChar s[i]
     else:
-      let a = $s[i]
+      let a = s[i].repr
     if result.len >= l-a.len:
       return
     result.add a

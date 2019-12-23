@@ -5,18 +5,20 @@ import npeg/[stack,common]
 
 type
 
-  Capture* = ref object
+  Capture*[S] = ref object
     case ck: CapKind
     of ckStr, ckRef, ckAction:
-      s*: string
-      t*: seq[int]
+      when S is char:
+        s*: string
+      else:
+        s*: seq[S]
     else:
       discard
     si*: int
     name: string
     len: int
 
-  Captures* = seq[Capture]
+  Captures*[S] = seq[Capture[S]]
 
   FixMethod* = enum
     FixAll, FixOpen
@@ -24,7 +26,7 @@ type
 # Convert all closed CapFrames on the capture stack to a list of Captures, all
 # consumed frames are removed from the CapStack
 
-proc fixCaptures*[S](s: openArray[S], capStack: var Stack[CapFrame], fm: FixMethod): Captures =
+proc fixCaptures*[S](s: openArray[S], capStack: var Stack[CapFrame[S]], fm: FixMethod): Captures[S] =
 
   assert capStack.top > 0
   assert capStack.peek.cft == cftCLose
@@ -51,7 +53,7 @@ proc fixCaptures*[S](s: openArray[S], capStack: var Stack[CapFrame], fm: FixMeth
     let c = capStack[i]
     if c.cft == cftOpen:
       stack.push result.len
-      result.add Capture(ck: c.ck, si: c.si, name: c.name)
+      result.add Capture[S](ck: c.ck, si: c.si, name: c.name)
     else:
       let i2 = stack.pop()
       assert result[i2].ck == c.ck
@@ -63,7 +65,7 @@ proc fixCaptures*[S](s: openArray[S], capStack: var Stack[CapFrame], fm: FixMeth
           else:
             c.sPushed
         else:
-          result[i2].t = s.slice(result[i2].si, c.si)
+          result[i2].s = s.slice(result[i2].si, c.si)
       result[i2].len = result.len - i2 - 1
   assert stack.top == 0
 
@@ -72,7 +74,7 @@ proc fixCaptures*[S](s: openArray[S], capStack: var Stack[CapFrame], fm: FixMeth
   capStack.top = iFrom
 
 
-proc collectCaptures*(caps: Captures): Captures =
+proc collectCaptures*[S](caps: Captures[S]): Captures[S] =
   result = caps.filterIt(it.ck == ckStr or it.ck == ckAction)
 
 
@@ -82,9 +84,9 @@ proc collectCapturesRef*(caps: Captures): Ref =
     result.val = cap.s
 
 
-proc `[]`*(cs: Captures, i: int): Capture =
-  if i >= cs.len:
-    let msg = "Capture out of range, " & $i & " is not in [0.." & $cs.high & "]"
-    raise newException(NPegException, msg)
-  cs[i]
+#proc `[]`*[S](cs: Captures[S], i: int): Capture[S] =
+#  if i >= cs.len:
+#    let msg = "Capture out of range, " & $i & " is not in [0.." & $cs.high & "]"
+#    raise newException(NPegException, msg)
+#  cs[i]
 

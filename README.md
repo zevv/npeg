@@ -578,18 +578,20 @@ type Capture = object
   si*: int        # The index of the captured string in the subject
 ```
 
-For convenience there is syntactic sugar available in the code block which
-allows to use the variables `$0` to `$9` to be used to access the captured
-strings. The `$` operator uses then usual Nim precedence, thus these variables
-might need parentheses or different ordering in some cases, for example
-`$1.parseInt` should be written as `parseInt($1)`.
+The total subject matched by the code block rule is available in `capture[0]`
+Any additional explicit `>` string captures made by the rule or any of its
+child rules will be available as `capture[1]`, `capture[2]`, ...
 
-- The total subject matched by the code block rule is available in `capture[0]`
-  or `$0`.
+For convenience there is syntactic sugar available in the code block capture
+blocks:
 
-- Any additional explicit `>` string captures made by the rule or any of
-  its child rules will be available as `capture[1]`, `capture[2]`, ... or
-  `$1`, `$2`, ...
+- The variables `$0` to `$9` are rewritten to `capture[n].s` and can be used to
+  access the captured strings. The `$` operator uses then usual Nim precedence,
+  thus these variables might need parentheses or different ordering in some
+  cases, for example `$1.parseInt` should be written as `parseInt($1)`.
+
+- The variables `@0` to `@9` are rewritten to `capture[n].si` and can be used
+  to access the offset in the subject of the matched captures.
 
 Example:
 ```nim

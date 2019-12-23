@@ -79,23 +79,29 @@ macro peg*(name: untyped, n: untyped): untyped =
   ## which can later be used for matching subjects with the `match()` proc
   pegAux name.strVal, ident "char", ident "bool", ident "userdata", n
 
-macro peg2*(name: untyped, n: untyped): untyped =
-  pegAux name.strVal, ident "int", ident "bool", ident "userdata", n
-
 macro peg*(name: untyped, userData: untyped, n: untyped): untyped =
-  ## Construct a typed parser from the given PEG grammar. `name` is the initial
-  ## grammar rule where parsing starts. The `userdata` takes a colon expression
-  ## with an identifier and a type, this identifier is available in code block
-  ## captions during parsing.
+  ## Construct a parser from the given PEG grammar. `name` is the initial
+  ## grammar rule where parsing starts. This macro returns a `Parser` type
+  ## which can later be used for matching subjects with the `match()` proc
   ##
-  ## This macro returns a `Parser` type which can later be used for matching
-  ## subjects with the `match()` proc
+  ## The `userdata` argument is a colon expression with an identifier and a
+  ## type, this identifier is available in code block captions during parsing.
   expectKind(userData, nnkExprColonExpr)
   pegAux name.strVal, ident "char", userData[1], userData[0], n
 
-macro peg2*(name: untyped, userData: untyped, n: untyped): untyped =
+macro peg*(name: untyped, subjectType, userData, n: untyped): untyped =
+  ## Construct a parser from the given PEG grammar. `name` is the initial
+  ## grammar rule where parsing starts. This macro returns a `Parser` type
+  ## which can later be used for matching subjects with the `match()` proc
+  ##
+  ## The `subjectType` argument is a Nim type which should match the base
+  ## type of the subject passed to `match()`.
+  ##
+  ## The `userdata` argument is a colon expression with an identifier and a
+  ## type, this identifier is available in code block captions during parsing.
+  echo subjectType.astGenRepr
   expectKind(userData, nnkExprColonExpr)
-  pegAux name.strVal, ident "int", userData[1], userData[0], n
+  pegAux name.strVal, subjectType, userData[1], userData[0], n
 
 template patt*(n: untyped): untyped =
   ## Construct a parser from a single PEG rule. This is similar to the regular
@@ -121,15 +127,15 @@ macro grammar*(libNameNode: untyped, n: untyped) =
   libStore(libName, grammar)
 
 
-proc match*[S, T](p: Parser, s: openArray[S], userData: var T): MatchResult =
+proc match*[S, T](p: Parser, s: openArray[S], userData: var T): MatchResult[S] =
   ## Match a subject string with the given generic parser. The returned
   ## `MatchResult` contains the result of the match and can be used to query
   ## any captures.
-  var ms = initMatchState()
+  var ms = initMatchState[S]()
   p.fn(ms, s, userData)
 
 
-proc match*[S](p: Parser, s: openArray[S]): MatchResult =
+proc match*[S](p: Parser, s: openArray[S]): MatchResult[S] =
   ## Match a subject string with the given parser. The returned `MatchResult`
   ## contains the result of the match and can be used to query any captures.
   var userData: bool # dummy if user does not provide a type
@@ -140,14 +146,14 @@ proc match*[S](p: Parser, s: openArray[S]): MatchResult =
 
 when defined(windows) or defined(posix):
   import memfiles
-  proc matchFile*[T](p: Parser, fname: string, userData: var T): MatchResult =
+  proc matchFile*[T](p: Parser, fname: string, userData: var T): MatchResult[char] =
     var m = memfiles.open(fname)
     var a: ptr UncheckedArray[char] = cast[ptr UncheckedArray[char]](m.mem)
-    var ms = initMatchState()
+    var ms = initMatchState[char]()
     result = p.fn(ms, toOpenArray(a, 0, m.size-1), userData)
     m.close()
   
-  proc matchFile*(p: Parser, fname: string): MatchResult =
+  proc matchFile*(p: Parser, fname: string): MatchResult[char] =
     var userData: bool # dummy if user does not provide a type
     matchFile(p, fname, userData)
 

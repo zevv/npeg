@@ -17,24 +17,24 @@ type
 
   PrecFrame = int
 
-  MatchResult* = object
+  MatchResult*[S] = object
     ok*: bool
     matchLen*: int
     matchMax*: int
-    cs*: Captures
+    cs*: Captures[S]
 
-  MatchState* = object
+  MatchState*[S] = object
     ip*: int
     si*: int
     simax*: int
     refs*: Table[string, string]
     retStack*: Stack[RetFrame]
-    capStack*: Stack[CapFrame]
+    capStack*: Stack[CapFrame[S]]
     backStack*: Stack[BackFrame]
     precStack*: Stack[PrecFrame]
 
   Parser*[S, T] = object
-    fn*: proc(ms: var MatchState, s: openArray[S], userdata: var T): MatchResult
+    fn*: proc(ms: var MatchState[S], s: openArray[S], userdata: var T): MatchResult[S]
 
 
 # This macro translates `$1`.. into `capture[1].s`.. and `@1` into `capture[1].si` 
@@ -61,10 +61,10 @@ proc rewriteCodeBlock(n: NimNode): NimNode =
       result.add rewriteCodeBlock(nc)
 
 
-proc initMatchState*(): MatchState =
-  result = MatchState(
+proc initMatchState*[S](): MatchState[S] =
+  result = MatchState[S](
     retStack: initStack[RetFrame]("return", 8, npegRetStackSize),
-    capStack: initStack[CapFrame]("capture", 8),
+    capStack: initStack[CapFrame[S]]("capture", 8),
     backStack: initStack[BackFrame]("backtrace", 8, npegBackStackSize),
     precStack: initStack[PrecFrame]("precedence", 8, 16),
   )
@@ -120,7 +120,7 @@ when npegProfile:
   
 # Generate out all the case handlers for the parser program
 
-proc genCasesCode*(program: Program, userDataType: NimNode, userDataId: NimNode, ms, s, si, simax, ip: NimNode): NimNode =
+proc genCasesCode*(program: Program, subjectType, userDataType, userDataId: NimNode, ms, s, si, simax, ip: NimNode): NimNode =
   
   result = quote do:
     case `ip`
@@ -148,11 +148,11 @@ proc genCasesCode*(program: Program, userDataType: NimNode, userDataId: NimNode,
           else:
             `ip` = `ipFail`
 
-      of opToken:
-        let token = i.token
+      of opLit:
+        let lit = i.lit
         quote do:
-          trace `ms`, `iname`, `opName`, `s`, $`token`
-          if `si` < `s`.len and `s`[`si`] == `token`.int:
+          trace `ms`, `iname`, `opName`, `s`, `lit`.repr
+          if `si` < `s`.len and `s`[`si`] == `lit`:
             inc `si`
             `ip` = `ipNext`
           else:
@@ -212,7 +212,7 @@ proc genCasesCode*(program: Program, userDataType: NimNode, userDataId: NimNode,
         let capSiOffset = newLit(i.capSiOffset)
         quote do:
           trace `ms`, `iname`, `opName`, `s`, $`capKind` & " -> " & $`si`
-          push(`ms`.capStack, CapFrame(cft: cftOpen, si: `si`+`capSiOffset`, ck: `capKind`, name: `capName`))
+          push(`ms`.capStack, CapFrame[`subjectType`](cft: cftOpen, si: `si`+`capSiOffset`, ck: `capKind`, name: `capName`))
           `ip` = `ipNext`
 
       of opCapClose:
@@ -223,14 +223,14 @@ proc genCasesCode*(program: Program, userDataType: NimNode, userDataId: NimNode,
             let code = rewriteCodeBlock(i.capAction)
             quote do:
               trace `ms`, `iname`, `opName`, `s`, "ckAction -> " & $`si`
-              push(`ms`.capStack, CapFrame(cft: cftClose, si: `si`, ck: `ck`))
-              let capture {.inject.} = collectCaptures(fixCaptures(`s`, `ms`.capStack, FixOpen))
+              push(`ms`.capStack, CapFrame[`subjectType`](cft: cftClose, si: `si`, ck: `ck`))
+              let capture {.inject.} = collectCaptures(fixCaptures[`subjectType`](`s`, `ms`.capStack, FixOpen))
               var ok = true
               template validate(o: bool) = ok = o
               template fail() = ok = false
               template push(`s`: string) =
-                push(`ms`.capStack, CapFrame(cft: cftOpen, ck: ckStr))
-                push(`ms`.capStack, CapFrame(cft: cftClose, ck: ckStr, sPushed: `s`))
+                push(`ms`.capStack, CapFrame[`subjectType`](cft: cftOpen, ck: ckStr))
+                push(`ms`.capStack, CapFrame[`subjectType`](cft: cftClose, ck: ckStr, sPushed: `s`))
               block:
                 `code`
               if ok:
@@ -241,15 +241,15 @@ proc genCasesCode*(program: Program, userDataType: NimNode, userDataId: NimNode,
           of ckRef:
             quote do:
               trace `ms`, `iname`, `opName`, `s`, "ckRef -> " & $`si`
-              push(`ms`.capStack, CapFrame(cft: cftClose, si: `si`, ck: `ck`))
-              let r = collectCapturesRef(fixCaptures(`s`, `ms`.capStack, FixOpen))
+              push(`ms`.capStack, CapFrame[`subjectType`](cft: cftClose, si: `si`, ck: `ck`))
+              let r = collectCapturesRef(fixCaptures[`subjectType`](`s`, `ms`.capStack, FixOpen))
               `ms`.refs[r.key] = r.val
               `ip` = `ipNext`
 
           else:
             quote do:
               trace `ms`, `iname`, `opName`, `s`, $`ck` & " -> " & $`si`
-              push(`ms`.capStack, CapFrame(cft: cftClose, si: `si`, ck: `ck`))
+              push(`ms`.capStack, CapFrame[`subjectType`](cft: cftClose, si: `si`, ck: `ck`))
               `ip` = `ipNext`
 
       of opBackRef:
@@ -379,7 +379,7 @@ proc genCode*(program: Program, subjectType, userDataType, userDataId: NimNode):
     ip = ident "ip" & suffix
     simax = ident "simax" & suffix
 
-    casesCode = genCasesCode(program, userdataType, userDataId, ms, s, si, simax, ip)
+    casesCode = genCasesCode(program, subjectType, userdataType, userDataId, ms, s, si, simax, ip)
     traceCode = genTraceCode(program, subjectType, userdataType, userDataId, ms, s, si, simax, ip)
 
   # Generate the parser main loop. The .computedGoto.

@@ -51,7 +51,7 @@ proc matchesEmpty(patt: Patt): bool =
       of opJump: ip += i.callOffset
       of opCapOpen, opCapClose, opNop, opSpan, opPrecPush, opPrecPop: inc ip
       of opErr, opReturn, opCall: return false
-      of opAny, opChr, opToken, opSet, opBackRef, opFail:
+      of opAny, opChr, opLit, opSet, opBackRef, opFail:
         if i.failOffset != 0:
           ip += i.failOffset
         elif backStack.top > 0:
@@ -80,8 +80,8 @@ proc newPatt*(s: string): Patt =
   for ch in s:
     result.add Inst(op: opChr, ch: ch)
 
-proc newTokenPatt*(n: NimNode): Patt =
-  result.add Inst(op: opToken, token: n)
+proc newLitPatt*(n: NimNode): Patt =
+  result.add Inst(op: opLit, lit: n)
 
 proc newPatt*(p: Patt, ck: CapKind, name = ""): Patt =
   let (siShift, ipShift) = p.canShift(npegOptCapShift)
