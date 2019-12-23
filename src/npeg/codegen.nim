@@ -34,7 +34,7 @@ type
     precStack*: Stack[PrecFrame]
 
   Parser*[S, T] = object
-    fn*: proc(ms: var MatchState[S], s: openArray[S], userdata: var T): MatchResult[S]
+    fn*: proc(ms: var MatchState[S], s: openArray[S], u: var T): MatchResult[S]
 
 
 # This macro translates `$1`.. into `capture[1].s`.. and `@1` into `capture[1].si` 
@@ -120,7 +120,7 @@ when npegProfile:
   
 # Generate out all the case handlers for the parser program
 
-proc genCasesCode*(program: Program, subjectType, userDataType, userDataId: NimNode, ms, s, si, simax, ip: NimNode): NimNode =
+proc genCasesCode*(program: Program, sType, uType, uId: NimNode, ms, s, si, simax, ip: NimNode): NimNode =
   
   result = quote do:
     case `ip`
@@ -212,7 +212,7 @@ proc genCasesCode*(program: Program, subjectType, userDataType, userDataId: NimN
         let capSiOffset = newLit(i.capSiOffset)
         quote do:
           trace `ms`, `iname`, `opName`, `s`, $`capKind` & " -> " & $`si`
-          push(`ms`.capStack, CapFrame[`subjectType`](cft: cftOpen, si: `si`+`capSiOffset`, ck: `capKind`, name: `capName`))
+          push(`ms`.capStack, CapFrame[`sType`](cft: cftOpen, si: `si`+`capSiOffset`, ck: `capKind`, name: `capName`))
           `ip` = `ipNext`
 
       of opCapClose:
@@ -223,14 +223,14 @@ proc genCasesCode*(program: Program, subjectType, userDataType, userDataId: NimN
             let code = rewriteCodeBlock(i.capAction)
             quote do:
               trace `ms`, `iname`, `opName`, `s`, "ckAction -> " & $`si`
-              push(`ms`.capStack, CapFrame[`subjectType`](cft: cftClose, si: `si`, ck: `ck`))
-              let capture {.inject.} = collectCaptures(fixCaptures[`subjectType`](`s`, `ms`.capStack, FixOpen))
+              push(`ms`.capStack, CapFrame[`sType`](cft: cftClose, si: `si`, ck: `ck`))
+              let capture {.inject.} = collectCaptures(fixCaptures[`sType`](`s`, `ms`.capStack, FixOpen))
               var ok = true
               template validate(o: bool) = ok = o
               template fail() = ok = false
               template push(`s`: string) =
-                push(`ms`.capStack, CapFrame[`subjectType`](cft: cftOpen, ck: ckStr))
-                push(`ms`.capStack, CapFrame[`subjectType`](cft: cftClose, ck: ckStr, sPushed: `s`))
+                push(`ms`.capStack, CapFrame[`sType`](cft: cftOpen, ck: ckStr))
+                push(`ms`.capStack, CapFrame[`sType`](cft: cftClose, ck: ckStr, sPushed: `s`))
               block:
                 `code`
               if ok:
@@ -241,15 +241,15 @@ proc genCasesCode*(program: Program, subjectType, userDataType, userDataId: NimN
           of ckRef:
             quote do:
               trace `ms`, `iname`, `opName`, `s`, "ckRef -> " & $`si`
-              push(`ms`.capStack, CapFrame[`subjectType`](cft: cftClose, si: `si`, ck: `ck`))
-              let r = collectCapturesRef(fixCaptures[`subjectType`](`s`, `ms`.capStack, FixOpen))
+              push(`ms`.capStack, CapFrame[`sType`](cft: cftClose, si: `si`, ck: `ck`))
+              let r = collectCapturesRef(fixCaptures[`sType`](`s`, `ms`.capStack, FixOpen))
               `ms`.refs[r.key] = r.val
               `ip` = `ipNext`
 
           else:
             quote do:
               trace `ms`, `iname`, `opName`, `s`, $`ck` & " -> " & $`si`
-              push(`ms`.capStack, CapFrame[`subjectType`](cft: cftClose, si: `si`, ck: `ck`))
+              push(`ms`.capStack, CapFrame[`sType`](cft: cftClose, si: `si`, ck: `ck`))
               `ip` = `ipNext`
 
       of opBackRef:
@@ -345,11 +345,11 @@ proc genCasesCode*(program: Program, subjectType, userDataType, userDataId: NimN
 # Generate code for tracing the parser. An empty stub is generated if tracing
 # is disabled
 
-proc genTraceCode*(program: Program, subjectType, userDataType, userDataId, ms, s, si, simax, ip: NimNode): NimNode =
+proc genTraceCode*(program: Program, sType, uType, uId, ms, s, si, simax, ip: NimNode): NimNode =
   
   when npegTrace:
     result = quote do:
-      proc doTrace(`ms`: var MatchState, iname, opname: string, `s`: openArray[`subjectType`], msg: string) =
+      proc doTrace(`ms`: var MatchState, iname, opname: string, `s`: openArray[`sType`], msg: string) =
           echo align(if `ip` >= 0: $`ip` else: "", 3) &
             "|" & align($(peek(`ms`.precStack)), 3) &
             "|" & align($`si`, 3) &
@@ -358,17 +358,22 @@ proc genTraceCode*(program: Program, subjectType, userDataType, userDataId, ms, 
             "|" & alignLeft(opname & " " & msg, 40) &
             "|" & repeat("*", `ms`.backStack.top)
 
-      template trace(`ms`: var MatchState, iname, opname: string, `s`: openArray[`subjectType`], msg = "") =
+      template trace(`ms`: var MatchState, iname, opname: string, `s`: openArray[`sType`], msg = "") =
         doTrace(`ms`, iname, opname, `s`, msg)
 
   else:
     result = quote do:
-      template trace(`ms`: var MatchState, iname, opname: string, `s`: openArray[`subjectType`], msg = "") =
+      template trace(`ms`: var MatchState, iname, opname: string, `s`: openArray[`sType`], msg = "") =
         discard
 
 # Convert the list of parser instructions into a Nim finite state machine
+# 
+# - sType is the base type of the subject; typically `char` but can be specified
+#   to be another type by the user
+# - uType is the type of the userdata, if not used this defaults to `bool`
+# - uId is the identifier of the userdata, if not used this defaults to `userdata`
 
-proc genCode*(program: Program, subjectType, userDataType, userDataId: NimNode): NimNode =
+proc genCode*(program: Program, sType, uType, uId: NimNode): NimNode =
 
   let
     count = program.patt.high
@@ -379,8 +384,8 @@ proc genCode*(program: Program, subjectType, userDataType, userDataId: NimNode):
     ip = ident "ip" & suffix
     simax = ident "simax" & suffix
 
-    casesCode = genCasesCode(program, subjectType, userdataType, userDataId, ms, s, si, simax, ip)
-    traceCode = genTraceCode(program, subjectType, userdataType, userDataId, ms, s, si, simax, ip)
+    casesCode = genCasesCode(program, sType, uType, uId, ms, s, si, simax, ip)
+    traceCode = genTraceCode(program, sType, uType, uId, ms, s, si, simax, ip)
 
   # Generate the parser main loop. The .computedGoto.
   # pragma will generate code using C computed gotos, which will get highly
@@ -400,7 +405,7 @@ proc genCode*(program: Program, subjectType, userDataType, userDataId: NimNode):
 
   result = quote do:
 
-    proc fn(`ms`: var MatchState, `s`: openArray[`subjectType`], `userDataId`: var `userDataType`): MatchResult {.gensym.} =
+    proc fn(`ms`: var MatchState, `s`: openArray[`sType`], `uId`: var `uType`): MatchResult {.gensym.} =
 
       # Create local instances of performance-critical MatchState vars, this saves a
       # dereference on each access
@@ -428,7 +433,7 @@ proc genCode*(program: Program, subjectType, userDataType, userDataId: NimNode):
       if result.ok and `ms`.capStack.top > 0:
         result.cs = fixCaptures(`s`, `ms`.capStack, FixAll)
 
-    Parser[`subjectType`,`userDataType`](fn: fn)
+    Parser[`sType`,`uType`](fn: fn)
 
   when npegExpand:
     echo result.repr
