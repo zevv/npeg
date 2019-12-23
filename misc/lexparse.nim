@@ -47,9 +47,9 @@ let parser = peg(g, Node, st: State):
     st.stack.add Node(kind: cAddExpr, r: st.stack.pop, l: st.stack.pop)
 
 var st = State()
-assert lexer.match("1 + 2 + 3", st).ok
-assert parser.match(st.tokens, st).ok
-echo st.stack[0]
+doAssert lexer.match("1 + 2 + 3", st).ok
+doAssert parser.match(st.tokens, st).ok
+echo st.stack
 
 
 
