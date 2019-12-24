@@ -456,10 +456,13 @@ patterns.
 
 ## Precedence operators
 
-Precedence operators is an experimental feature which allows for the
-construction of "precedence climbing" or "Pratt parsers" with NPeg. The main
-use for this feature is building parsers for programming languages that follow
-the usual precedence and associativity rules of arithmetic expressions.
+Note: This is an experimental feature, the implementation or API might change
+in the future.
+
+Precedence operators allows for the construction of "precedence climbing" or
+"Pratt parsers" with NPeg. The main use for this feature is building parsers
+for programming languages that follow the usual precedence and associativity
+rules of arithmetic expressions.
 
 - Left associative precedence of `N`: `P ^ N`
 
@@ -683,9 +686,6 @@ sure yet what this should look like - If you are interested in doing this,
 contact me so we can discuss the details.
 
 #### Passing state
-
-Note: This is an experimental feature, the implementation or API might change
-in the future. I'm also looking for a better name for this feature.
 
 NPeg allows passing of data of a specific type to the `match()` function, this
 value is then available inside code blocks as a variable. This mitigates the
@@ -930,6 +930,9 @@ echo myUri  # --> (host: "nim-lang.org", scheme: "http", path: "/one/two/three",
 ## Advanced topics
 
 ### Parsing other types then strings
+
+Note: This is an experimental feature, the implementation or API might change
+in the future.
 
 NPeg was originally designed to parse strings like a regular PEG engine, but
 has since evolved into a generic parser that can parse any subject of type
