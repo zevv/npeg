@@ -936,17 +936,20 @@ in the future.
 
 NPeg was originally designed to parse strings like a regular PEG engine, but
 has since evolved into a generic parser that can parse any subject of type
-`seq[T]`. This section describes how to use this feature.
+`openArray[T]`. This section describes how to use this feature.
 
 - The `peg()` macro must be passed an additional argument specifying the base
   type `T` of the subject; the generated parser will then parse a subject of
-  type `seq[T]`. When not given, the default type is `char`, and the parser
-  parsers `seq[char]`, or more typically, `string`.
+  type `openArray[T]`. When not given, the default type is `char`, and the parser
+  parsers `openArray[char]`, or more typically, `string`.
 
 - When matching non-strings, some of the usual atoms like strings or character
   sets do not make sense in a grammar, instead the grammar uses literal atoms.
   Literals can be specified in square brackets and are interpreted as any Nim
   code: `[foo]`, `[1+1]` or `["foo"]` are all valid literals.
+
+- When matching non-strings, captures will be limited to only a single element
+  of the base type, as this makes more sense when parsing a token stream.
 
 For an example of this feature check the example in `tests/lexparse.nim` - this
 implements a classic parser with separate lexing and parsing stages.
