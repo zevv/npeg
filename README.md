@@ -39,16 +39,17 @@ place the key-value pairs into the Nim table `words`:
 ```nim
 import npeg, strutils, tables
 
-var words = initTable[string, int]()
+type Dict = Table[string, int]
 
-let parser = peg "pairs":
+let parser = peg("pairs", d: Dict):
   pairs <- pair * *(',' * pair) * !1
   word <- +Alpha
   number <- +Digit
   pair <- >word * '=' * >number:
-    words[$1] = parseInt($2)
+    d[$1] = parseInt($2)
 
-doAssert parser.match("one=1,two=2,three=3,four=4").ok
+var words: Table[string, int]
+doAssert parser.match("one=1,two=2,three=3,four=4", words).ok
 echo words
 ```
 
