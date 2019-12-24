@@ -1,4 +1,4 @@
-import npeg, strutils, sequtils
+import npeg, strutils, sequtils, unittest
 
 type
 
@@ -46,10 +46,14 @@ let parser = peg(g, Node, st: State):
   add <- [tAdd] * int:
     st.stack.add Node(kind: cAddExpr, r: st.stack.pop, l: st.stack.pop)
 
-var st = State()
-doAssert lexer.match("1 + 2 + 3", st).ok
-doAssert parser.match(st.tokens, st).ok
-echo st.stack[0]
+suite "lexer/parser":
+
+  test "run":
+
+    var st = State()
+    doAssert lexer.match("1 + 2 + 3", st).ok
+    doAssert parser.match(st.tokens, st).ok
+    doAssert $st.stack[0] == "((1 + 2) + 3)"
 
 
 

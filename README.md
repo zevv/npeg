@@ -945,7 +945,7 @@ has since evolved into a generic parser that can parse any subject of type
   Literals can be specified in square brackets and are interpreted as any Nim
   code: `[foo]`, `[1+1]` or `["foo"]` are all valid literals.
 
-For an example of this feature check the example in `misc/lexparse.nim` - this
+For an example of this feature check the example in `tests/lexparse.nim` - this
 implements a classic parser with separate lexing and parsing stages.
 
 
