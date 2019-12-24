@@ -1,3 +1,11 @@
+# NPeg
+:toc: left
+:toclevels: 4
+:icons: font
+:doctype: book
+:stylesheet: style.css
+:nofooter:
+
 ![NPeg](/doc/npeg.png)
 
 > "_Because friends don't let friends write parsers by hand_"
@@ -262,30 +270,29 @@ common atoms, corresponding to POSIX character classes:
 Atoms are the basic building blocks for a grammar, describing the parts of the
 subject that should be matched.
 
-- Integer literal: `0` / `1` / `n`
+#### Integer literal: `0` / `1` / `n`
 
-  The int literal atom `n` matches exactly n number of bytes. `0` always
-  matches, but does not consume any data.
-
-
-- Character and string literals: `'x'` / `"xyz"` / `i"xyz"`
-
-  Characters and strings are literally matched. If a string is prefixed with
-  `i`, it will be matched case insensitive.
+The int literal atom `n` matches exactly n number of bytes. `0` always
+matches, but does not consume any data.
 
 
-- Character sets: `{'x','y'}`
+#### Character and string literals: `'x'` / `"xyz"` / `i"xyz"`
 
-  Characters set notation is similar to native Nim. A set consists of zero or
-  more comma separated characters or character ranges.
+Characters and strings are literally matched. If a string is prefixed with
+`i`, it will be matched case insensitive.
 
-  ```nim
-   {'x'..'y'}    # matches any character in the range from 'x'..'y'
-   {'x','y','z'} # matches any character from the set 'x', 'y', and 'z'
-  ```
+#### Character sets: `{'x','y'}`
 
-  The set syntax `{}` is flexible and can take multiple ranges and characters
-  in one expression, for example `{'0'..'9','a'..'f','A'..'F'}`.
+Characters set notation is similar to native Nim. A set consists of zero or
+more comma separated characters or character ranges.
+
+```nim
+{'x'..'y'}    # matches any character in the range from 'x'..'y'
+{'x','y','z'} # matches any character from the set 'x', 'y', and 'z'
+```
+
+The set syntax `{}` is flexible and can take multiple ranges and characters
+in one expression, for example `{'0'..'9','a'..'f','A'..'F'}`.
 
 
 ### Operators
@@ -294,179 +301,179 @@ NPeg provides various prefix, infix and suffix operators. These operators
 combine or transform one or more patterns into expressions, building larger
 patterns.
 
-- Concatenation: `P1 * P2`
+#### Concatenation: `P1 * P2`
 
-  ```
-  o──[P1]───[P2]──o
-  ```
+```
+o──[P1]───[P2]──o
+```
 
-  The pattern `P1 * P2` returns a new pattern that matches only if first `P1`
-  matches, followed by `P2`.
+The pattern `P1 * P2` returns a new pattern that matches only if first `P1`
+matches, followed by `P2`.
 
-  For example, `"foo" * "bar"` would only match the string `"foobar"`.
-
-
-- Ordered choice: `P1 | P2`
-
-  ```
-  o─┬─[P1]─┬─o
-    ╰─[P2]─╯
-  ```
-
-  The pattern `P1 | P2` tries to first match pattern `P1`. If this succeeds,
-  matching will proceed without trying `P2`. Only if `P1` can not be matched,
-  NPeg will backtrack and try to match `P2` instead.
-
-  For example `("foo" | "bar") * "fizz"` would match both `"foofizz"` and
-  `"barfizz"`.
-
-  NPeg optimizes the `|` operator for characters and character sets: The
-  pattern `'a' | 'b' | 'c'` will be rewritten to a character set
-  `{'a','b','c'}`.
+For example, `"foo" * "bar"` would only match the string `"foobar"`.
 
 
-- Difference: `P1 - P2`
+#### Ordered choice: `P1 | P2`
 
-  The pattern `P1 - P2` matches `P1` *only* if `P2` does not match. This is
-  equivalent to `!P2 * P1`:
-  
-  ```
-     ━━━━
-  o──[P1]─»─[P2]──o
-  ```
+```
+o─┬─[P1]─┬─o
+  ╰─[P2]─╯
+```
 
-  NPeg optimizes the `-` operator for characters and character sets: The
-  pattern `{'a','b','c'} - 'b'` will be rewritten to the character set
-  `{'a','c'}`.
+The pattern `P1 | P2` tries to first match pattern `P1`. If this succeeds,
+matching will proceed without trying `P2`. Only if `P1` can not be matched,
+NPeg will backtrack and try to match `P2` instead.
 
+For example `("foo" | "bar") * "fizz"` would match both `"foofizz"` and
+`"barfizz"`.
 
-- Grouping: `(P)`
-
-  Brackets are used to group patterns similar to normal arithmetic expressions.
-
-
-- Not-predicate: `!P`
-
-  ```
-     ━━━
-  o──[P]──o
-  ```
-
-  The pattern `!P` returns a pattern that matches only if the input does not
-  match `P`.
-  In contrast to most other patterns, this pattern does not consume any input.
-
-  A common usage for this operator is the pattern `!1`, meaning "only succeed
-  if there is not a single character left to match" - which is only true for
-  the end of the string.
+NPeg optimizes the `|` operator for characters and character sets: The
+pattern `'a' | 'b' | 'c'` will be rewritten to a character set
+`{'a','b','c'}`.
 
 
-- And-predicate: `&P`
+#### Difference: `P1 - P2`
 
-  ```
-     ━━━
-     ━━━
-  o──[P]──o
-  ```
+The pattern `P1 - P2` matches `P1` *only* if `P2` does not match. This is
+equivalent to `!P2 * P1`:
 
-  The pattern `&P` matches only if the input matches `P`, but will *not*
-  consume any input. This is equivalent to `!!P`. This is denoted by a double
-  negation in the railroad diagram, which is not very pretty unfortunately.
+```
+   ━━━━
+o──[P1]─»─[P2]──o
+```
 
-- Optional: `?P`
-
-  ```
-    ╭──»──╮
-  o─┴─[P]─┴─o
-  ```
-
-  The pattern `?P` matches if `P` can be matched zero or more times, so
-  essentially succeeds if `P` either matches or not.
-
-  For example, `?"foo" * bar"` matches both `"foobar"` and `"bar"`.
+NPeg optimizes the `-` operator for characters and character sets: The
+pattern `{'a','b','c'} - 'b'` will be rewritten to the character set
+`{'a','c'}`.
 
 
-- Match zero or more times: `*P`
+#### Grouping: `(P)`
 
-  ```
-    ╭───»───╮
-  o─┴┬─[P]─┬┴─o
-     ╰──«──╯
-  ```
-
-  The pattern `*P` tries to match as many occurrences of pattern `P` as
-  possible - this operator always behaves *greedily*.
-
-  For example, `*"foo" * "bar"` matches `"bar"`, `"fooboar"`, `"foofoobar"`,
-  etc.
+Brackets are used to group patterns similar to normal arithmetic expressions.
 
 
-- Match one or more times: `+P`
+#### Not-predicate: `!P`
 
-  ```
-  o─┬─[P]─┬─o
-    ╰──«──╯
-  ```
+```
+   ━━━
+o──[P]──o
+```
 
-  The pattern `+P` matches `P` at least once, but also more times.
-  It is equivalent to the `P * *P` - this operator always behave *greedily*.
+The pattern `!P` returns a pattern that matches only if the input does not
+match `P`.
+In contrast to most other patterns, this pattern does not consume any input.
 
-
-- Search: `@P`
-
-  This operator searches for pattern `P` using an optimized implementation. It
-  is equivalent to `s <- *(1 - P) * P`, which can be read as "try to match as
-  many characters as possible not matching `P`, and then match `P`:
-
-  ```
-    ╭─────»─────╮
-    │  ━━━      │
-  o─┴┬─[P]─»─1─┬┴»─[P]──o
-     ╰────«────╯
-  ```
-
-  Note that this operator does not allow capturing the skipped data up to the
-  match; if his is required you can manually construct a grammar to do this.
+A common usage for this operator is the pattern `!1`, meaning "only succeed
+if there is not a single character left to match" - which is only true for
+the end of the string.
 
 
-- Match exactly `n` times: `P[n]`
+#### And-predicate: `&P`
 
-  The pattern `P[n]` matches `P` exactly `n` times.
+```
+   ━━━
+   ━━━
+o──[P]──o
+```
 
-  For example, `"foo"[3]` only matches the string `"foofoofoo"`:
+The pattern `&P` matches only if the input matches `P`, but will *not*
+consume any input. This is equivalent to `!!P`. This is denoted by a double
+negation in the railroad diagram, which is not very pretty unfortunately.
 
-  ```
-  o──[P]─»─[P]─»─[P]──o
-  ```
+#### Optional: `?P`
 
+```
+  ╭──»──╮
+o─┴─[P]─┴─o
+```
 
-- Match `m` to `n` times: `P[m..n]`
+The pattern `?P` matches if `P` can be matched zero or more times, so
+essentially succeeds if `P` either matches or not.
 
-  The pattern `P[m..n]` matches `P` at least `m` and at most `n` times.
-
-  For example, `"foo[1,3]"` matches `"foo"`, `"foofoo"` and `"foofoofo"`:
-
-  ```
-          ╭──»──╮ ╭──»──╮
-  o──[P]─»┴─[P]─┴»┴─[P]─┴─o
-  ```
+For example, `?"foo" * bar"` matches both `"foobar"` and `"bar"`.
 
 
-## Precedence operators
+#### Match zero or more times: `*P`
+
+```
+  ╭───»───╮
+o─┴┬─[P]─┬┴─o
+   ╰──«──╯
+```
+
+The pattern `*P` tries to match as many occurrences of pattern `P` as
+possible - this operator always behaves *greedily*.
+
+For example, `*"foo" * "bar"` matches `"bar"`, `"fooboar"`, `"foofoobar"`,
+etc.
+
+
+#### Match one or more times: `+P`
+
+```
+o─┬─[P]─┬─o
+  ╰──«──╯
+```
+
+The pattern `+P` matches `P` at least once, but also more times.
+It is equivalent to the `P * *P` - this operator always behave *greedily*.
+
+
+#### Search: `@P`
+
+This operator searches for pattern `P` using an optimized implementation. It
+is equivalent to `s <- *(1 - P) * P`, which can be read as "try to match as
+many characters as possible not matching `P`, and then match `P`:
+
+```
+  ╭─────»─────╮
+  │  ━━━      │
+o─┴┬─[P]─»─1─┬┴»─[P]──o
+   ╰────«────╯
+```
+
+Note that this operator does not allow capturing the skipped data up to the
+match; if his is required you can manually construct a grammar to do this.
+
+
+#### Match exactly `n` times: `P[n]`
+
+The pattern `P[n]` matches `P` exactly `n` times.
+
+For example, `"foo"[3]` only matches the string `"foofoofoo"`:
+
+```
+o──[P]─»─[P]─»─[P]──o
+```
+
+
+#### Match `m` to `n` times: `P[m..n]`
+
+The pattern `P[m..n]` matches `P` at least `m` and at most `n` times.
+
+For example, `"foo[1,3]"` matches `"foo"`, `"foofoo"` and `"foofoofo"`:
+
+```
+        ╭──»──╮ ╭──»──╮
+o──[P]─»┴─[P]─┴»┴─[P]─┴─o
+```
+
+
+### Precedence operators
 
 Precedence operators is an experimental feature which allows for the
 construction of "precedence climbing" or "Pratt parsers" with NPeg. The main
 use for this feature is building parsers for programming languages that follow
 the usual precedence and associativity rules of arithmetic expressions.
 
-- Left associative precedence of `N`: `P ^ N`
+#### Left associative precedence of `N`: `P ^ N`
 
 ```
    <1<   
 o──[P]──o
 ```
 
-- Right associative precedence of `N`: `P ^^ N`
+#### Right associative precedence of `N`: `P ^^ N`
 
 ```
    >1> 
