@@ -62,7 +62,8 @@ Output:
 A brief explanation of the above code:
 
 * The macro `peg` is used to create a parser object, which uses `pairs` as the
-  initial grammar rule to match.
+  initial grammar rule to match. The variable `d` of type `Dict` will be available
+  inside the code block parser for storing the parsed data.
 
 * The rule `pairs` matches one `pair`, followed by zero or more times (`*`) a
   comma followed by a `pair`.
