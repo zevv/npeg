@@ -1,11 +1,3 @@
-# NPeg
-:toc: left
-:toclevels: 4
-:icons: font
-:doctype: book
-:stylesheet: style.css
-:nofooter:
-
 ![NPeg](/doc/npeg.png)
 
 > "_Because friends don't let friends write parsers by hand_"

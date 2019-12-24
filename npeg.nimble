@@ -39,3 +39,7 @@ task testall, "Test all":
 
 task perf, "Test performance":
   exec "nim cpp -r -d:danger tests/performance.nim"
+
+task mkdoc, "Create documentation":
+  exec "asciidoctor -a toc=left -a toclevels=2 -a icons=font -a doctype=book -a nofooter README.md"
+  exec "asciidoctor-pdf -a toc=left -a toclevels=2 -a icons=font -a doctype=book -a nofooter README.md"
