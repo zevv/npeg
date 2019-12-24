@@ -672,38 +672,22 @@ error <- 0:
   fail()
 ```
 
-Note: The Nim code block is running within the NPeg parser context and has
-access to its internal state - this can be used to create custom
+Note: The Nim code block is running within the NPeg parser context and in
+theory could access to its internal state - this could be used to create custom
 validator/matcher functions that can inspect the subject string, do lookahead
 or lookback, and adjust the subject index to consume input. At the time of
 writing, NPeg lacks a formal API or interface for this though, and I am not
 sure yet what this should look like - If you are interested in doing this,
 contact me so we can discuss the details.
 
-That said: the following snippet shows how to do custom pattern matching by
-abusing the internal parser state. This is *not recommended or supported*
-until a proper API has been implemented for this.
-
-```nim
-  let p = peg foo:
-    foo <- "ba" * die * "da"
-    die <- 0:
-      if si < s.len-3 and if cast[string](s[si..si+2]) == "die":
-        si += 3
-      else:
-        fail()
-
-  echo p.match("badieda")
-```
-
-#### State variables
+#### Passing state
 
 Note: This is an experimental feature, the implementation or API might change
 in the future. I'm also looking for a better name for this feature.
 
 NPeg allows passing of data of a specific type to the `match()` function, this
 value is then available inside code blocks as a variable. This mitigates the
-need for global variables for storing data in access captures.
+need for global variables for storing or retrieving data in access captures.
 
 The syntax for defining a generic grammar is as follows:
 
