@@ -484,9 +484,8 @@ the `^` operator is matched, either one of the next three cases applies:
 - `P ^ N` where `N > 0` and `N` is higher or equal then the current precedence:
   parsing will fail and backtrack.
 
-- `P ^ N ` and `N == 0`: resets the current precedence to 0 and continues
-  parsing. This main use case for this is parsing sub-expressions in
-  parentheses.
+- `P ^ 0`: resets the current precedence to 0 and continues parsing. This main
+  use case for this is parsing sub-expressions in parentheses.
 
 The heart of a Prett parser in NPeg would look something like this:
 
