@@ -45,15 +45,15 @@ type
 # copied to the newly genreated node to make sure "Capture out of range"
 # exceptions are properly traced.
 
-proc doSugar(n: NimNode): NimNode =
+proc doSugar(n, captureId: NimNode): NimNode =
   proc cli(n2: NimNode) =
     n2.copyLineInfo(n)
     for nc in n2: cli(nc)
   if n.kind == nnkPrefix and n[0].kind == nnkIdent and n[1].kind == nnkIntLit:
     if n[0].eqIdent("$"):
-      result = newDotExpr(nnkBracketExpr.newTree(ident("capture"), n[1]), ident("s"))
+      result = newDotExpr(nnkBracketExpr.newTree(captureId, n[1]), ident("s"))
     elif n[0].eqIdent("@"):
-      result = newDotExpr(nnkBracketExpr.newTree(ident("capture"), n[1]), ident("si"))
+      result = newDotExpr(nnkBracketExpr.newTree(captureId, n[1]), ident("si"))
     cli(result)
   elif n.kind == nnkNilLit:
     result = quote do:
@@ -61,7 +61,7 @@ proc doSugar(n: NimNode): NimNode =
   else:
     result = copyNimNode(n)
     for nc in n:
-      result.add doSugar(nc)
+      result.add doSugar(nc, captureid)
 
 
 proc initMatchState*[S](): MatchState[S] =
@@ -123,7 +123,7 @@ proc genProfileCode*(listing: seq[string], count: int, ms, s, si, simax, ip, cas
 # Generate out all the case handlers for the parser program
 
 proc genCasesCode*(program: Program, sType, uType, uId: NimNode, ms, s, si, simax, ip: NimNode): NimNode =
-  
+
   result = quote do:
     case `ip`
 
@@ -222,20 +222,16 @@ proc genCasesCode*(program: Program, sType, uType, uId: NimNode, ms, s, si, sima
 
         case i.capKind:
           of ckAction:
-            let code = doSugar(i.capAction)
+            let captureId = ident "capture"
+            let code = doSugar(i.capAction, captureId)
             quote do:
               trace `ms`, `iname`, `opName`, `s`, "ckAction -> " & $`si`
               push(`ms`.capStack, CapFrame[`sType`](cft: cftClose, si: `si`, ck: `ck`))
-              let capture {.inject.} = collectCaptures(fixCaptures[`sType`](`s`, `ms`.capStack, FixOpen))
-              var ok = true
-              template validate(o: bool) = ok = o
-              template fail() = ok = false
-              template push(`s`: string) =
-                push(`ms`.capStack, CapFrame[`sType`](cft: cftOpen, ck: ckStr))
-                push(`ms`.capStack, CapFrame[`sType`](cft: cftClose, ck: ckStr, sPushed: `s`))
-              block:
+              let capture = collectCaptures(fixCaptures[`sType`](`s`, `ms`.capStack, FixOpen))
+              proc fn(`captureId`: Captures[`sType`], `ms`: var MatchState[`sType`], `uId`: var `uType`): bool =
+                result = true
                 `code`
-              if ok:
+              if fn(capture, `ms`, `uId`):
                 `ip` = `ipNext`
               else:
                 `ip` = `ipFail`
@@ -408,6 +404,8 @@ proc genCode*(program: Program, sType, uType, uId: NimNode): NimNode =
 
     proc fn(`ms`: var MatchState, `s`: openArray[`sType`], `uId`: var `uType`): MatchResult {.gensym.} =
 
+      {.push hint[XDeclaredButNotUsed]: off.}
+
       # Create local instances of performance-critical MatchState vars, this saves a
       # dereference on each access
 
@@ -416,11 +414,22 @@ proc genCode*(program: Program, sType, uType, uId: NimNode): NimNode =
         `si` = `ms`.si
         `simax` = `ms`.simax
 
-      `traceCode`
+      # These templates are available for code blocks
 
-      {.push hint[XDeclaredButNotUsed]: off.}
+      template validate(o: bool) =
+        if not o: return false
+
+      template fail() =
+        return false
+
+      template push(`s`: string) =
+        push(`ms`.capStack, CapFrame[`sType`](cft: cftOpen, ck: ckStr))
+        push(`ms`.capStack, CapFrame[`sType`](cft: cftClose, ck: ckStr, sPushed: `s`))
+
+      # Emit trace and loop code
+
+      `traceCode`
       `loopCode`
-      {.pop.}
 
       # When the parsing machine is done, copy the local copies of the matchstate
       # back, close the capture stack and collect all the captures in the match
@@ -433,6 +442,8 @@ proc genCode*(program: Program, sType, uType, uId: NimNode): NimNode =
       result.matchMax = `ms`.simax
       if result.ok and `ms`.capStack.top > 0:
         result.cs = fixCaptures(`s`, `ms`.capStack, FixAll)
+      
+      {.pop.}
 
     Parser[`sType`,`uType`](fn: fn)
 
