@@ -14,7 +14,7 @@ requires "nim >= 0.19.0"
 # Test
 
 task test, "Runs the test suite":
-  exec "nimble testc && nimble testcpp && nimble testjs"
+  exec "nimble testc && nimble testcpp && nimble testarc && nimble testjs"
 
 task testc, "C tests":
   exec "nim c -r tests/tests.nim"
@@ -36,6 +36,9 @@ task test32, "32 bit tests":
 
 task testall, "Test all":
   exec "nimble test && nimble testcpp && nimble testdanger && nimble testjs && nimble testwin"
+
+task testarc, "C tests":
+  exec "nim c --gc:arc -r tests/tests.nim"
 
 task perf, "Test performance":
   exec "nim cpp -r -d:danger tests/performance.nim"

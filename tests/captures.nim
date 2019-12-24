@@ -61,11 +61,12 @@ suite "captures":
     doAssert t.word == "foo"
     doAssert t.number == 123
 
-  test "Capture out of range":
-    expect NPegException, IndexError:
-      let p = peg "l":
-        l <- 1: echo $1
-      discard p.match("a")
+  when not defined(gcDestructors):
+    test "Capture out of range":
+      expect NPegException, IndexError:
+        let p = peg "l":
+          l <- 1: echo $1
+        discard p.match("a")
 
   test "push":
     let p = peg "m":
