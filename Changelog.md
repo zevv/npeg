@@ -1,22 +1,24 @@
 
-master
-======
+0.22.0 - 2019-12-24
+===================
 
 - Changed the parsing subject from `openArray[char]` to `openArray[T]` and
   added a 'literal' atom to the grammar. This allows NPeg to parse lists of
-  any type, making it suitable for separate lexer and parser stages.
+  any type, making it suitable for separate lexer and parser stages. See
+  tests/lexparse.nim for a concise example.
 
 - Added `@` syntactic sugar to access the match offset inside code block
-
   captures.
+
 - Dropped Json and AST captures - no complains heard since deprecation, and it
-  simplifies the code base to aid new features.
+  simplifies the code base to aid the development new features.
 
 0.21.3 - 2019-12-06
 ===================
 
 - Fixed off-by-one error in range `P[m..n]` operator, which would also match
   `P` times `n+1`
+
 - Various documentation improvements
 
 0.21.2 - 2019-11-26
