@@ -158,11 +158,15 @@ when defined(windows) or defined(posix):
     matchFile(p, fname, userData)
 
 
-proc captures*(mr: MatchResult): seq[string] =
+proc captures*(mr: MatchResult[char]): seq[string] =
   ## Return all plain string captures from the match result
   for cap in collectCaptures(mr.cs):
     result.add cap.s
 
+proc captures*[S](mr: MatchResult[S]): seq[S] =
+  ## Return all plain string captures from the match result
+  for cap in collectCaptures(mr.cs):
+    result.add cap.s
 
 import npeg/lib/core
 
