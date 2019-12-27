@@ -37,8 +37,12 @@ task test32, "32 bit tests":
 task testall, "Test all":
   exec "nimble test && nimble testcpp && nimble testdanger && nimble testjs && nimble testwin"
 
-task testarc, "C tests":
-  exec "nim c --gc:arc -r tests/tests.nim"
+when (NimMajor, NimMinor) >= (1, 1):
+  task testarc, "--gc:arc tests":
+    exec "nim c --gc:arc -r tests/tests.nim"
+else:
+  task testarc, "--gc:arc tests":
+    exec "true"
 
 task perf, "Test performance":
   exec "nim cpp -r -d:danger tests/performance.nim"
