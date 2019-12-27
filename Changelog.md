@@ -1,3 +1,7 @@
+0.22.1 - 2019-12-27
+===================
+
+- Bugfix in codegen causing problems with ^1 notation in code blocks.
 
 0.22.0 - 2019-12-24
 ===================

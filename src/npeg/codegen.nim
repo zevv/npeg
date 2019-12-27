@@ -49,15 +49,13 @@ proc doSugar(n, captureId: NimNode): NimNode =
   proc cli(n2: NimNode) =
     n2.copyLineInfo(n)
     for nc in n2: cli(nc)
-  if n.kind == nnkPrefix and n[0].kind == nnkIdent and n[1].kind == nnkIntLit:
-    if n[0].eqIdent("$"):
-      result = newDotExpr(nnkBracketExpr.newTree(captureId, n[1]), ident("s"))
-    elif n[0].eqIdent("@"):
-      result = newDotExpr(nnkBracketExpr.newTree(captureId, n[1]), ident("si"))
-    cli(result)
-  elif n.kind == nnkNilLit:
-    result = quote do:
-      discard
+  let isIntPrefix =  n.kind == nnkPrefix and n[0].kind == nnkIdent and n[1].kind == nnkIntLit
+  if isIntPrefix and n[0].eqIdent("$"):
+    result = newDotExpr(nnkBracketExpr.newTree(captureId, n[1]), ident("s"))
+    cli result
+  elif isIntPrefix and n[0].eqIdent("@"):
+    result = newDotExpr(nnkBracketExpr.newTree(captureId, n[1]), ident("si"))
+    cli result
   else:
     result = copyNimNode(n)
     for nc in n:
