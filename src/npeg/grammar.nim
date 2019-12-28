@@ -4,23 +4,13 @@ import macros
 import strutils
 import npeg/[common,dot]
 
-#
-# Create a new grammar
-#
-
-proc newGrammar*(): Grammar =
-  Grammar(
-    rules: newTable[string, Rule](),
-    templates: newTable[string, Template]()
-  )
-
-
 # This is the global instance of pattern library. This is itself a grammar
 # where all patterns are stored with qualified names in the form of
 # <libname>.<pattname>.  At grammar link time all unresolved patterns are
 # looked up from this global table.
 
-var gPattLib {.compileTime.} = newGrammar()
+var gPattLib {.compileTime.} = new Grammar
+
 
 
 # Store a grammar in the library.  The rule names and all unqualified
@@ -51,23 +41,21 @@ proc libStore*(libName: string, grammar: Grammar) =
 # Add rule to a grammer
 #
 
-proc addRule*(grammar: Grammar, rule1: Rule) =
-  let name = rule1.name
+proc addRule*(grammar: Grammar, name: string, patt: Patt) =
   if name in grammar.rules:
     warning "Redefinition of rule '" & name & "'"
-  var rule = rule1
+  var rule = Rule(name: name, patt: patt)
   for i in rule.patt.mitems:
     if i.name == "":
       i.name = name
   grammar.rules[name] = rule
-
 
 # Try to import the given rule from the pattern library into a grammar. Returns
 # true if import succeeded, false if not found.
 
 proc libImportRule*(name: string, grammar: Grammar): bool =
   if name in gPattLib.rules:
-    grammar.addRule gPattLib.rules[name]
+    grammar.addRule name, gPattLib.rules[name].patt
     when npegDebug:
       echo "importing ", name
     return true
@@ -102,7 +90,7 @@ proc link*(grammar: Grammar, initial_name: string, dot: Dot = nil): Program =
     error "inital rule '" & initial_name & "' not found"
 
   var retPatt: Patt
-  var symTab = newTwoWayTable[string, int]()
+  var symTab = TwoWayTable[string, int]()
 
   # Recursively emit a pattern and all patterns it calls which are
   # not yet emitted
@@ -156,7 +144,8 @@ proc link*(grammar: Grammar, initial_name: string, dot: Dot = nil): Program =
     i.indent = indent
     if i.op in {opCapOpen, opChoice}: inc indent
 
-  # Save program source
+  # Save program source as a string so this can be accessed at run time
+  # by the profiler
 
   var listing: seq[string]
   for ip, i in retPatt:

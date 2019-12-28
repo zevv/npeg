@@ -1,8 +1,5 @@
 
-import tables
-import macros
-import sequtils
-import strutils
+import tables, macros, sequtils, strutils, algorithm
 import npeg/[common,patt,dot,grammar]
 
 when npegGraph:
@@ -11,46 +8,46 @@ when npegGraph:
 
 # Recursively compile a PEG rule to a Pattern
 
-proc parsePatt*(name: string, nn: NimNode, grammar: Grammar, dot: Dot = nil): Patt =
+proc parsePatt*(pattName: string, nn: NimNode, grammar: Grammar, dot: Dot = nil): Patt =
 
   when npegDebug:
-    echo "parse ", name, " <- ", nn.repr
+    echo "parse ", pattName, " <- ", nn.repr
 
   proc aux(n: NimNode): Patt =
 
     setKrakNode(n)
 
-    proc inlineOrCall(name2: string): Patt =
+    proc inlineOrCall(callName: string): Patt =
 
       # Try to import symbol early so we might be able to inline or shadow it
-      if name2 notin grammar.rules:
-        discard libImportRule(name2, grammar)
+      if callName notin grammar.rules:
+        discard libImportRule(callName, grammar)
 
-      if name == name2:
-        if name in grammar.rules:
-          let nameShadowed = grammar.shadow(name)
+      if pattName == callName:
+        if pattName in grammar.rules:
+          let nameShadowed = grammar.shadow(pattName)
           return newCallPatt(nameShadowed)
 
-      if name2 in grammar.rules and grammar.rules[name2].patt.len < npegInlineMaxLen:
+      if callName in grammar.rules and grammar.rules[callName].patt.len < npegInlineMaxLen:
         when npegDebug:
-          echo "  inline ", name2
-        dot.add(name, name2, "inline")
-        return grammar.rules[name2].patt
+          echo "  inline ", callName
+        dot.add(pattName, callName, "inline")
+        return grammar.rules[callName].patt
 
       else:
         when npegDebug:
-          echo "  call ", name2
-        dot.add(name, name2, "call")
-        return newCallPatt(name2)
+          echo "  call ", callName
+        dot.add(pattName, callName, "call")
+        return newCallPatt(callName)
 
-    proc applyTemplate(name: string, arg: NimNode): NimNode =
-      let t = if name in grammar.templates:
-        grammar.templates[name]
+    proc applyTemplate(tName: string, arg: NimNode): NimNode =
+      let t = if tName in grammar.templates:
+        grammar.templates[tName]
       else:
-        libImportTemplate(name)
+        libImportTemplate(tName)
       if t != nil:
         if arg.len-1 != t.args.len:
-          krak arg, "Wrong number of arguments for template " & name & "(" & $(t.args.join(",")) & ")"
+          krak arg, "Wrong number of arguments for template " & tName & "(" & $(t.args.join(",")) & ")"
         proc aux(n: NimNode): NimNode =
           if n.kind == nnkIdent and n.strVal in t.args:
             result = arg[ find(t.args, n.strVal)+1 ]
@@ -60,7 +57,7 @@ proc parsePatt*(name: string, nn: NimNode, grammar: Grammar, dot: Dot = nil): Pa
               result.add aux(nc)
         result = aux(t.code).flattenChoice()
         when npegDebug:
-          echo "template ", name, " = \n  in:  ", n.repr, "\n  out: ", result.repr
+          echo "template ", tName, " = \n  in:  ", n.repr, "\n  out: ", result.repr
 
     case n.kind:
 
@@ -81,7 +78,7 @@ proc parsePatt*(name: string, nn: NimNode, grammar: Grammar, dot: Dot = nil): Pa
         if n[0].kind == nnkIdent:
           name = n[0].strVal
         elif n[0].kind == nnkDotExpr:
-          name = n[0][0].strVal & "." & n[0][1].strVal
+          name = n[0].repr
         else:
           krak n, "syntax error"
         let n2 = applyTemplate(name, n)
@@ -101,10 +98,9 @@ proc parsePatt*(name: string, nn: NimNode, grammar: Grammar, dot: Dot = nil): Pa
       of nnkPrefix:
         # Nim combines all prefix chars into one string. Handle prefixes
         # chars right to left
-        let cs = n[0].strVal
         var p = aux n[1]
-        for i in 1..cs.len:
-          case cs[cs.len-i]:
+        for c in n[0].strVal.reversed:
+          case c:
             of '?': p = ?p
             of '+': p = +p
             of '*': p = *p
@@ -135,7 +131,7 @@ proc parsePatt*(name: string, nn: NimNode, grammar: Grammar, dot: Dot = nil): Pa
         result = inlineOrCall(n.strVal)
 
       of nnkDotExpr:
-        result = inlineOrCall(n[0].strVal & "." & n[1].strVal)
+        result = inlineOrCall(n.repr)
 
       of nnkCurly:
         var cs: CharSet
@@ -177,7 +173,7 @@ proc parsePatt*(name: string, nn: NimNode, grammar: Grammar, dot: Dot = nil): Pa
           i.pegRepr = i.pegRepr[0..30] & "..."
 
   result = aux(nn.flattenChoice())
-  dot.addPatt(name, result.len)
+  dot.addPatt(pattName, result.len)
 
 
 #
@@ -186,23 +182,19 @@ proc parsePatt*(name: string, nn: NimNode, grammar: Grammar, dot: Dot = nil): Pa
 #
 
 proc parseGrammar*(ns: NimNode, dot: Dot=nil, dumpRailroad = true): Grammar =
-  result = newGrammar()
+  result = new Grammar
 
   for n in ns:
 
     if n.kind == nnkInfix and n[0].eqIdent("<-"):
 
       if n[1].kind in { nnkIdent, nnkDotExpr}:
-        var name: string
-        if n[1].kind == nnkIdent:
-          name = n[1].strVal
-        else:
-          name = n[1][0].strVal & "." & n[1][1].strVal
+        let name = n[1].repr
         var patt = parsePatt(name, n[2], result, dot)
         if n.len == 4:
           patt = newPatt(patt, ckAction)
           patt[patt.high].capAction = n[3]
-        result.addRule Rule(name: name, patt: patt, code: n[2])
+        result.addRule name, patt
 
         when npegGraph:
           if dumpRailroad:

@@ -124,11 +124,7 @@ type
 
   Rule* = object
     name*: string
-    compiled*: bool
     patt*: Patt
-    code*: NimNode
-    nRepr*: string
-    action*: NimNode
 
   Program* = object
     patt*: Patt
@@ -141,22 +137,12 @@ type
     code*: NimNode
 
   Grammar* = ref object
-    rules*: ref Table[string, Rule]
-    templates*: ref Table[string, Template]
-
-  ASTNode* = ref object
-    id*: string
-    val*: string
-    kids*: seq[ASTNode]
+    rules*: Table[string, Rule]
+    templates*: Table[string, Template]
 
 #
 # Two-way table
 #
-
-proc newTwoWayTable*[X,Y](): TwoWayTable[X,Y] =
-  new result
-  result.x2y = initTable[X, Y]()
-  result.y2x = initTable[Y, X]()
 
 proc add*[X,Y](s: TwoWayTable[X,Y], x: X, y: Y) =
   s.x2y[x] = y
@@ -233,30 +219,6 @@ proc flattenChoice*(n: NimNode, nChoice: NimNode = nil): NimNode =
     result = copyNimNode(n)
     for nc in n:
       result.add flattenChoice(nc)
-
-#
-# Some common operations for ASTNodes
-#
-
-proc `[]`*(a: ASTNode, id: string): ASTNode =
-  for kid in a.kids:
-    if kid.id == id:
-      return kid
-
-proc `[]`*(a: ASTNode, i: int): ASTNode =
-  return a.kids[i]
-
-iterator items*(a: ASTNode): ASTNode =
-  for c in a.kids:
-    yield c
-
-proc `$`*(a: ASTNode): string =
-  # Debug helper to convert an AST tree to representable string
-  proc aux(a: ASTNode, s: var string, d: int=0) =
-    s &= indent(a.id & " " & a.val, d) & "\n"
-    for k in a.kids:
-      aux(k, s, d+1)
-  aux(a, result)
 
 
 # Create a short and friendly text representation of a character set.

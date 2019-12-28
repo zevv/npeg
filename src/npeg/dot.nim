@@ -18,7 +18,7 @@ proc escape(s: string): string =
   return s.replace(".", "_").replace("-", "_")
 
 proc newDot*(name: string): Dot =
-  return Dot(name: name, edges: initTable[string, bool]())
+  return Dot(name: name)
 
 proc add*(d: Dot, n1, n2: string, meth: string) =
   if d != nil:

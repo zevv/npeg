@@ -45,7 +45,7 @@ runnableExamples:
 
   import npeg, strutils, tables
 
-  var words = initTable[string, int]()
+  var words: Table[string, int]
 
   let parser = peg "pairs":
     pairs <- pair * *(',' * pair) * !1
@@ -62,7 +62,7 @@ import macros
 import strutils
 import npeg/[common,codegen,capture,parsepatt,grammar,dot]
 
-export NPegException, Parser, ASTNode, MatchResult, contains, items, `[]`
+export NPegException, contains, `[]`
 
 # Create a parser for a PEG grammar
 

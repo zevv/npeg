@@ -1,5 +1,5 @@
 
-import macros, unicode, tables, strutils
+import macros, unicode, tables, strutils, sequtils
 import npeg/[grammar,common]
 
 when not defined(js):
@@ -230,7 +230,7 @@ proc parseRailRoad*(nn: NimNode, grammar: Grammar): Node =
             result = copyNimNode(n)
             for nc in n:
               result.add aux(nc)
-        result = aux(t.code)
+        result = aux(t.code).flattenChoice()
 
     case n.kind:
 
@@ -251,14 +251,12 @@ proc parseRailRoad*(nn: NimNode, grammar: Grammar): Node =
         if n[0].kind == nnkIdent:
           name = n[0].strVal
         elif n[0].kind == nnkDotExpr:
-          name = n[0][0].strVal & "." & n[0][1].strVal
+          name = n[0].repr
         let n2 = applyTemplate(name, n)
         if n2 != nil:
           result = aux n2
         elif name == "choice":
-          var cs: seq[Node]
-          for i in 1..<n.len: cs.add aux(n[i])
-          result = choice(cs)
+          result = choice(n[1..^1].map(aux))
         elif n.len == 2:
           result = newCapNode aux(n[1])
         elif n.len == 3:
@@ -301,7 +299,7 @@ proc parseRailRoad*(nn: NimNode, grammar: Grammar): Node =
         result = newNode("[" & n.strVal & "]", fgNonterm)
 
       of nnkDotExpr:
-        result = newNode("[" & n[0].strVal & "." & n[1].strVal & "]", fgNonterm)
+        result = newNode("[" & n.repr & "]", fgNonterm)
 
       of nnkCurly:
         var cs: CharSet

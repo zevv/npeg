@@ -1,4 +1,8 @@
 
+# This module implements a basic stack[T]. This is used instead of seq[T]
+# because the latter has bad performance when unwinding more then one frame at
+# a time (ie, setlen). These stacks keep track of their own top and do not
+# shrink the underlying seq when popping or unwinding.
 
 type
   Stack*[T] = object
