@@ -35,7 +35,7 @@ proc libStore*(libName: string, grammar: Grammar) =
 
   for rulename, rule in grammar.rules:
     var rulename2 = qualify(rulename)
-    var rule2: Rule
+    var rule2 = Rule(name: rulename2)
     for i in rule.patt.items:
       var i2 = i
       if i2.op == opCall:
@@ -51,7 +51,8 @@ proc libStore*(libName: string, grammar: Grammar) =
 # Add rule to a grammer
 #
 
-proc addRule*(grammar: Grammar, name: string, rule1: Rule) =
+proc addRule*(grammar: Grammar, rule1: Rule) =
+  let name = rule1.name
   if name in grammar.rules:
     warning "Redefinition of rule '" & name & "'"
   var rule = rule1
@@ -66,7 +67,7 @@ proc addRule*(grammar: Grammar, name: string, rule1: Rule) =
 
 proc libImportRule*(name: string, grammar: Grammar): bool =
   if name in gPattLib.rules:
-    grammar.addRule name, gPattLib.rules[name]
+    grammar.addRule gPattLib.rules[name]
     when npegDebug:
       echo "importing ", name
     return true

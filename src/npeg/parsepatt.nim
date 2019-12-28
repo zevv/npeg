@@ -202,7 +202,7 @@ proc parseGrammar*(ns: NimNode, dot: Dot=nil, dumpRailroad = true): Grammar =
         if n.len == 4:
           patt = newPatt(patt, ckAction)
           patt[patt.high].capAction = n[3]
-        result.addRule(name, Rule(name: name, patt: patt, code: n[2]))
+        result.addRule Rule(name: name, patt: patt, code: n[2])
 
         when npegGraph:
           if dumpRailroad:
