@@ -84,9 +84,9 @@ proc collectCapturesRef*(caps: Captures): Ref =
     result.val = cap.s
 
 
-#proc `[]`*[S](cs: Captures[S], i: int): Capture[S] =
-#  if i >= cs.len:
-#    let msg = "Capture out of range, " & $i & " is not in [0.." & $cs.high & "]"
-#    raise newException(NPegException, msg)
-#  cs[i]
+proc `[]`*[S](cs: Captures[S], i: int): Capture[S] =
+  if i >= cs.len:
+    let msg = "Capture out of range, " & $i & " is not in [0.." & $cs.high & "]"
+    raise newException(NPegException, msg)
+  system.`[]`(cs, i)
 

@@ -168,6 +168,18 @@ suite "unit tests":
       doAssert e.matchLen == 4
       doAssert e.matchMax == 4
 
+  test "out of range capture exception 1":
+    expect NPegException:
+      let a = patt 1:
+        echo capture[10].s
+      doAssert a.match("c").ok
+
+  test "out of range capture exception 2":
+    expect NPegException:
+      let a = patt 1:
+        echo $9
+      doAssert a.match("c").ok
+
   test "user validation":
     let p = peg "line":
       line <- uint8 * "," * uint8 * !1

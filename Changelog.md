@@ -2,6 +2,7 @@
 ===================
 
 - Skip --gc:arc tests for nim <1.1 to fix Nim CI builts.
+- Reinstated [] out of bound check for capturest 
 
 0.22.1 - 2019-12-27
 ===================
