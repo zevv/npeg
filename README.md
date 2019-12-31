@@ -763,7 +763,7 @@ and/or code size matters, it pays to experiment with different orderings and
 measure the results.
 
 When in doubt, check the generated parser instructions by compiling with the
-`-d:npegTrace` or `-d:npegDumpDot` flags - see the section Tracing and
+`-d:npegTrace` or `-d:npegDotDir` flags - see the section Tracing and
 Debugging for more information.
 
 At this time the upper limit is 4096 rules, this might become a configurable
