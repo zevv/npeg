@@ -62,7 +62,7 @@ import macros
 import strutils
 import npeg/[common,codegen,capture,parsepatt,grammar,dot]
 
-export NPegException, contains, `[]`
+export NPegException, contains, `[]`, len
 
 # Create a parser for a PEG grammar
 

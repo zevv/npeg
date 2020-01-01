@@ -6,19 +6,17 @@ import npeg/[stack,common]
 type
 
   Capture*[S] = ref object
-    case ck: CapKind
-    of ckStr, ckRef, ckAction:
-      when S is char:
-        s*: string
-      else:
-        s*: S
-    else:
-      discard
+    ck: CapKind
     si*: int
     name: string
     len: int
+    when S is char:
+      s*: string
+    else:
+      s*: S
 
-  Captures*[S] = seq[Capture[S]]
+  Captures*[S] = ref object
+    capList*: seq[Capture[S]]
 
   FixMethod* = enum
     FixAll, FixOpen
@@ -28,6 +26,7 @@ type
 
 proc fixCaptures*[S](s: openArray[S], capStack: var Stack[CapFrame[S]], fm: FixMethod): Captures[S] =
 
+  new result
   assert capStack.top > 0
   assert capStack.peek.cft == cftCLose
   when npegDebug:
@@ -52,8 +51,8 @@ proc fixCaptures*[S](s: openArray[S], capStack: var Stack[CapFrame[S]], fm: FixM
   for i in iFrom..<capStack.top:
     let c = capStack[i]
     if c.cft == cftOpen:
-      stack.push result.len
-      result.add Capture[S](ck: c.ck, si: c.si, name: c.name)
+      stack.push result.capList.len
+      result.capList.add Capture[S](ck: c.ck, si: c.si, name: c.name)
     else:
       let i2 = stack.pop()
       assert result[i2].ck == c.ck
@@ -66,7 +65,7 @@ proc fixCaptures*[S](s: openArray[S], capStack: var Stack[CapFrame[S]], fm: FixM
             c.sPushed
         else:
           result[i2].s = s[result[i2].si]
-      result[i2].len = result.len - i2 - 1
+      result[i2].len = result.capList.len - i2 - 1
   assert stack.top == 0
 
   # Remove closed captures from the cap stack
@@ -75,18 +74,25 @@ proc fixCaptures*[S](s: openArray[S], capStack: var Stack[CapFrame[S]], fm: FixM
 
 
 proc collectCaptures*[S](caps: Captures[S]): Captures[S] =
-  result = caps.filterIt(it.ck == ckStr or it.ck == ckAction)
-
+  result = Captures[S](
+    capList: caps.capList.filterIt(it.ck == ckStr or it.ck == ckAction)
+  )
 
 proc collectCapturesRef*(caps: Captures): Ref =
-  for cap in caps:
+  for cap in caps.capList:
     result.key = cap.name
     result.val = cap.s
 
-
 proc `[]`*[S](cs: Captures[S], i: int): Capture[S] =
-  if i >= cs.len:
-    let msg = "Capture out of range, " & $i & " is not in [0.." & $cs.high & "]"
+  if i >= cs.capList.len:
+    let msg = "Capture out of range, " & $i & " is not in [0.." & $cs.capList.high & "]"
     raise newException(NPegException, msg)
-  system.`[]`(cs, i)
+  cs.capList[i]
+
+iterator items*[S](captures: Captures[S]): Capture[S] =
+  for c in captures.capList:
+    yield c
+
+proc len*[S](captures: Captures[S]): int =
+  captures.capList.len
 
