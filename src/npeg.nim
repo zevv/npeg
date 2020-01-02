@@ -99,7 +99,6 @@ macro peg*(name: untyped, subjectType, userData, n: untyped): untyped =
   ##
   ## The `userdata` argument is a colon expression with an identifier and a
   ## type, this identifier is available in code block captions during parsing.
-  echo subjectType.astGenRepr
   expectKind(userData, nnkExprColonExpr)
   pegAux name.strVal, subjectType, userData[1], userData[0], n
 
