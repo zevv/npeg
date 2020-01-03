@@ -56,15 +56,10 @@ proc fixCaptures*[S](s: openArray[S], capStack: var Stack[CapFrame[S]], fm: FixM
     else:
       let i2 = stack.pop()
       assert result[i2].ck == c.ck
-
-      if c.ck in { ckStr, ckRef, ckAction }:
-        when S is char:
-          result[i2].s = if c.sPushed == "":
-            s.slice(result[i2].si, c.si)
-          else:
-            c.sPushed
-        else:
-          result[i2].s = s[result[i2].si]
+      result[i2].s = if c.ck == ckPushed:
+        c.sPushed
+      else:
+        s.slice(result[i2].si, c.si)
       result[i2].len = result.capList.len - i2 - 1
   assert stack.top == 0
 
@@ -75,7 +70,7 @@ proc fixCaptures*[S](s: openArray[S], capStack: var Stack[CapFrame[S]], fm: FixM
 
 proc collectCaptures*[S](caps: Captures[S]): Captures[S] =
   result = Captures[S](
-    capList: caps.capList.filterIt(it.ck == ckStr or it.ck == ckAction)
+    capList: caps.capList.filterIt(it.ck in {ckStr, ckPushed, ckAction})
   )
 
 proc collectCapturesRef*(caps: Captures): Ref =

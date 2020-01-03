@@ -417,8 +417,8 @@ proc genCode*(program: Program, sType, uType, uId: NimNode): NimNode =
         return false
 
       template push(`s`: string) =
-        push(`ms`.capStack, CapFrame[`sType`](cft: cftOpen, ck: ckStr))
-        push(`ms`.capStack, CapFrame[`sType`](cft: cftClose, ck: ckStr, sPushed: `s`))
+        push(`ms`.capStack, CapFrame[`sType`](cft: cftOpen, ck: ckPushed))
+        push(`ms`.capStack, CapFrame[`sType`](cft: cftClose, ck: ckPushed, sPushed: `s`))
 
       # Emit trace and loop code
 

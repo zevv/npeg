@@ -38,6 +38,7 @@ type
   
   CapKind* = enum
     ckStr,          # Plain string capture
+    ckPushed,       # Pushed capture
     ckAction,       # Action capture, executes Nim code at match time
     ckRef           # Reference
     ckClose,        # Closes capture
@@ -50,7 +51,7 @@ type
     when S is char:
       sPushed*: string # Pushed capture, overrides subject slice
     else:
-      sPushed*: seq[S] # Pushed capture, overrides subject slice
+      sPushed*: S      # Pushed capture, overrides subject slice
 
   Ref* = object
     key*: string
@@ -301,11 +302,8 @@ proc slice*(s: openArray[char], iFrom, iTo: int): string =
   for i in 0..<len:
     result[i] = s[i+iFrom]
 
-proc slice*[S](s: openArray[S], iFrom, iTo: int): seq[S] =
-  let len = iTo - iFrom
-  result.setLen(len)
-  for i in 0..<len:
-    result[i] = s[i+iFrom]
+proc slice*[S](s: openArray[S], iFrom, iTo: int): S =
+  result = s[iFrom]
 
 proc `$`*(t: Template): string =
   return t.name & "(" & t.args.join(", ") & ") = " & t.code.repr
