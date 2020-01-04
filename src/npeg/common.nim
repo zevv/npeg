@@ -37,7 +37,7 @@ type
   CapFrameType* = enum cftOpen, cftClose
   
   CapKind* = enum
-    ckStr,          # Plain string capture
+    ckVal,          # Value capture
     ckPushed,       # Pushed capture
     ckAction,       # Action capture, executes Nim code at match time
     ckRef           # Reference

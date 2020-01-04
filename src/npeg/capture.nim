@@ -70,7 +70,7 @@ proc fixCaptures*[S](s: openArray[S], capStack: var Stack[CapFrame[S]], fm: FixM
 
 proc collectCaptures*[S](caps: Captures[S]): Captures[S] =
   result = Captures[S](
-    capList: caps.capList.filterIt(it.ck in {ckStr, ckPushed, ckAction})
+    capList: caps.capList.filterIt(it.ck in {ckVal, ckPushed, ckAction})
   )
 
 proc collectCapturesRef*(caps: Captures): Ref =

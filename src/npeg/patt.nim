@@ -145,7 +145,7 @@ proc `+`*(p: Patt): Patt =
   result.add *p
 
 proc `>`*(p: Patt): Patt =
-  return newPatt(p, ckStr)
+  return newPatt(p, ckVal)
 
 proc `!`*(p: Patt): Patt =
   p.addChoiceCommit(p.len+3, 1)
