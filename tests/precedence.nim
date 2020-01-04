@@ -58,7 +58,7 @@ suite "precedence operator":
 
       # Parse an infix operator. Bounded by the precedece operator that makes
       # sure `exp` is only parsed if the currrent precedence is lower then the
-      # given precedence.
+      # given precedence. Not that the power operator has right assosiativity.
 
       infix <- >{'+','-'}    * exp ^  1 |
                >{'*','/'}    * exp ^  2 |
