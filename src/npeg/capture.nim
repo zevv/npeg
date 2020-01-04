@@ -21,21 +21,9 @@ type
   FixMethod* = enum
     FixAll, FixOpen
 
-# Convert all closed CapFrames on the capture stack to a list of Captures, all
-# consumed frames are removed from the CapStack
+# Search the capStack for cftOpen matching the cftClose on top
 
-proc fixCaptures*[S](s: openArray[S], capStack: var Stack[CapFrame[S]], fm: FixMethod): Captures[S] =
-
-  new result
-  assert capStack.top > 0
-  assert capStack.peek.cft == cftCLose
-  when npegDebug:
-    echo $capStack
-
-  # Search the capStack for cftOpen matching the cftClose on top
-
-  var iFrom = 0
-
+proc findTop[S](capStack: var Stack[CapFrame[S]], fm: FixMethod): int =
   if fm == FixOpen:
     var i = capStack.top - 1
     var depth = 0
@@ -43,11 +31,23 @@ proc fixCaptures*[S](s: openArray[S], capStack: var Stack[CapFrame[S]], fm: FixM
       if capStack[i].cft == cftClose: inc depth else: dec depth
       if depth == 0: break
       dec i
-    iFrom = i
+    result = i
+
+# Convert all closed CapFrames on the capture stack to a list of Captures, all
+# consumed frames are removed from the CapStack
+
+proc fixCaptures*[S](s: openArray[S], capStack: var Stack[CapFrame[S]], fm: FixMethod): Captures[S] =
+
+  assert capStack.top > 0
+  assert capStack.peek.cft == cftCLose
+  when npegDebug: echo $capStack
 
   # Convert the closed frames to a seq[Capture]
 
+  new result
   var stack = initStack[int]("captures", 8)
+  let iFrom = findTop(capStack, fm)
+
   for i in iFrom..<capStack.top:
     let c = capStack[i]
     if c.cft == cftOpen:
