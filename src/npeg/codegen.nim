@@ -398,8 +398,6 @@ proc genCode*(program: Program, sType, uType, uId: NimNode): NimNode =
 
     proc fn(`ms`: var MatchState, `s`: openArray[`sType`], `uId`: var `uType`): MatchResult {.gensym.} =
 
-      {.push hint[XDeclaredButNotUsed]: off.}
-
       # Create local instances of performance-critical MatchState vars, this saves a
       # dereference on each access
 
@@ -410,13 +408,13 @@ proc genCode*(program: Program, sType, uType, uId: NimNode): NimNode =
 
       # These templates are available for code blocks
 
-      template validate(o: bool) =
+      template validate(o: bool) {.used.} =
         if not o: return false
 
-      template fail() =
+      template fail() {.used.} =
         return false
 
-      template push(`s`: string) =
+      template push(`s`: string) {.used.} =
         push(`ms`.capStack, CapFrame[`sType`](cft: cftOpen, ck: ckPushed))
         push(`ms`.capStack, CapFrame[`sType`](cft: cftClose, ck: ckPushed, sPushed: `s`))
 
@@ -436,8 +434,6 @@ proc genCode*(program: Program, sType, uType, uId: NimNode): NimNode =
       result.matchMax = `ms`.simax
       if result.ok and `ms`.capStack.top > 0:
         result.cs = fixCaptures(`s`, `ms`.capStack, FixAll)
-      
-      {.pop.}
 
     Parser[`sType`,`uType`](fn: fn)
 
