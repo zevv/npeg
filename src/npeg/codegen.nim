@@ -77,7 +77,7 @@ proc initMatchState*[S](): MatchState[S] =
 
 proc genProfileCode*(listing: seq[string], count: int, ms, s, si, simax, ip, cases: NimNode): NimNode =
 
-  result = quote do:
+  result = quote:
     var
       tInst: array[0..`count`, float]
       nInst: array[0..`count`, int]
@@ -122,7 +122,7 @@ proc genProfileCode*(listing: seq[string], count: int, ms, s, si, simax, ip, cas
 
 proc genCasesCode*(program: Program, sType, uType, uId: NimNode, ms, s, si, simax, ip: NimNode): NimNode =
 
-  result = quote do:
+  result = quote:
     case `ip`
 
   for ipNow, i in program.patt.pairs:
@@ -140,7 +140,7 @@ proc genCasesCode*(program: Program, sType, uType, uId: NimNode, ms, s, si, sima
 
       of opChr:
         let ch = newLit(i.ch)
-        quote do:
+        quote:
           trace `ms`, `iname`, `opName`, `s`, "\"" & escapeChar(`ch`) & "\""
           if `si` < `s`.len and `s`[`si`] == `ch`.char:
             inc `si`
@@ -150,7 +150,7 @@ proc genCasesCode*(program: Program, sType, uType, uId: NimNode, ms, s, si, sima
 
       of opLit:
         let lit = i.lit
-        quote do:
+        quote:
           trace `ms`, `iname`, `opName`, `s`, `lit`.repr
           if `si` < `s`.len and `s`[`si`] == `lit`:
             inc `si`
@@ -160,7 +160,7 @@ proc genCasesCode*(program: Program, sType, uType, uId: NimNode, ms, s, si, sima
 
       of opSet:
         let cs = newLit(i.cs)
-        quote do:
+        quote:
           trace `ms`, `iname`, `opName`, `s`, dumpSet(`cs`)
           if `si` < `s`.len and `s`[`si`] in `cs`:
             inc `si`
@@ -170,7 +170,7 @@ proc genCasesCode*(program: Program, sType, uType, uId: NimNode, ms, s, si, sima
 
       of opSpan:
         let cs = newLit(i.cs)
-        quote do:
+        quote:
           trace `ms`, `iname`, `opName`, `s`, dumpSet(`cs`)
           while `si` < `s`.len and `s`[`si`] in `cs`:
             inc `si`
@@ -179,14 +179,14 @@ proc genCasesCode*(program: Program, sType, uType, uId: NimNode, ms, s, si, sima
       of opChoice:
         let ip2 = newLit(ipNow + i.ipOffset)
         let siOffset = newLit(i.siOffset)
-        quote do:
+        quote:
           trace `ms`, `iname`, `opName`, `s`, $`ip2`
           push(`ms`.backStack, BackFrame(ip:`ip2`, si:`si`+`siOffset`, rp:`ms`.retStack.top, cp:`ms`.capStack.top, pp:`ms`.precStack.top))
           `ip` = `ipNext`
 
       of opCommit:
         let ip2 = newLit(ipNow + i.ipOffset)
-        quote do:
+        quote:
           trace `ms`, `iname`, `opName`, `s`, $`ip2`
           discard pop(`ms`.backStack)
           `ip` = `ip2`
@@ -194,7 +194,7 @@ proc genCasesCode*(program: Program, sType, uType, uId: NimNode, ms, s, si, sima
       of opCall:
         let label = newLit(i.callLabel)
         let ip2 = newLit(ipNow + i.callOffset)
-        quote do:
+        quote:
           trace `ms`, `iname`, `opName`, `s`, `label` & ":" & $`ip2`
           push(`ms`.retStack, `ip`+1)
           `ip` = `ip2`
@@ -202,7 +202,7 @@ proc genCasesCode*(program: Program, sType, uType, uId: NimNode, ms, s, si, sima
       of opJump:
         let label = newLit(i.callLabel)
         let ip2 = newLit(ipNow + i.callOffset)
-        quote do:
+        quote:
           trace `ms`, `iname`, `opName`, `s`, `label` & ":" & $`ip2`
           `ip` = `ip2`
 
@@ -210,7 +210,7 @@ proc genCasesCode*(program: Program, sType, uType, uId: NimNode, ms, s, si, sima
         let capKind = newLit(i.capKind)
         let capName = newLit(i.capName)
         let capSiOffset = newLit(i.capSiOffset)
-        quote do:
+        quote:
           trace `ms`, `iname`, `opName`, `s`, $`capKind` & " -> " & $`si`
           push(`ms`.capStack, CapFrame[`sType`](cft: cftOpen, si: `si`+`capSiOffset`, ck: `capKind`, name: `capName`))
           `ip` = `ipNext`
@@ -222,7 +222,7 @@ proc genCasesCode*(program: Program, sType, uType, uId: NimNode, ms, s, si, sima
           of ckAction:
             let captureId = ident "capture"
             let code = doSugar(i.capAction, captureId)
-            quote do:
+            quote:
               trace `ms`, `iname`, `opName`, `s`, "ckAction -> " & $`si`
               push(`ms`.capStack, CapFrame[`sType`](cft: cftClose, si: `si`, ck: `ck`))
               let capture = collectCaptures(fixCaptures[`sType`](`s`, `ms`.capStack, FixOpen))
@@ -235,7 +235,7 @@ proc genCasesCode*(program: Program, sType, uType, uId: NimNode, ms, s, si, sima
                 `ip` = `ipFail`
 
           of ckRef:
-            quote do:
+            quote:
               trace `ms`, `iname`, `opName`, `s`, "ckRef -> " & $`si`
               push(`ms`.capStack, CapFrame[`sType`](cft: cftClose, si: `si`, ck: `ck`))
               let r = collectCapturesRef(fixCaptures[`sType`](`s`, `ms`.capStack, FixOpen))
@@ -243,14 +243,14 @@ proc genCasesCode*(program: Program, sType, uType, uId: NimNode, ms, s, si, sima
               `ip` = `ipNext`
 
           else:
-            quote do:
+            quote:
               trace `ms`, `iname`, `opName`, `s`, $`ck` & " -> " & $`si`
               push(`ms`.capStack, CapFrame[`sType`](cft: cftClose, si: `si`, ck: `ck`))
               `ip` = `ipNext`
 
       of opBackRef:
         let refName = newLit(i.refName)
-        quote do:
+        quote:
           if `refName` in `ms`.refs:
             let s2 = `ms`.refs[`refName`]
             trace `ms`, `iname`, `opName`, `s`, `refName` & ":\"" & s2 & "\""
@@ -264,7 +264,7 @@ proc genCasesCode*(program: Program, sType, uType, uId: NimNode, ms, s, si, sima
 
       of opErr:
         let msg = newLit(i.msg)
-        quote do:
+        quote:
           trace `ms`, `iname`, `opName`, `s`, `msg`
           var e = newException(NPegException, "Parsing error at #" & $`si` & ": expected \"" & `msg` & "\"")
           `simax` = max(`simax`, `si`)
@@ -273,7 +273,7 @@ proc genCasesCode*(program: Program, sType, uType, uId: NimNode, ms, s, si, sima
           raise e
 
       of opReturn:
-        quote do:
+        quote:
           if `ms`.retStack.top > 0:
             trace `ms`, `iname`, `opName`, `s`
             `ip` = pop(`ms`.retStack)
@@ -284,7 +284,7 @@ proc genCasesCode*(program: Program, sType, uType, uId: NimNode, ms, s, si, sima
             break
 
       of opAny:
-        quote do:
+        quote:
           trace `ms`, `iname`, `opName`, `s`
           if `si` < `s`.len:
             inc `si`
@@ -293,13 +293,13 @@ proc genCasesCode*(program: Program, sType, uType, uId: NimNode, ms, s, si, sima
             `ip` = `ipFail`
 
       of opNop:
-        quote do:
+        quote:
           trace `ms`, `iname`, `opName`, `s`
           `ip` = `ipNext`
 
       of opPrecPush:
         if i.prec == 0:
-          quote do:
+          quote:
             push(`ms`.precStack, 0)
             `ip` = `ipNext`
         else:
@@ -308,7 +308,7 @@ proc genCasesCode*(program: Program, sType, uType, uId: NimNode, ms, s, si, sima
             quote: peek(`ms`.precStack) < `iPrec`
           else:
             quote: peek(`ms`.precStack) <= `iPrec`
-          quote do:
+          quote:
             if `exp`:
               push(`ms`.precStack, `iPrec`)
               `ip` = `ipNext`
@@ -316,12 +316,12 @@ proc genCasesCode*(program: Program, sType, uType, uId: NimNode, ms, s, si, sima
               `ip` = `ipFail`
 
       of opPrecPop:
-        quote do:
+        quote:
             discard `ms`.precStack.pop()
             `ip` = `ipNext`
 
       of opFail:
-        quote do:
+        quote:
           `simax` = max(`simax`, `si`)
           if `ms`.backStack.top > 0:
             trace `ms`, "", "opFail", `s`, "(backtrack)"
@@ -340,7 +340,7 @@ proc genCasesCode*(program: Program, sType, uType, uId: NimNode, ms, s, si, sima
 proc genTraceCode*(program: Program, sType, uType, uId, ms, s, si, simax, ip: NimNode): NimNode =
   
   when npegTrace:
-    result = quote do:
+    result = quote:
       proc doTrace(`ms`: var MatchState, iname, opname: string, `s`: openArray[`sType`], msg: string) =
           echo align(if `ip` >= 0: $`ip` else: "", 3) &
             "|" & align($(peek(`ms`.precStack)), 3) &
@@ -354,7 +354,7 @@ proc genTraceCode*(program: Program, sType, uType, uId, ms, s, si, simax, ip: Ni
         doTrace(`ms`, iname, opname, `s`, msg)
 
   else:
-    result = quote do:
+    result = quote:
       template trace(`ms`: var MatchState, iname, opname: string, `s`: openArray[`sType`], msg = "") =
         discard
 
@@ -386,7 +386,7 @@ proc genCode*(program: Program, sType, uType, uId: NimNode): NimNode =
   when npegProfile:
     let loopCode = genProfileCode(program.listing, count, ms, s, si, simax, ip, casesCode)
   else:
-    let loopCode = quote do:
+    let loopCode = quote:
       while true:
         {.computedGoto.}
         `casesCode`
@@ -394,7 +394,7 @@ proc genCode*(program: Program, sType, uType, uId: NimNode): NimNode =
   # This is the result of genCode: a Parser object with a pointer to the
   # generated proc below doing the matching.
 
-  result = quote do:
+  result = quote:
 
     proc fn(`ms`: var MatchState, `s`: openArray[`sType`], `uId`: var `uType`): MatchResult {.gensym.} =
 
