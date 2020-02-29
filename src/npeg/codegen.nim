@@ -3,9 +3,6 @@ import macros
 import strutils
 import tables
 import npeg/[common,patt,stack,capture]
-when npegProfile:
-  import math
-  import times
 
 type
 
@@ -71,52 +68,6 @@ proc initMatchState*[S](): MatchState[S] =
   )
   push(result.precStack, 0)
 
-
-# This is a variant of the main 'cases' loop with extensive profileing of
-# time spent, instruction count and fail count. Slow.
-
-proc genProfileCode*(listing: seq[string], count: int, ms, s, si, simax, ip, cases: NimNode): NimNode =
-
-  result = quote:
-    var
-      tInst: array[0..`count`, float]
-      nInst: array[0..`count`, int]
-      nFail: array[0..`count`, int]
-      tTotal: float
-      nTotal: int
-      nTotalFail: int
-
-    while true:
-      let ipProf = `ip`
-      let t1 = cpuTime()
-
-      `cases`
-
-      let dt = cpuTime() - t1
-      nInst[ipProf] += 1
-      tInst[ipProf] += dt
-      if `ip` == `count`:
-        nFail[ipProf] += 1
-        nTotalFail += 1
-      tTotal += dt
-      nTotal += 1
-
-    # Dump profiling results
-
-    let tMax = sqrt(max(tInst))
-    if tMax > 0:
-      for i, l in `listing`:
-        let graph = strutils.align(repeat("#", (int)(5.0*sqrt(tInst[i])/tMax)), 5)
-        let perc = formatFloat(100.0 * tInst[i] / tTotal, ffDecimal, 1)
-        echo graph,
-             " ",   strutils.align(perc, 5),
-             " | ", strutils.align($nInst[i], 6),
-             " | ", strutils.align($nFail[i], 6),
-             " | ", strutils.align($i, 3),
-             ": ",  l
-    echo ""
-    echo "Total instructions : ", nTotal
-    echo "Total fails        : ", nTotalFail
   
 # Generate out all the case handlers for the parser program
 
@@ -383,13 +334,10 @@ proc genCode*(program: Program, sType, uType, uId: NimNode): NimNode =
   # pragma will generate code using C computed gotos, which will get highly
   # optmized, mostly eliminating the inner parser loop
 
-  when npegProfile:
-    let loopCode = genProfileCode(program.listing, count, ms, s, si, simax, ip, casesCode)
-  else:
-    let loopCode = quote:
-      while true:
-        {.computedGoto.}
-        `casesCode`
+  let loopCode = quote:
+    while true:
+      {.computedGoto.}
+      `casesCode`
 
   # This is the result of genCode: a Parser object with a pointer to the
   # generated proc below doing the matching.

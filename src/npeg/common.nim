@@ -18,7 +18,6 @@ const
   npegTrace* = defined(npegTrace)
   npegExpand* = defined(npegExpand)
   npegGraph* = defined(npegGraph)
-  npegProfile* = defined(npegProfile)
 
   # Various optimizations. These can be disabled for testing purposes
   # or when suspecting bugs in the optimization stages

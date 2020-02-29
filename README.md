@@ -22,7 +22,7 @@ Some NPeg highlights:
 
 - NPeg-generated parsers can be used both at run and at compile time.
 
-- NPeg offers various methods for tracing, optimizing, profiling and debugging
+- NPeg offers various methods for tracing, optimizing and debugging
   your parsers.
 
 - NPeg can parse sequences of any data types, also making it suitable as a
@@ -1240,7 +1240,7 @@ those to your liking:
   stack depth is only limited to detect invalid grammars. (default: 1024)
 
 
-## Tracing, debugging and profiling
+## Tracing and debugging
 
 NPeg has a number of compile time flags to enable tracing and debugging of the
 generated parser:
@@ -1249,10 +1249,6 @@ generated parser:
   section 'Tracing' for more details.
 
 * `-d:npegGraph`: Dump syntax diagrams of all parsed rules at compile time.
-
-* `-d:npegProfile`: Enables run time profiling. This will dump an annotated
-  listing of NPeg's compiled program with total time spent, count and fail
-  count for each instruction.
 
 These flags are meant for debugging NPeg itself, and are typically not useful
 to the end user:
