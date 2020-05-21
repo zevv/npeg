@@ -63,7 +63,7 @@ suite "captures":
 
   when not defined(gcDestructors):
     test "Capture out of range":
-      expect NPegException, IndexError:
+      expect NPegException:
         let p = peg "l":
           l <- 1: echo $1
         discard p.match("a")

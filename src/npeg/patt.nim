@@ -1,6 +1,5 @@
 
 import macros
-import strutils
 import sequtils
 
 import npeg/[common,stack]

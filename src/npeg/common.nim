@@ -29,7 +29,7 @@ const
 
 type
 
-  NPegException* = object of Exception
+  NPegException* = object of CatchableError
     matchLen*: int
     matchMax*: int
   
