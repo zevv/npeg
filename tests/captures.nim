@@ -8,6 +8,9 @@ import json
 
 suite "captures":
 
+  test "no captures":
+    doAssert    patt(1).match("a").captures == @[]
+
   test "string captures":
     doAssert     patt(>1).match("ab").captures == @["a"]
     doAssert     patt(>(>1)).match("ab").captures == @["a", "a"]

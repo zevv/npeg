@@ -15,7 +15,7 @@ type
     else:
       s*: S
 
-  Captures*[S] = ref object
+  Captures*[S] = object
     capList*: seq[Capture[S]]
 
   FixMethod* = enum
@@ -44,7 +44,6 @@ proc fixCaptures*[S](s: openArray[S], capStack: var Stack[CapFrame[S]], fm: FixM
 
   # Convert the closed frames to a seq[Capture]
 
-  new result
   var stack = initStack[int]("captures", 8)
   let iFrom = findTop(capStack, fm)
 
