@@ -1,3 +1,6 @@
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
+![Stability: experimental](https://img.shields.io/badge/stability-stable-green.svg)
+
 ![NPeg](/doc/npeg.png)
 
 > "_Because friends don't let friends write parsers by hand_"
