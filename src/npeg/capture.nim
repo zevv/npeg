@@ -83,6 +83,9 @@ proc `[]`*[S](cs: Captures[S], i: int): Capture[S] =
     raise newException(NPegException, msg)
   cs.capList[i]
 
+proc `[]`*[S](cs: Captures[S], i: BackwardsIndex): Capture[S] =
+  cs[cs.capList.len-i.int]
+
 iterator items*[S](captures: Captures[S]): Capture[S] =
   for c in captures.capList:
     yield c
