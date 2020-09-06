@@ -66,7 +66,7 @@ export NPegException, contains, `[]`, len
 
 # Create a parser for a PEG grammar
 
-proc pegAux(name: string, subjectTYpe, userDataType, userDataId, n: NimNode): NimNode =
+proc pegAux(name: string, subjectType, userDataType, userDataId, n: NimNode): NimNode =
   var dot = newDot(name)
   var grammar = parseGrammar(n, dot)
   let code = grammar.link(name, dot).genCode(subjectType, userDataType, userDataId)
@@ -121,8 +121,8 @@ template patt*(n: untyped, code: untyped): untyped =
 macro grammar*(libNameNode: untyped, n: untyped) =
   ## This macro defines a collection of rules to be stored in NPeg's global
   ## grammar library.
-  let libName = libNameNode.strval
-  let grammar = parseGrammar(n, dumpRailroad = libname != "")
+  let libName = libNameNode.strVal
+  let grammar = parseGrammar(n, dumpRailroad = libName != "")
   libStore(libName, grammar)
 
 

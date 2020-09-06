@@ -56,7 +56,7 @@ proc doSugar(n, captureId: NimNode): NimNode =
   else:
     result = copyNimNode(n)
     for nc in n:
-      result.add doSugar(nc, captureid)
+      result.add doSugar(nc, captureId)
 
 
 proc initMatchState*[S](): MatchState[S] =
@@ -199,7 +199,7 @@ proc genCasesCode*(program: Program, sType, uType, uId: NimNode, ms, s, si, sima
               push(`ms`.capStack, CapFrame[`sType`](cft: cftClose, si: `si`, ck: `ck`))
               `ip` = `ipNext`
 
-      of opBackRef:
+      of opBackref:
         let refName = newLit(i.refName)
         quote:
           if `refName` in `ms`.refs:

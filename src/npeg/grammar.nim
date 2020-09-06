@@ -129,7 +129,7 @@ proc link*(grammar: Grammar, initial_name: string, dot: Dot = nil): Program =
     for i in 0..<retPatt.high:
       if retPatt[i+0].op == opChoice and retPatt[i+1].op == opCommit:
         retPatt[i+0] = Inst(op: opJump, callOffset: retPatt[i+1].ipOffset + 1)
-        retpatt[i+1] = Inst(op: opNop)
+        retPatt[i+1] = Inst(op: opNop)
 
   # Trailing opFail is used by the codegen
 

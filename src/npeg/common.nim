@@ -13,7 +13,7 @@ const
   npegInlineMaxLen* {.intdefine.} = 30
   npegRetStackSize* {.intdefine.} = 1024
   npegBackStackSize* {.intdefine.} = 1024
-  npegOptimize* {.intDefine.} = 255
+  npegOptimize* {.intdefine.} = 255
   npegDebug* = defined(npegDebug)
   npegTrace* = defined(npegTrace)
   npegExpand* = defined(npegExpand)
@@ -229,7 +229,7 @@ proc escapeChar*(c: char): string =
   elif c >= ' ' and c <= '~':
     result = $c
   else:
-    result = "\\x" & tohex(c.int, 2).toLowerAscii
+    result = "\\x" & toHex(c.int, 2).toLowerAscii
 
 proc dumpSet*(cs: CharSet): string =
   result.add "{"
@@ -289,7 +289,7 @@ proc `$`*(i: Inst, ip=0): string =
 
 proc `$`*(program: Program): string =
   for ip, i in program.patt.pairs:
-    if ip in program.symTab:
+    if ip in program.symtab:
       result.add "\n" & program.symtab[ip] & ":\n"
     result.add align($ip, 4) & ": " & `$`(i, ip) & "\n"
 

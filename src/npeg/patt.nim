@@ -11,7 +11,7 @@ proc isSet(p: Patt): bool {.used.} =
   p.len == 1 and p[0].op == opSet
 
 
-proc toSet(p: Patt, cs: var Charset): bool =
+proc toSet(p: Patt, cs: var CharSet): bool =
   when npegOptSets:
     if p.len == 1:
       let i = p[0]
@@ -50,7 +50,7 @@ proc matchesEmpty(patt: Patt): bool =
       of opJump: ip += i.callOffset
       of opCapOpen, opCapClose, opNop, opSpan, opPrecPush, opPrecPop: inc ip
       of opErr, opReturn, opCall: return false
-      of opAny, opChr, opLit, opSet, opBackRef, opFail:
+      of opAny, opChr, opLit, opSet, opBackref, opFail:
         if i.failOffset != 0:
           ip += i.failOffset
         elif backStack.top > 0:
@@ -196,7 +196,7 @@ proc choice*(ps: openArray[Patt]): Patt =
       result.add p
 
 proc `-`*(p1, p2: Patt): Patt =
-  var cs1, cs2: Charset
+  var cs1, cs2: CharSet
   if p1.toSet(cs1) and p2.toSet(cs2):
     result.add Inst(op: opSet, cs: cs1 - cs2)
   else:
