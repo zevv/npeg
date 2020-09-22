@@ -189,26 +189,15 @@ proc parseGrammar*(ns: NimNode, dot: Dot=nil, dumpRailroad = true): Grammar =
     if n.kind == nnkInfix and n[0].eqIdent("<-"):
 
       case n[1].kind
-      of nnkIdent, nnkDotExpr:
-        let name = n[1].repr
+      of nnkIdent, nnkDotExpr, nnkPrefix:
+        let isCaptureDef = n[1].kind == nnkPrefix
+        if isCaptureDef: expectIdent n[1][0], ">"
+        let name = if isCaptureDef: n[1][1].repr else: n[1].repr
         var patt = parsePatt(name, n[2], result, dot)
         if n.len == 4:
           patt = newPatt(patt, ckAction)
           patt[patt.high].capAction = n[3]
-        result.addRule name, patt
-
-        when npegGraph:
-          if dumpRailroad:
-            echo parseRailroad(n[2], result).wrap(name)
-
-      of nnkPrefix:
-        expectIdent n[1][0], ">"
-        let name = n[1][1].repr
-        var patt = parsePatt(name, n[2], result, dot)
-        if n.len == 4:
-          patt = newPatt(patt, ckAction)
-          patt[patt.high].capAction = n[3]
-        result.addRule name, >patt
+        result.addRule name, if isCaptureDef: >patt else: patt
 
         when npegGraph:
           if dumpRailroad:
