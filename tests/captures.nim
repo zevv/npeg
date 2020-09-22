@@ -2,6 +2,7 @@ import unittest
 import npeg
 import strutils
 import json
+import tables
   
 {.push warning[Spacing]: off.}
 
@@ -87,3 +88,23 @@ suite "captures":
       foo <- >(>1 * b)
       b <- >1: push $1
     doAssert p.match("ab").captures() == @["ab", "a", "b"]
+
+  test "left-hand side captures":
+    let p = peg "m":
+      m <- n * '+' * n:
+        push $(parseInt($1) + parseInt($2))
+      >n <- +Digit
+    let r = p.match("12+34")
+    doAssert r.captures()[0] == "46"
+
+  test "left-hand side captures 2":
+    var words: Table[string, int]
+
+    let parser = peg "pairs":
+      pairs <- pair * *(',' * pair) * !1
+      >word <- +Alpha
+      number <- +Digit
+      pair <- word * '=' * >number:
+        words[$1] = parseInt($2)
+
+    doAssert parser.match("one=1,two=2,three=3,four=4").ok
