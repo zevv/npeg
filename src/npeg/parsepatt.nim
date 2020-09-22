@@ -188,19 +188,21 @@ proc parseGrammar*(ns: NimNode, dot: Dot=nil, dumpRailroad = true): Grammar =
 
     if n.kind == nnkInfix and n[0].eqIdent("<-"):
 
-      if n[1].kind in { nnkIdent, nnkDotExpr}:
-        let name = n[1].repr
+      case n[1].kind
+      of nnkIdent, nnkDotExpr, nnkPrefix:
+        let name = if n[1].kind == nnkPrefix: expectIdent n[1][0], ">"; n[1][1].repr
+                   else: n[1].repr
         var patt = parsePatt(name, n[2], result, dot)
         if n.len == 4:
           patt = newPatt(patt, ckAction)
           patt[patt.high].capAction = n[3]
-        result.addRule name, patt
+        result.addRule name, if n[1].kind == nnkPrefix: >patt else: patt
 
         when npegGraph:
           if dumpRailroad:
             echo parseRailroad(n[2], result).wrap(name)
 
-      elif n[1].kind == nnkCall:
+      of nnkCall:
         if n.len > 3:
           error "Code blocks can not be used on templates", n[3]
         var t = Template(name: n[1][0].strVal, code: n[2])
