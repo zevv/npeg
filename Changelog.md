@@ -1,7 +1,10 @@
-master
-======
+0.23.0 - 2019-12-27
+===================
 
 - Reinstated [] out of bound check for capturest
+- Dropped profiler support, the implementation was bad
+- Small documentation improvements
+- Added RFC3339 date parser to libs
 
 0.22.2 - 2019-12-27
 ===================
