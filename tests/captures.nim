@@ -87,3 +87,11 @@ suite "captures":
       foo <- >(>1 * b)
       b <- >1: push $1
     doAssert p.match("ab").captures() == @["ab", "a", "b"]
+
+  test "clyybber":
+    let p = peg "m":
+      m <- n * '+' * n:
+        push $(parseInt($1) + parseInt($2))
+      >n <- +Digit
+    let r = p.match("12+34")
+    doAssert r.captures()[0] == "46"
