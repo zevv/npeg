@@ -190,7 +190,10 @@ proc parseGrammar*(ns: NimNode, dot: Dot=nil, dumpRailroad = true): Grammar =
 
       case n[1].kind
       of nnkIdent, nnkDotExpr, nnkPrefix:
-        let name = if n[1].kind == nnkPrefix: expectIdent n[1][0], ">"; n[1][1].repr
+        let name = if n[1].kind == nnkPrefix:
+                     when declared(expectIdent):
+                       expectIdent n[1][0], ">"
+                     n[1][1].repr
                    else: n[1].repr
         var patt = parsePatt(name, n[2], result, dot)
         if n.len == 4:
