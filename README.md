@@ -337,7 +337,7 @@ patterns.
   
   ```
      ━━━━
-  o──[P1]─»─[P2]──o
+  o──[P2]─»─[P1]──o
   ```
 
   NPeg optimizes the `-` operator for characters and character sets: The
