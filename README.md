@@ -705,7 +705,7 @@ For example, the above parser can be rewritten using a generic parser as such:
 ```nim
 type Dict = Table[string, int]
 
-let parser = peg("pairs" userdata: Dict):
+let parser = peg("pairs", userdata: Dict):
   pairs <- pair * *(',' * pair) * !1
   word <- +Alpha
   number <- +Digit
