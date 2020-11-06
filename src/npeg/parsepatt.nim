@@ -62,6 +62,8 @@ proc parsePatt*(pattName: string, nn: NimNode, grammar: Grammar, dot: Dot = nil)
     case n.kind:
 
       of nnkPar:
+        if n.len > 0:
+          krak n, "syntax error. Did you mean '|'?"
         result = aux n[0]
 
       of nnkIntLit:
