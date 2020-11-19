@@ -51,6 +51,14 @@ For captures the following data structures are relevant:
 - `Capture`: A capture is a completed capture that is collected and finalized
   when a capture is closed and finished. 
 
+For the generic procs and types, the following convention is used:
+
+- `[T]` is the type of optional "user data" the gets passed into the parser.
+  When this is not explicitly given with the `peg` macro, NPeg will stub this
+  with an unused bool
+
+- `[S]` is the type of the subject. This is typicall a string, although NPeg
+  is generic enough and can parse any `seq[S]`
 
 ## Building a grammar
 
