@@ -34,7 +34,10 @@ type
     precStack*: Stack[PrecFrame]
 
   Parser*[S, T] = object
-    fn*: proc(ms: var MatchState[S], s: openArray[S], u: var T): MatchResult[S]
+    when npegGcSafe:
+      fn*: proc(ms: var MatchState[S], s: openArray[S], u: var T): MatchResult[S] {.gcsafe.}
+    else:
+      fn*: proc(ms: var MatchState[S], s: openArray[S], u: var T): MatchResult[S]
 
 
 # This macro translates `$1`.. into `capture[1].s`.. and `@1` into `capture[1].si` 
@@ -384,6 +387,9 @@ proc genCode*(program: Program, sType, uType, uId: NimNode): NimNode =
         result.cs = fixCaptures(`s`, `ms`.capStack, FixAll)
 
     Parser[`sType`,`uType`](fn: fn)
+
+  when npegGcsafe:
+    result[0].addPragma(ident("gcsafe"))
 
   when npegExpand:
     echo result.repr

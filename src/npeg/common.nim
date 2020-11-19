@@ -18,6 +18,7 @@ const
   npegTrace* = defined(npegTrace)
   npegExpand* = defined(npegExpand)
   npegGraph* = defined(npegGraph)
+  npegGcsafe* = defined(npegGcsafe)
 
   # Various optimizations. These can be disabled for testing purposes
   # or when suspecting bugs in the optimization stages
