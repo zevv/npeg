@@ -1242,6 +1242,10 @@ those to your liking:
   parser. The default value should be high enough for practical purposes, the
   stack depth is only limited to detect invalid grammars. (default: 1024)
 
+* `-d:npegGcsafe` This is a workaround for the case where NPeg needs to be used
+  from a `{.gcsafe.}` context when using threads. This will mark the generated
+  matching function to be `{.gcsafe.}`.
+
 
 ## Tracing and debugging
 
@@ -1435,3 +1439,7 @@ require me to better understand what I'm doing first. In no particular order:
 - Parallelization: I wonder if parsing can parallelized: when reaching an
   ordered choice, multiple threads should be able to try to parse each
   individual choice. I do see problems with captures here, though.
+
+- I'm not happy about the `{.gcsafe.}` workaround. I'd be happy to hear any
+  ideas on how to improve this.
+
