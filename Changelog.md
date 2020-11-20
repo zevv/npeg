@@ -1,4 +1,14 @@
-0.23.0 - 2019-12-27
+0.24.0 - 2020-11-20
+===================
+
+- Added -d:npegGcsafe
+
+0.23.2 - 2020-11-06
+===================
+
+- Small improvement in npeg systax checking
+
+0.23.0 - 2020-09-23
 ===================
 
 - Reinstated [] out of bound check for capturest

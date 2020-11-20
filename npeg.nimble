@@ -1,6 +1,6 @@
 # Package
 
-version       = "0.23.2"
+version       = "0.24.0"
 author        = "Ico Doornekamp"
 description   = "a PEG library"
 license       = "MIT"
