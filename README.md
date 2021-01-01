@@ -320,7 +320,9 @@ patterns.
 
   The pattern `P1 | P2` tries to first match pattern `P1`. If this succeeds,
   matching will proceed without trying `P2`. Only if `P1` can not be matched,
-  NPeg will backtrack and try to match `P2` instead.
+  NPeg will backtrack and try to match `P2` instead. Once either `P1` or `P2` has
+  matched, the choice will be final ("commited"), and no more backtracking will
+  be possible for this choice.
 
   For example `("foo" | "bar") * "fizz"` would match both `"foofizz"` and
   `"barfizz"`.
