@@ -19,7 +19,7 @@
 0.22.2 - 2019-12-27
 ===================
 
-- Skip --gc:arc tests for nim <1.1 to fix Nim CI builts.
+- Skip --gc:arc tests for nim <1.1 to fix Nim CI builds.
 
 0.22.1 - 2019-12-27
 ===================
