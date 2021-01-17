@@ -256,6 +256,7 @@ proc dumpSubject*[S](s: openArray[S], o:int=0, l:int=1024): string =
     when S is char:
       let a = escapeChar s[i]
     else:
+      mixin repr
       let a = s[i].repr
     if result.len >= l-a.len:
       return
