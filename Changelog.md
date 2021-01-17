@@ -1,3 +1,8 @@
+0.24.1 - 2021-01-16
+===================
+
+- Added mixin for 'repr' to allow clean tracing of user types
+
 0.24.0 - 2020-11-20
 ===================
 
