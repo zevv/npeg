@@ -23,6 +23,7 @@ proc initStack*[T](name: string, len: int, max: int=int.high): Stack[T] =
 
 proc grow*[T](s: var Stack[T]) =
   if s.top >= s.max:
+    mixin NPegException
     raise newException(NPegException, s.name & " stack overflow, depth>" & $s.max)
   s.frames.setLen s.frames.len * 2
 
