@@ -333,14 +333,23 @@ proc genCode*(program: Program, sType, uType, uId: NimNode): NimNode =
     casesCode = genCasesCode(program, sType, uType, uId, ms, s, si, simax, ip)
     traceCode = genTraceCode(program, sType, uType, uId, ms, s, si, simax, ip)
 
-  # Generate the parser main loop. The .computedGoto.
-  # pragma will generate code using C computed gotos, which will get highly
-  # optmized, mostly eliminating the inner parser loop
+  # Generate the parser main loop. The .computedGoto. pragma will generate code
+  # using C computed gotos, which will get highly optmized, mostly eliminating
+  # the inner parser loop. Nim limits computed goto to a maximum of 10_000
+  # cases; if our program is this large, emit a warning and do not use a
+  # computed goto
 
-  let loopCode = quote:
-    while true:
-      {.computedGoto.}
-      `casesCode`
+  let loopCode =
+    if program.patt.len < 10_000:
+      quote:
+        while true:
+          {.computedGoto.}
+          `casesCode`
+    else:
+      warning "Grammar too large for computed goto, fall back to normal 'case'"
+      quote:
+        while true:
+          `casesCode`
 
   # This is the result of genCode: a Parser object with a pointer to the
   # generated proc below doing the matching.
