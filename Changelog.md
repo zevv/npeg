@@ -1,3 +1,9 @@
+0.25.0 - 2021-09-11
+===================
+
+- Omit the `.computedGoto.` in the inner parser loop for grammars with more
+  then 10k instructions to work around the nim compiler limitation
+
 0.24.1 - 2021-01-16
 ===================
 
