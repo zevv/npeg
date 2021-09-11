@@ -243,11 +243,10 @@ proc genCasesCode*(program: Program, sType, uType, uId: NimNode, ms, s, si, sima
 
       of opReturn:
         quote:
+          trace `ms`, `iname`, `opName`, `s`
           if `ms`.retStack.top > 0:
-            trace `ms`, `iname`, `opName`, `s`
             `ip` = pop(`ms`.retStack)
           else:
-            trace `ms`, `iname`, `opName`, `s`
             result.ok = true
             `simax` = max(`simax`, `si`)
             break
