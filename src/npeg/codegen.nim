@@ -300,6 +300,13 @@ proc genCasesCode*(program: Program, sType, uType, uId: NimNode, ms, s, si, sima
             trace `ms`, "", "opFail", `s`, "(error)"
             break
 
+    # Recursively copy the line info from the original instruction NimNode into
+    # the generated Nim code
+    proc aux(n: NimNode) =
+      n.copyLineInfo(i.nimNode)
+      for nc in n: aux(nc)
+    aux(call)
+
     result.add nnkOfBranch.newTree(newLit(ipNow), call)
 
 
