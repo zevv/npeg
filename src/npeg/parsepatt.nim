@@ -169,10 +169,8 @@ proc parsePatt*(pattName: string, nn: NimNode, grammar: Grammar, dot: Dot = nil)
         krak n, "syntax error"
 
     for i in result.mitems:
-      if i.pegRepr == "":
-        i.pegRepr = n.repr
-        if i.pegRepr.len > 30:
-          i.pegRepr = i.pegRepr[0..30] & "..."
+      if i.nimNode == nil:
+        i.nimNode = n
 
   result = aux(nn.flattenChoice())
   dot.addPatt(pattName, result.len)

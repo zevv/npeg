@@ -111,7 +111,7 @@ type
     failOffset*: int
     # Debug info
     name*: string
-    pegRepr*: string
+    nimNode*: NimNode
     indent*: int
 
   Patt* = seq[Inst]
@@ -200,6 +200,12 @@ proc subIStrCmp*(s: openArray[char], slen: int, si: int, s2: string): bool =
       return false
   return true
 
+
+proc truncate(s: string, len: int): string =
+  result = s
+  if result.len > len:
+    result = result[0..len-1] & "..."
+
 # This macro flattens AST trees of `|` operators into a single call to
 # `choice()` with all arguments in one call. e.g, it will convert `A | B | C`
 # into `call(A, B, C)`.
@@ -287,7 +293,7 @@ proc `$`*(i: Inst, ip=0): string =
     args.add " " & $(ip+i.failOffset)
   result.add alignLeft(i.name, 15) &
              alignLeft(repeat(" ", i.indent) & ($i.op).toLowerAscii[2..^1] & args, 25) &
-             " " & i.pegRepr
+             " " & i.nimNode.repr.truncate(30)
 
 proc `$`*(program: Program): string =
   for ip, i in program.patt.pairs:
