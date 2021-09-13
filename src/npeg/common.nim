@@ -291,9 +291,9 @@ proc `$`*(i: Inst, ip=0): string =
       discard
   if i.failOffset != 0:
     args.add " " & $(ip+i.failOffset)
+  let tmp = if i.nimNode != nil: i.nimNode.repr.truncate(30) else: ""
   result.add alignLeft(i.name, 15) &
-             alignLeft(repeat(" ", i.indent) & ($i.op).toLowerAscii[2..^1] & args, 25) &
-             " " & i.nimNode.repr.truncate(30)
+             alignLeft(repeat(" ", i.indent) & ($i.op).toLowerAscii[2..^1] & args, 25) & " " & tmp
 
 proc `$`*(program: Program): string =
   for ip, i in program.patt.pairs:
