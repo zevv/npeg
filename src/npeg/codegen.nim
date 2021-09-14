@@ -316,17 +316,17 @@ proc genTraceCode*(program: Program, sType, uType, uId, ms, s, si, simax, ip: Ni
   
   when npegTrace:
     result = quote:
-      proc doTrace(`ms`: var MatchState, iname, opname: string, `s`: openArray[`sType`], msg: string) =
-          echo align(if `ip` >= 0: $`ip` else: "", 3) &
-            "|" & align($(peek(`ms`.precStack)), 3) &
-            "|" & align($`si`, 3) &
-            "|" & alignLeft(dumpSubject(`s`, `si`, 24), 24) &
+      proc doTrace[sType](`ms`: var MatchState, iname, opname: string, ip: int, s: openArray[sType], si: int, ms: var MatchState, msg: string) {.nimCall.} =
+          echo align(if ip >= 0: $ip else: "", 3) &
+            "|" & align($(peek(ms.precStack)), 3) &
+            "|" & align($si, 3) &
+            "|" & alignLeft(dumpSubject(s, si, 24), 24) &
             "|" & alignLeft(iname, 15) &
             "|" & alignLeft(opname & " " & msg, 40) &
-            "|" & repeat("*", `ms`.backStack.top)
+            "|" & repeat("*", ms.backStack.top)
 
       template trace(`ms`: var MatchState, iname, opname: string, `s`: openArray[`sType`], msg = "") =
-        doTrace(`ms`, iname, opname, `s`, msg)
+        doTrace(`ms`, iname, opname, `ip`, `s`, `si`, `ms`, msg)
 
   else:
     result = quote:
