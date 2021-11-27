@@ -1,3 +1,10 @@
+
+0.26.0 - 2021-11-27
+===================
+
+- Improved lineinfo in code blocks for better backtraces
+- Some documentation improvements
+
 0.25.0 - 2021-09-11
 ===================
 
