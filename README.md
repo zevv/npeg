@@ -295,9 +295,8 @@ subject that should be matched.
 
 ### Operators
 
-NPeg provides various prefix, infix and suffix operators. These operators
-combine or transform one or more patterns into expressions, building larger
-patterns.
+NPeg provides various prefix and infix operators. These operators combine or
+transform one or more patterns into expressions, building larger patterns.
 
 - Concatenation: `P1 * P2`
 
@@ -433,7 +432,7 @@ patterns.
   ```
 
   Note that this operator does not allow capturing the skipped data up to the
-  match; if his is required you can manually construct a grammar to do this.
+  match; if this is required you can manually construct a grammar to do this.
 
 
 - Match exactly `n` times: `P[n]`
@@ -696,13 +695,13 @@ NPeg allows passing of data of a specific type to the `match()` function, this
 value is then available inside code blocks as a variable. This mitigates the
 need for global variables for storing or retrieving data in access captures.
 
-The syntax for defining a generic grammar is as follows:
+The syntax for passing data in a grammar is:
 
 ```
 peg(name, identifier: Type)
 ```
 
-For example, the above parser can be rewritten using a generic parser as such:
+For example, the above parser can be rewritten as such:
 
 ```nim
 type Dict = Table[string, int]
