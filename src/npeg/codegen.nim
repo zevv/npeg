@@ -235,7 +235,7 @@ proc genCasesCode*(program: Program, sType, uType, uId: NimNode, ms, s, si, sima
         let msg = newLit(i.msg)
         quote:
           trace `ms`, `iname`, `opName`, `s`, `msg`
-          var e = newException(NPegException, "Parsing error at #" & $`si` & ": expected \"" & `msg` & "\"")
+          var e = newException(NPegException, "Parsing error at #" & $`si` & ": \"" & `msg` & "\"")
           `simax` = max(`simax`, `si`)
           e.matchLen = `si`
           e.matchMax = `simax`
