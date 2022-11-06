@@ -1034,7 +1034,8 @@ echo parser.match("one,two,three,")
 ```
 
 The rule `word` looks for a sequence of one or more letters (`+{'a'..'z'}`). If
-can this not be matched the `E"word"` matches instead, raising an exception:
+can this not be matched the `E"expected word"` matches instead, raising an
+exception:
 
 ```
 Error: unhandled exception: Parsing error at #14: "expected word" [NPegException]
@@ -1051,6 +1052,30 @@ try:
 except NPegException as e:
   echo "Parsing failed at position ", e.matchMax
 ```
+
+
+### Parser stack trace
+
+If an exception is raised from within an NPeg parser - either by the `E` atom
+or by nim code in a code block capture - NPeg will augment the Nim stack trace
+with frames indicating where in the grammar the exception occured.
+
+The above example will generate the following stack trace, note the last two
+entries which are added by NPeg and show the rules in which the exception
+occured:
+
+```
+/tmp/list.nim(9)         list
+./npeg/src/npeg.nim(142) match
+./npeg/src/npeg.nim(135) match
+/tmp/flop.nim(4)         list <- word * *(comma * word) * eof
+/tmp/flop.nim(7)         word <- +{'a' .. 'z'} | E"expected word"
+Error: unhandled exception: Parsing error at #14: "expected word" [NPegException]
+```
+
+Note: this requires Nim 'devel' or version >= 1.6.x; on older versions you can
+use `-d:npegStackTrace` to make NPeg dump the stack to stdout.
+
 
 ### Left recursion
 
@@ -1266,6 +1291,10 @@ to the end user:
 
 * `-d:npegExpand`: Dump the generated Nim code for all parsers defined in the
   program. Meant for NPeg development debugging purposes only.
+
+* `-d:npegStacktrace`: When enabled, NPeg will dump a stack trace of the
+  current position in the parser when an exception is thrown by NPeg itself or
+  by Nim code in code block captures.
 
 
 ## Random stuff and frequently asked questions

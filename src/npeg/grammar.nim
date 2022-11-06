@@ -41,10 +41,10 @@ proc libStore*(libName: string, grammar: Grammar) =
 # Add rule to a grammer
 #
 
-proc addRule*(grammar: Grammar, name: string, patt: Patt) =
+proc addRule*(grammar: Grammar, name: string, patt: Patt, repr: string = "", lineInfo: LineInfo = LineInfo()) =
   if name in grammar.rules:
     warning "Redefinition of rule '" & name & "'"
-  var rule = Rule(name: name, patt: patt)
+  var rule = Rule(name: name, patt: patt, repr: repr, lineInfo: lineInfo)
   for i in rule.patt.mitems:
     if i.name == "":
       i.name = name
@@ -90,7 +90,8 @@ proc link*(grammar: Grammar, initial_name: string, dot: Dot = nil): Program =
     error "inital rule '" & initial_name & "' not found"
 
   var retPatt: Patt
-  var symTab = TwoWayTable[string, int]()
+  var symTab = new Symtab
+  var ruleRepr: Table[int, string]
 
   # Recursively emit a pattern and all patterns it calls which are
   # not yet emitted
@@ -100,7 +101,8 @@ proc link*(grammar: Grammar, initial_name: string, dot: Dot = nil): Program =
       echo "emit ", name
     let rule = grammar.rules[name]
     if rule.patt.len > 0:
-      symTab.add(name, retPatt.len)
+      let ip = retPatt.len
+      symTab.add(ip, name, rule.repr, rule.lineInfo)
       retPatt.add rule.patt
       retPatt.add Inst(op: opReturn)
       retPatt[retPatt.high].name = retPatt[retPatt.high-1].name
@@ -118,7 +120,7 @@ proc link*(grammar: Grammar, initial_name: string, dot: Dot = nil): Program =
 
   for ip, i in retPatt.mpairs:
     if i.op == opCall:
-      i.callOffset = symTab[i.callLabel] - ip
+      i.callOffset = symTab[i.callLabel].ip - ip
     if i.op == opCall and retPatt[ip+1].op == opReturn:
       i.op = opJump
 
@@ -133,7 +135,7 @@ proc link*(grammar: Grammar, initial_name: string, dot: Dot = nil): Program =
 
   # Trailing opFail is used by the codegen
 
-  symTab.add("_fail", retPatt.len)
+  symTab.add(retPatt.len, "_fail")
   retPatt.add Inst(op: opFail)
 
   # Calc indent level for instructions
@@ -144,14 +146,7 @@ proc link*(grammar: Grammar, initial_name: string, dot: Dot = nil): Program =
     i.indent = indent
     if i.op in {opCapOpen, opChoice}: inc indent
 
-  # Save program source as a string so this can be accessed at run time
-  # by the profiler
-
-  var listing: seq[string]
-  for ip, i in retPatt:
-    listing.add `$`(i, ip)
-
-  result = Program(patt: retPatt, symTab: symTab, listing: listing)
+  result = Program(patt: retPatt, symTab: symTab)
 
   when npegTrace:
     echo result
