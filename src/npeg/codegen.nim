@@ -333,6 +333,29 @@ proc genTraceCode*(program: Program, sType, uType, uId, ms, s, si, simax, ip: Ni
       template trace(`ms`: var MatchState, iname, opname: string, `s`: openArray[`sType`], msg = "") =
         discard
 
+
+# Augment exception stack traces with the NPeg return stack and re-raise
+
+proc genExceptionCode(ms, ip, symTab: NimNode): NimNode =
+  quote:
+    let e = getCurrentException()
+    var trace: seq[StackTraceEntry]
+    push(`ms`.retStack, `ip`)
+    while `ms`.retStack.top > 0:
+      let ip = `ms`.retStack.pop()
+      let sym = `symTab`[ip]
+      trace.insert StackTraceEntry(procname: cstring(sym.repr), filename: cstring(sym.lineInfo.filename), line: sym.lineInfo.line)
+      # On older Nim versions e.trace is not accessible, in this case just
+      # dump the exception to stdout if npgStacktrace is enabled
+      when npegStacktrace:
+        echo $(sym.lineInfo) & ": " & sym.repr
+    when compiles(e.trace):
+      # drop the generated parser fn() from the trace and replace by the NPeg
+      # frames
+      discard e.trace.pop()
+      e.trace.add trace
+    raise
+
 # Convert the list of parser instructions into a Nim finite state machine
 # 
 # - sType is the base type of the subject; typically `char` but can be specified
@@ -354,7 +377,7 @@ proc genCode*(program: Program, sType, uType, uId: NimNode): NimNode =
     casesCode = genCasesCode(program, sType, uType, uId, ms, s, si, simax, ip)
     loopCode = genLoopCode(program, casesCode)
     traceCode = genTraceCode(program, sType, uType, uId, ms, s, si, simax, ip)
-
+    exceptionCode = genExceptionCode(ms, ip, newLit(program.symTab))
 
   # This is the result of genCode: a Parser object with a pointer to the
   # generated proc below doing the matching.
@@ -385,8 +408,11 @@ proc genCode*(program: Program, sType, uType, uId: NimNode): NimNode =
 
       # Emit trace and loop code
 
-      `traceCode`
-      `loopCode`
+      try:
+        `traceCode`
+        `loopCode`
+      except:
+        `exceptionCode`
 
       # When the parsing machine is done, copy the local copies of the matchstate
       # back, close the capture stack and collect all the captures in the match

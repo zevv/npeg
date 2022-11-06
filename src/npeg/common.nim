@@ -19,6 +19,7 @@ const
   npegExpand* = defined(npegExpand)
   npegGraph* = defined(npegGraph)
   npegGcsafe* = defined(npegGcsafe)
+  npegStacktrace* = defined(npegStacktrace)
 
   # Various optimizations. These can be disabled for testing purposes
   # or when suspecting bugs in the optimization stages
@@ -116,20 +117,24 @@ type
 
   Patt* = seq[Inst]
 
-  TwoWayTable*[X,Y] = ref object
-    x2y: Table[X, Y]
-    y2x: Table[Y, X]
+  Symbol* = object
+    ip*: int
+    name*: string
+    repr*: string
+    lineInfo*: LineInfo
 
-  Symtab* = TwoWayTable[string, int]
+  SymTab* = ref object
+    syms*: seq[Symbol]
 
   Rule* = object
     name*: string
     patt*: Patt
+    repr*: string
+    lineInfo*: LineInfo
 
   Program* = object
     patt*: Patt
-    symtab*: Symtab
-    listing*: seq[string]
+    symTab*: SymTab
 
   Template* = ref object
     name*: string
@@ -141,25 +146,32 @@ type
     templates*: Table[string, Template]
 
 #
-# Two-way table
+# SymTab implementation
 #
 
-proc add*[X,Y](s: TwoWayTable[X,Y], x: X, y: Y) =
-  s.x2y[x] = y
-  s.y2x[y] = x
+proc add*(s: SymTab, ip: int, name: string, repr: string = "", lineInfo: LineInfo = LineInfo()) =
+  let symbol = Symbol(ip: ip, name: name, repr: repr, lineInfo: lineInfo)
+  s.syms.add(symbol)
 
-proc contains*[X,Y](s: TwoWayTable[X,Y], y: Y): bool =
-  return y in s.y2x
+proc `[]`*(s: SymTab, ip: int): Symbol =
+  for sym in s.syms:
+    if ip >= sym.ip:
+      result = sym
 
-proc contains*[X,Y](s: TwoWayTable[X,Y], x: X): bool =
-  return x in s.x2y
+proc `[]`*(s: SymTab, name: string): Symbol =
+  for sym in s.syms:
+    if name == sym.name:
+      return sym
 
-proc `[]`*[X,Y](s: TwoWayTable[X,Y], y: Y): X =
-  return s.y2x[y]
+proc contains*(s: SymTab, ip: int): bool =
+  for sym in s.syms:
+    if ip == sym.ip:
+      return true
 
-proc `[]`*[X,Y](s: TwoWayTable[X,Y], x: X): Y =
-  return s.x2y[x]
-
+proc contains*(s: SymTab, name: string): bool =
+  for sym in s.syms:
+    if name == sym.name:
+      return true
 
 #
 # Some glue to report parse errors without having to pass the original
@@ -201,7 +213,7 @@ proc subIStrCmp*(s: openArray[char], slen: int, si: int, s2: string): bool =
   return true
 
 
-proc truncate(s: string, len: int): string =
+proc truncate*(s: string, len: int): string =
   result = s
   if result.len > len:
     result = result[0..len-1] & "..."
@@ -298,7 +310,7 @@ proc `$`*(i: Inst, ip=0): string =
 proc `$`*(program: Program): string =
   for ip, i in program.patt.pairs:
     if ip in program.symtab:
-      result.add "\n" & program.symtab[ip] & ":\n"
+      result.add "\n" & program.symTab[ip].repr & "\n"
     result.add align($ip, 4) & ": " & `$`(i, ip) & "\n"
 
 

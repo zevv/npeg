@@ -69,7 +69,8 @@ export NPegException, contains, `[]`, len
 proc pegAux(name: string, subjectType, userDataType, userDataId, n: NimNode): NimNode =
   var dot = newDot(name)
   var grammar = parseGrammar(n, dot)
-  let code = grammar.link(name, dot).genCode(subjectType, userDataType, userDataId)
+  var program = grammar.link(name, dot)
+  let code = program.genCode(subjectType, userDataType, userDataId)
   dot.dump()
   code
 
