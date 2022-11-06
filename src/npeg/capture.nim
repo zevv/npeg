@@ -77,14 +77,25 @@ proc collectCapturesRef*(caps: Captures): Ref =
     result.key = cap.name
     result.val = cap.s
 
-proc `[]`*[S](cs: Captures[S], i: int): Capture[S] =
+# The `Captures[S]` type is a seq wrapped in an object to allow boundary
+# checking on acesses with nicer error messages. The procs below allow easy
+# access to the captures from Nim code.
+
+proc getCapture[S](cs: Captures[S], i: int): Capture[S] =
   if i >= cs.capList.len:
     let msg = "Capture out of range, " & $i & " is not in [0.." & $cs.capList.high & "]"
     raise newException(NPegException, msg)
   cs.capList[i]
 
+proc `[]`*[S](cs: Captures[S], i: int): Capture[S] =
+  cs.getCapture(i)
+
 proc `[]`*[S](cs: Captures[S], i: BackwardsIndex): Capture[S] =
-  cs[cs.capList.len-i.int]
+  cs.getCapture(cs.capList.len-i.int)
+
+proc `[]`*[S](cs: Captures[S], range: HSlice[system.int, system.int]): seq[Capture[S]] =
+  for i in range:
+    result.add cs.getCapture(i)
 
 iterator items*[S](captures: Captures[S]): Capture[S] =
   for c in captures.capList:
