@@ -1423,6 +1423,14 @@ More examples can be found in tests/examples.nim.
 Here are some things I'd like to have implemented one day. Some are hard and
 require me to better understand what I'm doing first. In no particular order:
 
+- Handling left recursion: PEGs are typically not good at handling grammar
+  invoking left recursion, see 
+  https://en.wikipedia.org/wiki/Parsing_expression_grammar#Indirect_left_recursion
+  for an explanation of the problem. However, some smart people have found a way
+  to make this work anyway, but I am not yet able to understand this well enough
+  to implement this in NPeg.
+  https://github.com/zevv/npeg/blob/master/doc/papers/Left_recursion_in_parsing_expression_grammars.pdf
+
 - Design and implement a proper API for code block captures. The current API
   feels fragile and fragmented (`capture[], $1/$2, fail(), validate()`), and
   does not offer solid primitives to make custom match functions yet, something
