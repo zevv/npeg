@@ -1,4 +1,10 @@
 
+0.27.0 - 2022-11-06
+===================
+
+- Augment the Nim stack trace with the NPeg return stack on exceptions
+- Documentation updates
+
 0.26.0 - 2021-11-27
 ===================
 
