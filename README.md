@@ -1073,7 +1073,7 @@ occured:
 Error: unhandled exception: Parsing error at #14: "expected word" [NPegException]
 ```
 
-Note: this requires Nim 'devel' or version >= 1.6.x; on older versions you can
+Note: this requires Nim 'devel' or version > 1.6.x; on older versions you can
 use `-d:npegStackTrace` to make NPeg dump the stack to stdout.
 
 
@@ -1083,7 +1083,7 @@ NPeg does not support left recursion (this applies to PEGs in general). For
 example, the rule
 
 ```nim
-A <- A / 'a'
+A <- A | 'a'
 ```
 
 will cause an infinite loop because it allows for left-recursion of the
@@ -1092,7 +1092,7 @@ non-terminal `A`.
 Similarly, the grammar
 
 ```nim
-A <- B / 'a' A
+A <- B | 'a' A
 B <- A
 ```
 
@@ -1311,6 +1311,10 @@ operators. The reason for this is that the NPeg grammar is parsed by a Nim
 macro in order to allow code block captures to embed Nim code, which puts some
 limitations on the available syntax. Also, NPeg's operators are chosen so that
 they have the right precedence for PEGs.
+
+The result is that the grammer itself is expressed as valid Nim, which has the
+nice side effect of allowing syntax highlighting and code completion work with
+your favorite editor.
 
 
 ### Can NPeg be used to parse EBNF grammars?
