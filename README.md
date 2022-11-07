@@ -31,7 +31,7 @@ Some NPeg highlights:
 - NPeg can parse sequences of any data types, also making it suitable as a
   stage-two parser for lexed tokens.
 
-- NPeg can draw cool diagrams.
+- NPeg can draw [cool diagrams](/doc/example-railroad.png)
 
 ## Quickstart
 
@@ -1128,8 +1128,9 @@ echo r.captures()   # --> @["γ", "ν", "ω", "ρ", "ί", "ζ", "ω"]
 
 ### Syntax diagrams
 
-When compiled with `-d:npegGraph`, NPeg will dump syntax diagrams (also known
-as railroad diagrams) for all parsed rules.
+When compiled with `-d:npegGraph`, NPeg will dump 
+[syntax diagrams](https://en.wikipedia.org/wiki/Syntax_diagram)
+(also known as railroad diagrams) for all parsed rules.
 
 Syntax diagrams are sometimes helpful to understand or debug a grammar, or to
 get more insight in a grammars' complexity.
@@ -1150,6 +1151,8 @@ inf o──"INF:"─»───[number]───»┴─","─»┴┬─[lf]─
   make it clear that the input for not-predicates is not consumed.
 * Captures are boxed in a gray rectangle, optionally including the capture
   name.
+
+[Here](/doc/example-railroad.png) is a a larger example of an URL parser.
 
 ### Grammar graphs
 
