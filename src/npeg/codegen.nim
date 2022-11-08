@@ -338,23 +338,32 @@ proc genTraceCode*(program: Program, sType, uType, uId, ms, s, si, simax, ip: Ni
 
 proc genExceptionCode(ms, ip, symTab: NimNode): NimNode =
   quote:
-    let e = getCurrentException()
+
+    # Helper proc to add a stack frame for the given ip
     var trace: seq[StackTraceEntry]
-    push(`ms`.retStack, `ip`)
-    while `ms`.retStack.top > 0:
-      let ip = `ms`.retStack.pop()
-      let sym = `symTab`[ip]
+    let symTab = `symTab`
+    proc aux(ip: int) =
+      let sym = symTab[ip]
       trace.insert StackTraceEntry(procname: cstring(sym.repr), filename: cstring(sym.lineInfo.filename), line: sym.lineInfo.line)
       # On older Nim versions e.trace is not accessible, in this case just
       # dump the exception to stdout if npgStacktrace is enabled
       when npegStacktrace:
         echo $(sym.lineInfo) & ": " & sym.repr
+
+    # Emit current IP and unwind all addresses from the return stack
+    aux(`ip`)
+    while `ms`.retStack.top > 0:
+      aux(`ms`.retStack.pop())
+
+    let e = getCurrentException()
     when compiles(e.trace):
-      # drop the generated parser fn() from the trace and replace by the NPeg
-      # frames
+      # drop the generated parser fn() from the trace and replace by the NPeg frames
       discard e.trace.pop()
       e.trace.add trace
+
+    # Re-reaise the exception with the augmented stack trace
     raise
+
 
 # Convert the list of parser instructions into a Nim finite state machine
 # 
