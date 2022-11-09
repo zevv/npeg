@@ -115,20 +115,20 @@ proc newErrorPatt*(msg: string): Patt =
 # Add a choice/commit pair around pattern P, try to optimize head
 # fails when possible
 
-template addChoiceCommit(p: Patt, choiceOffset, commitOffset: int) =
+proc addChoiceCommit(addTo: var Patt, p: Patt, choiceOffset, commitOffset: int) =
   let (siShift, ipShift) = p.canShift(npegOptHeadFail)
   for n in 0..<ipShift:
-    result.add p[n]
-    result[result.high].failOffset = choiceOffset - n
-  result.add Inst(op: opChoice, ipOffset: choiceOffset - ipShift, siOffset: -siShift)
-  result.add p[ipShift..^1]
-  result.add Inst(op: opCommit, ipOffset: commitOffset)
+    addTo.add p[n]
+    addTo[addTo.high].failOffset = choiceOffset - n
+  addTo.add Inst(op: opChoice, ipOffset: choiceOffset - ipShift, siOffset: -siShift)
+  addTo.add p[ipShift..^1]
+  addTo.add Inst(op: opCommit, ipOffset: commitOffset)
 
 
 ### Prefixes
 
 proc `?`*(p: Patt): Patt =
-  p.addChoiceCommit(p.len+2, 1)
+  result.addChoiceCommit(p, p.len+2, 1)
 
 proc `*`*(p: Patt): Patt =
   var cs: CharSet
@@ -137,7 +137,7 @@ proc `*`*(p: Patt): Patt =
   else:
     if matchesEmpty(p):
       krak "'*' repeat argument matches empty subject"
-    p.addChoiceCommit(p.len+2, -p.len-1)
+    result.addChoiceCommit(p, p.len+2, -p.len-1)
 
 proc `+`*(p: Patt): Patt =
   result.add p
@@ -147,14 +147,14 @@ proc `>`*(p: Patt): Patt =
   return newPatt(p, ckVal)
 
 proc `!`*(p: Patt): Patt =
-  p.addChoiceCommit(p.len+3, 1)
+  result.addChoiceCommit(p, p.len+3, 1)
   result.add Inst(op: opFail)
 
 proc `&`*(p: Patt): Patt =
   result.add !(!p)
 
 proc `@`*(p: Patt): Patt =
-  p.addChoiceCommit(p.len+2, 3)
+  result.addChoiceCommit(p, p.len+2, 3)
   result.add Inst(op: opAny)
   result.add Inst(op: opJump, callOffset: - p.len - 3)
 
@@ -190,7 +190,7 @@ proc choice*(ps: openArray[Patt]): Patt =
   lenTot = foldl(ps, a + b.len+2, 0)
   for i, p in ps:
     if i < ps.high:
-      p.addChoiceCommit(p.len+2, lenTot-ip-p.len-3)
+      result.addChoiceCommit(p, p.len+2, lenTot-ip-p.len-3)
       ip += p.len + 2
     else:
       result.add p
