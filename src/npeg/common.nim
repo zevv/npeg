@@ -187,7 +187,6 @@ template krak*(n: NimNode, msg: string) =
   error "NPeg: error at '" & n.repr & "': " & msg & "\n", n
 
 template krak*(msg: string) =
-  echo "KRIK ", gCurErrorNode.repr
   krak gCurErrorNode, msg
 
 
