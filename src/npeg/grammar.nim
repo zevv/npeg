@@ -104,8 +104,7 @@ proc link*(grammar: Grammar, initial_name: string, dot: Dot = nil): Program =
       let ip = retPatt.len
       symTab.add(ip, name, rule.repr, rule.lineInfo)
       retPatt.add rule.patt
-      retPatt.add Inst(op: opReturn)
-      retPatt[retPatt.high].name = retPatt[retPatt.high-1].name
+      retPatt.add Inst(op: opReturn, name: rule.patt[0].name)
 
     for i in rule.patt:
       if i.op == opCall and i.callLabel notin symTab:
