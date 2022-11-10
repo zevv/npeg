@@ -156,7 +156,7 @@ proc genCasesCode*(program: Program, sType, uType, uId: NimNode, ms, s, si, sima
         let ip2 = newLit(ipNow + i.callOffset)
         quote:
           trace `ms`, `iname`, `opName`, `s`, `label` & ":" & $`ip2`
-          push(`ms`.retStack, `ip`+1)
+          push(`ms`.retStack, `ipNext`)
           `ip` = `ip2`
 
       of opJump:
