@@ -1,0 +1,2299 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta http-equiv="X-UA-Compatible" content="IE=edge">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="generator" content="Asciidoctor 2.0.17">
+<title>NPeg</title>
+<style>
+table {
+    border-collapse: separate;
+    border-spacing: 0.2em 0.6em;
+}
+
+*, *:before, *:after {
+    box-sizing: border-box;
+    -moz-box-sizing: border-box;
+    -webkit-box-sizing: border-box;
+}
+
+#header, #content, #footnotes, #footer {
+    width: 100%;
+    margin-left: auto;
+    margin-right: auto;
+    max-width: 45em;
+    position: relative;
+    padding-left: 1em;
+    padding-right: 1em
+}
+
+body {
+    background: #fcfaf7;
+    color: #222727;
+    margin-top: -1.8em;
+    font-family: "Fira Sans", "Open Sans", "Noto Sans", "DejaVu Sans", sans-serif;
+    line-height: 1.6;
+    tab-size: 4;
+    -moz-osx-font-smoothing: grayscale;
+    -webkit-font-smoothing: antialiased;
+}
+
+h1, h2, h3, #toctitle, .sidebarblock>.content>.title, h4, h5, h6 {
+    font-weight: 400;
+    font-style: normal;
+    color: #cb4b16;
+    margin-top: 2.5em;
+}
+
+h1 {
+  margin-top: 4.0em;
+}
+
+h3 {
+    font-style: italic;
+}
+
+code {
+    font-family: "Fira Mono", "Hack", "Noto Sans Mono", "DejaVu Sans Mono", monospace;
+    font-size: 0.9em;
+    font-weight: 400;
+}
+
+a {
+    color: #268bd2;
+    text-decoration-color: #7daed1;
+}
+
+a:hover, a:focus {
+    color: #cb4b16;
+    text-decoration-color: #cb4b16;
+}
+
+p {
+    font-size: 1.125em;
+    text-rendering: optimizeLegibility
+}
+
+
+*:not(pre)>code {
+    padding: 0.0em 0.35ex;
+    background-color: #eeebe2;
+    border-radius: 6px;
+    -webkit-border-radius: 6px;
+    word-wrap: break-word;
+}
+
+pre.rouge {
+  padding: 1.0em;
+}
+
+pre, pre>code {
+    line-height: 1.30;
+    font-family: "Fira Mono", "Hack", "Noto Sans Mono", "DejaVu Sans Mono", monospace;
+    font-size: 0.95em;
+    border-radius: 12px;
+    -webkit-border-radius: 12px;
+}
+
+td {
+    vertical-align: top;
+}
+
+.admonitionblock td.icon [class^="fa icon-"] {
+    font-size: 2.5em;
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, .5);
+}
+
+.admonitionblock>table td.icon {
+    text-align: center;
+    width: 80px;
+}
+
+.admonitionblock td.icon .icon-note:before {
+    content: "\f05a";
+    color: #586e75;
+}
+
+.admonitionblock td.icon .icon-warning:before {
+    content: "\f071";
+    color: #cb4b16;
+}
+
+.literalblock pre, .listingblock pre:not(.highlight), .listingblock pre[class="highlight"], .listingblock pre[class^="highlight "], .listingblock pre.CodeRay, .listingblock pre.prettyprint {
+    background: #eeebe2;
+    padding: 10px;
+}
+
+.listingblock>.title {
+    line-height: 1.0;
+    font-size: 0.95em;
+    color: #cb4b16;
+    font-weight: 400;
+    font-style: italic;
+    margin-bottom: -0.5em;
+}
+
+.conum[data-value] {
+    display: inline-block;
+    color: #fcfaf7;
+    background-color: #586e75;
+    border-radius: 5px;
+    -webkit-border-radius: 5px;
+    text-align: center;
+    font-size: 0.8em;
+    width: 3.0em;
+    line-height: 1.5em;
+    margin-right: 1em;
+    font-style: normal;
+    font-weight: bold;
+}
+
+hr {
+    border: solid #586e75;
+    border-width: 1px 0 0;
+    margin-top: 5em;
+}
+
+em, i {
+    font-style: italic;
+    line-height: inherit;
+}
+
+strong, b {
+    font-weight: bold;
+    line-height: inherit;
+}
+
+.conum[data-value]+b {
+    display: none;
+}
+
+.conum[data-value]:after {
+    content: attr(data-value)
+}
+
+pre .conum[data-value] {
+    position: relative;
+    top: -.125em;
+}
+
+b.conum * {
+    color: inherit!important;
+}
+
+ol li {
+    padding-left: 1em;
+}
+
+@media only screen and (min-width:850px) {
+    body.toc2 {
+        padding-left: 15em;
+        margin-top: -5em;
+    }
+
+    #toc.toc2 {
+        background: #fcfaf7;
+        position: fixed;
+        width: 15em;
+        left: 0;
+        top: 0;
+        border-right: 2px solid #efefed;
+        padding: 0.5em;
+        height: 100%;
+        overflow: auto;
+    }
+}
+
+#toc.toc2 #toctitle {
+    margin-top: 0;
+    margin-bottom: .8rem;
+    font-size: 1.25em;
+}
+#toc.toc2>ul {
+    font-size: 0.875em;
+    padding-left: 0.5em;
+}
+
+#toc.toc2 ul ul {
+    padding-left: 0.5em;
+}
+
+#toc.toc2 a {
+    text-decoration: none;
+}
+
+#toc.toc2 li {
+    margin-left: 0.5em;
+    margin-top: 0em;
+    margin-bottom: 0em;
+}
+
+</style>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
+</head>
+<body class="book toc2 toc-left">
+<div id="header">
+<h1>NPeg</h1>
+<div id="toc" class="toc2">
+<div id="toctitle">Table of Contents</div>
+<ul class="sectlevel1">
+<li><a href="#_quickstart">Quickstart</a></li>
+<li><a href="#_usage">Usage</a>
+<ul class="sectlevel2">
+<li><a href="#_simple_patterns">Simple patterns</a></li>
+<li><a href="#_grammars">Grammars</a></li>
+</ul>
+</li>
+<li><a href="#_syntax">Syntax</a>
+<ul class="sectlevel2">
+<li><a href="#_atoms">Atoms</a></li>
+<li><a href="#_operators">Operators</a></li>
+</ul>
+</li>
+<li><a href="#_precedence_operators">Precedence operators</a></li>
+<li><a href="#_captures">Captures</a>
+<ul class="sectlevel2">
+<li><a href="#_string_captures">String captures</a></li>
+<li><a href="#_code_block_captures">Code block captures</a>
+<ul class="sectlevel3">
+<li><a href="#_custom_match_validations">Custom match validations</a></li>
+<li><a href="#_passing_state">Passing state</a></li>
+</ul>
+</li>
+<li><a href="#_backreferences">Backreferences</a></li>
+</ul>
+</li>
+<li><a href="#_more_about_grammars">More about grammars</a>
+<ul class="sectlevel2">
+<li><a href="#_ordering_of_rules_in_a_grammar">Ordering of rules in a grammar</a></li>
+<li><a href="#_templates_or_parameterized_rules">Templates, or parameterized rules</a></li>
+<li><a href="#_composing_grammars_with_libraries">Composing grammars with libraries</a></li>
+<li><a href="#_library_rule_overridingshadowing">Library rule overriding/shadowing</a></li>
+</ul>
+</li>
+<li><a href="#_advanced_topics">Advanced topics</a>
+<ul class="sectlevel2">
+<li><a href="#_parsing_other_types_then_strings">Parsing other types then strings</a></li>
+</ul>
+</li>
+<li><a href="#_some_notes_on_using_pegs">Some notes on using PEGs</a>
+<ul class="sectlevel2">
+<li><a href="#_anchoring_and_searching">Anchoring and searching</a></li>
+<li><a href="#_end_of_string">End of string</a></li>
+<li><a href="#_non_consuming_atoms_and_captures">Non-consuming atoms and captures</a></li>
+<li><a href="#_parsing_error_handling">Parsing error handling</a></li>
+<li><a href="#_parser_stack_trace">Parser stack trace</a></li>
+<li><a href="#_left_recursion">Left recursion</a></li>
+<li><a href="#_utf_8_unicode">UTF-8 / Unicode</a></li>
+</ul>
+</li>
+<li><a href="#_tracing_and_debugging">Tracing and debugging</a>
+<ul class="sectlevel2">
+<li><a href="#_syntax_diagrams">Syntax diagrams</a></li>
+<li><a href="#_grammar_graphs">Grammar graphs</a></li>
+<li><a href="#_tracing">Tracing</a></li>
+</ul>
+</li>
+<li><a href="#_compile_time_configuration">Compile-time configuration</a></li>
+<li><a href="#_tracing_and_debugging_2">Tracing and debugging</a></li>
+<li><a href="#_random_stuff_and_frequently_asked_questions">Random stuff and frequently asked questions</a>
+<ul class="sectlevel2">
+<li><a href="#_why_does_npeg_not_support_regular_peg_syntax">Why does NPeg not support regular PEG syntax?</a></li>
+<li><a href="#_can_npeg_be_used_to_parse_ebnf_grammars">Can NPeg be used to parse EBNF grammars?</a></li>
+</ul>
+</li>
+<li><a href="#_examples">Examples</a>
+<ul class="sectlevel2">
+<li><a href="#_parsing_arithmetic_expressions">Parsing arithmetic expressions</a></li>
+<li><a href="#_a_complete_json_parser">A complete JSON parser</a></li>
+<li><a href="#_captures_2">Captures</a></li>
+<li><a href="#_more_examples">More examples</a></li>
+</ul>
+</li>
+<li><a href="#_future_directions_todos_roadmap_the_long_run">Future directions / Todos / Roadmap / The long run</a></li>
+</ul>
+</div>
+</div>
+<div id="content">
+<div id="preamble">
+<div class="sectionbody">
+<div class="quoteblock">
+<blockquote>
+<div class="paragraph">
+<p>"<em>Because friends don&#8217;t let friends write parsers by hand</em>"</p>
+</div>
+</blockquote>
+</div>
+<div class="paragraph">
+<p>NPeg is a pure Nim pattern matching library. It provides macros to compile
+patterns and grammars (PEGs) to Nim procedures which will parse a string and
+collect selected parts of the input. PEGs are not unlike regular expressions,
+but offer more power and flexibility, and have less ambiguities. (More about
+PEGs on [Wikipedia](<a href="https://en.wikipedia.org/wiki/Parsing_expression_grammar)" class="bare">https://en.wikipedia.org/wiki/Parsing_expression_grammar)</a>)</p>
+</div>
+<div class="paragraph">
+<p>Some use cases where NPeg is useful are configuration or data file parsers,
+robust protocol implementations, input validation, lexing of programming
+languages or domain specific languages.</p>
+</div>
+<div class="paragraph">
+<p>Some NPeg highlights:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>Grammar definitions and Nim code can be freely mixed. Nim code is embedded
+using the normal Nim code block syntax, and does not disrupt the grammar
+definition.</p>
+</li>
+<li>
+<p>NPeg-generated parsers can be used both at run and at compile time.</p>
+</li>
+<li>
+<p>NPeg offers various methods for tracing, optimizing and debugging
+your parsers.</p>
+</li>
+<li>
+<p>NPeg can parse sequences of any data types, also making it suitable as a
+stage-two parser for lexed tokens.</p>
+</li>
+<li>
+<p>NPeg can draw [cool diagrams](/doc/example-railroad.png)</p>
+</li>
+</ul>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_quickstart">Quickstart</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>Here is a simple example showing the power of NPeg: The macro <code>peg</code> compiles a
+grammar definition into a <code>parser</code> object, which is used to match a string and
+place the key-value pairs into the Nim table <code>words</code>:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code class="language-nim" data-lang="nim">import npeg, strutils, tables
+
+type Dict = Table[string, int]
+
+let parser = peg("pairs", d: Dict):
+  pairs &lt;- pair * *(',' * pair) * !1
+  word &lt;- +Alpha
+  number &lt;- +Digit
+  pair &lt;- &gt;word * '=' * &gt;number:
+    d[$1] = parseInt($2)
+
+var words: Table[string, int]
+doAssert parser.match("one=1,two=2,three=3,four=4", words).ok
+echo words</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Output:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code class="language-nim" data-lang="nim">{"two": 2, "three": 3, "one": 1, "four": 4}</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>A brief explanation of the above code:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>The macro <code>peg</code> is used to create a parser object, which uses <code>pairs</code> as the
+initial grammar rule to match. The variable <code>d</code> of type <code>Dict</code> will be available
+inside the code block parser for storing the parsed data.</p>
+</li>
+<li>
+<p>The rule <code>pairs</code> matches one <code>pair</code>, followed by zero or more times (<code>*</code>) a
+comma followed by a <code>pair</code>.</p>
+</li>
+<li>
+<p>The rules <code>word</code> and <code>number</code> match a sequence of one or more (<code>+</code>)
+alphabetic characters or digits, respectively. The <code>Alpha</code> and <code>Digit</code> rules
+are pre-defined rules matching the character classes <code>{'A'..'Z','a'..'z'}</code>
+and <code>{'0'..'9'}</code>.</p>
+</li>
+<li>
+<p>The rule <code>pair</code> matches a <code>word</code>, followed by an equals sign (<code>=</code>), followed
+by a <code>number</code>.</p>
+</li>
+<li>
+<p>The <code>word</code> and <code>number</code> in the <code>pair</code> rule are captured with the <code>&gt;</code>
+operator. The Nim code fragment below this rule is executed for every match,
+and stores the captured word and number in the <code>words</code> Nim table.</p>
+</li>
+</ul>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_usage">Usage</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>The <code>patt()</code> and <code>peg()</code> macros can be used to compile parser functions:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><code>patt()</code> creates a parser from a single anonymous pattern.</p>
+</li>
+<li>
+<p><code>peg()</code> allows the definition of a set of (potentially recursive) rules
+making up a complete grammar.</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>The result of these macros is an object of the type <code>Parser</code> which can be used
+to parse a subject:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code class="language-nim" data-lang="nim">proc match(p: Parser, s: string) = MatchResult
+proc matchFile(p: Parser, fname: string) = MatchResult</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>The above <code>match</code> functions returns an object of the type <code>MatchResult</code>:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code class="language-nim" data-lang="nim">MatchResult = object
+  ok: bool
+  matchLen: int
+  matchMax: int
+  ...</code></pre>
+</div>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><code>ok</code>: A boolean indicating if the matching succeeded without error. Note that
+a successful match does not imply that <strong>all of the subject</strong> was matched,
+unless the pattern explicitly matches the end-of-string.</p>
+</li>
+<li>
+<p><code>matchLen</code>: The number of input bytes of the subject that successfully
+matched.</p>
+</li>
+<li>
+<p><code>matchMax</code>: The highest index into the subject that was reached during
+parsing, <strong>even if matching was backtracked or did not succeed</strong>. This offset
+is usually a good indication of the location where the matching error
+occurred.</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>The string captures made during the parsing can be accessed with:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code class="language-nim" data-lang="nim">proc captures(m: MatchResult): seq[string]</code></pre>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_simple_patterns">Simple patterns</h3>
+<div class="paragraph">
+<p>A simple pattern can be compiled with the <code>patt</code> macro.</p>
+</div>
+<div class="paragraph">
+<p>For example, the pattern below splits a string by white space:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code class="language-nim" data-lang="nim">let parser = patt *(*' ' * &gt; +(1-' '))
+echo parser.match("   one two three ").captures</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Output:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code>@["one", "two", "three"]</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>The <code>patt</code> macro can take an optional code block which is used as code block
+capture for the pattern:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code class="language-nim" data-lang="nim">var key, val: string
+let p = patt &gt;+Digit * "=" * &gt;+Alpha:
+  (key, val) = ($1, $2)
+
+assert p.match("15=fifteen").ok
+echo key, " = ", val</code></pre>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_grammars">Grammars</h3>
+<div class="paragraph">
+<p>The <code>peg</code> macro provides a method to define (recursive) grammars. The first
+argument is the name of initial patterns, followed by a list of named patterns.
+Patterns can now refer to other patterns by name, allowing for recursion:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code class="language-nim" data-lang="nim">let parser = peg "ident":
+  lower &lt;- {'a'..'z'}
+  ident &lt;- *lower
+doAssert parser.match("lowercaseword").ok</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>The order in which the grammar patterns are defined affects the generated
+parser.
+Although NPeg could always reorder, this is a design choice to give the user
+more control over the generated parser:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>when a pattern <code>P1</code> refers to pattern <code>P2</code> which is defined <strong>before</strong> <code>P1</code>,
+<code>P2</code> will be inlined in <code>P1</code>.  This increases the generated code size, but
+generally improves performance.</p>
+</li>
+<li>
+<p>when a pattern <code>P1</code> refers to pattern <code>P2</code> which is defined <strong>after</strong> <code>P1</code>,
+<code>P2</code> will be generated as a subroutine which gets called from <code>P1</code>. This will
+reduce code size, but might also result in a slower parser.</p>
+</li>
+</ul>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_syntax">Syntax</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>The NPeg syntax is similar to normal PEG notation, but some changes were made
+to allow the grammar to be properly parsed by the Nim compiler:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>NPeg uses prefixes instead of suffixes for <code>*</code>, <code>+</code>, <code>-</code> and <code>?</code>.</p>
+</li>
+<li>
+<p>Ordered choice uses <code>|</code> instead of <code>/</code> because of operator precedence.</p>
+</li>
+<li>
+<p>The explicit <code>*</code> infix operator is used for sequences.</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>NPeg patterns and grammars can be composed from the following parts:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code class="language-nim" data-lang="nim">Atoms:
+
+   0              # matches always and consumes nothing
+   1              # matches any character
+   n              # matches exactly n characters
+  'x'             # matches literal character 'x'
+  "xyz"           # matches literal string "xyz"
+ i"xyz"           # matches literal string, case insensitive
+  {'x'..'y'}      # matches any character in the range from 'x'..'y'
+  {'x','y','z'}   # matches any character from the set
+
+Operators:
+
+   P1 * P2        # concatenation
+   P1 | P2        # ordered choice
+   P1 - P2        # matches P1 if P2 does not match
+  (P)             # grouping
+  !P              # matches everything but P
+  &amp;P              # matches P without consuming input
+  ?P              # matches P zero or one times
+  *P              # matches P zero or more times
+  +P              # matches P one or more times
+  @P              # search for P
+   P[n]           # matches P n times
+   P[m..n]        # matches P m to n times
+
+Precedence operators:
+
+  P ^ N           # P is left associative with precedence N
+  P ^^ N          # P is right associative with precedence N
+
+String captures:
+
+  &gt;P              # Captures the string matching  P
+
+Back references:
+
+  R("tag", P)     # Create a named reference for pattern P
+  R("tag")        # Matches the given named reference
+
+Error handling:
+
+  E"msg"          # Raise an execption with the given message</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>In addition to the above, NPeg provides the following built-in shortcuts for
+common atoms, corresponding to POSIX character classes:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code class="language-nim" data-lang="nim">  Alnum  &lt;- {'A'..'Z','a'..'z','0'..'9'}, # Alphanumeric characters
+  Alpha  &lt;- {'A'..'Z','a'..'z'},          # Alphabetic characters
+  Blank  &lt;- {' ','\t'},                   # Space and tab
+  Cntrl  &lt;- {'\x00'..'\x1f','\x7f'},      # Control characters
+  Digit  &lt;- {'0'..'9'},                   # Digits
+  Graph  &lt;- {'\x21'..'\x7e'},             # Visible characters
+  Lower  &lt;- {'a'..'z'},                   # Lowercase characters
+  Print  &lt;- {'\x21'..'\x7e',' '},         # Visible characters and spaces
+  Space  &lt;- {'\9'..'\13',' '},            # Whitespace characters
+  Upper  &lt;- {'A'..'Z'},                   # Uppercase characters
+  Xdigit &lt;- {'A'..'F','a'..'f','0'..'9'}, # Hexadecimal digits</code></pre>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_atoms">Atoms</h3>
+<div class="paragraph">
+<p>Atoms are the basic building blocks for a grammar, describing the parts of the
+subject that should be matched.</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>Integer literal: <code>0</code> / <code>1</code> / <code>n</code></p>
+<div class="literalblock">
+<div class="content">
+<pre>The int literal atom `n` matches exactly n number of bytes. `0` always
+matches, but does not consume any data.</pre>
+</div>
+</div>
+</li>
+<li>
+<p>Character and string literals: <code>'x'</code> / <code>"xyz"</code> / <code>i"xyz"</code></p>
+<div class="literalblock">
+<div class="content">
+<pre>Characters and strings are literally matched. If a string is prefixed with
+`i`, it will be matched case insensitive.</pre>
+</div>
+</div>
+</li>
+<li>
+<p>Character sets: <code>{'x','y'}</code></p>
+<div class="literalblock">
+<div class="content">
+<pre>Characters set notation is similar to native Nim. A set consists of zero or
+more comma separated characters or character ranges.</pre>
+</div>
+</div>
+<div class="literalblock">
+<div class="content">
+<pre>```nim
+ {'x'..'y'}    # matches any character in the range from 'x'..'y'
+ {'x','y','z'} # matches any character from the set 'x', 'y', and 'z'
+```</pre>
+</div>
+</div>
+<div class="literalblock">
+<div class="content">
+<pre>The set syntax `{}` is flexible and can take multiple ranges and characters
+in one expression, for example `{'0'..'9','a'..'f','A'..'F'}`.</pre>
+</div>
+</div>
+</li>
+</ul>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_operators">Operators</h3>
+<div class="paragraph">
+<p>NPeg provides various prefix and infix operators. These operators combine or
+transform one or more patterns into expressions, building larger patterns.</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>Concatenation: <code>P1 * P2</code></p>
+<div class="literalblock">
+<div class="content">
+<pre>```
+o──[P1]───[P2]──o
+```</pre>
+</div>
+</div>
+<div class="literalblock">
+<div class="content">
+<pre>The pattern `P1 * P2` returns a new pattern that matches only if first `P1`
+matches, followed by `P2`.</pre>
+</div>
+</div>
+<div class="literalblock">
+<div class="content">
+<pre>For example, `"foo" * "bar"` would only match the string `"foobar"`.</pre>
+</div>
+</div>
+</li>
+<li>
+<p>Ordered choice: <code>P1 | P2</code></p>
+<div class="literalblock">
+<div class="content">
+<pre>```
+o─┬─[P1]─┬─o
+  ╰─[P2]─╯
+```</pre>
+</div>
+</div>
+<div class="literalblock">
+<div class="content">
+<pre>The pattern `P1 | P2` tries to first match pattern `P1`. If this succeeds,
+matching will proceed without trying `P2`. Only if `P1` can not be matched,
+NPeg will backtrack and try to match `P2` instead. Once either `P1` or `P2` has
+matched, the choice will be final ("commited"), and no more backtracking will
+be possible for this choice.</pre>
+</div>
+</div>
+<div class="literalblock">
+<div class="content">
+<pre>For example `("foo" | "bar") * "fizz"` would match both `"foofizz"` and
+`"barfizz"`.</pre>
+</div>
+</div>
+<div class="literalblock">
+<div class="content">
+<pre>NPeg optimizes the `|` operator for characters and character sets: The
+pattern `'a' | 'b' | 'c'` will be rewritten to a character set
+`{'a','b','c'}`.</pre>
+</div>
+</div>
+</li>
+<li>
+<p>Difference: <code>P1 - P2</code></p>
+<div class="literalblock">
+<div class="content">
+<pre>The pattern `P1 - P2` matches `P1` *only* if `P2` does not match. This is
+equivalent to `!P2 * P1`:</pre>
+</div>
+</div>
+<div class="literalblock">
+<div class="content">
+<pre>```
+   ━━━━
+o──[P2]─»─[P1]──o
+```</pre>
+</div>
+</div>
+<div class="literalblock">
+<div class="content">
+<pre>NPeg optimizes the `-` operator for characters and character sets: The
+pattern `{'a','b','c'} - 'b'` will be rewritten to the character set
+`{'a','c'}`.</pre>
+</div>
+</div>
+</li>
+<li>
+<p>Grouping: <code>(P)</code></p>
+<div class="literalblock">
+<div class="content">
+<pre>Brackets are used to group patterns similar to normal arithmetic expressions.</pre>
+</div>
+</div>
+</li>
+<li>
+<p>Not-predicate: <code>!P</code></p>
+<div class="literalblock">
+<div class="content">
+<pre>```
+   ━━━
+o──[P]──o
+```</pre>
+</div>
+</div>
+<div class="literalblock">
+<div class="content">
+<pre>The pattern `!P` returns a pattern that matches only if the input does not
+match `P`.
+In contrast to most other patterns, this pattern does not consume any input.</pre>
+</div>
+</div>
+<div class="literalblock">
+<div class="content">
+<pre>A common usage for this operator is the pattern `!1`, meaning "only succeed
+if there is not a single character left to match" - which is only true for
+the end of the string.</pre>
+</div>
+</div>
+</li>
+<li>
+<p>And-predicate: <code>&amp;P</code></p>
+<div class="literalblock">
+<div class="content">
+<pre>```
+   ━━━
+   ━━━
+o──[P]──o
+```</pre>
+</div>
+</div>
+<div class="literalblock">
+<div class="content">
+<pre>The pattern `&amp;P` matches only if the input matches `P`, but will *not*
+consume any input. This is equivalent to `!!P`. This is denoted by a double
+negation in the railroad diagram, which is not very pretty unfortunately.</pre>
+</div>
+</div>
+</li>
+<li>
+<p>Optional: <code>?P</code></p>
+<div class="literalblock">
+<div class="content">
+<pre>```
+  ╭──»──╮
+o─┴─[P]─┴─o
+```</pre>
+</div>
+</div>
+<div class="literalblock">
+<div class="content">
+<pre>The pattern `?P` matches if `P` can be matched zero or more times, so
+essentially succeeds if `P` either matches or not.</pre>
+</div>
+</div>
+<div class="literalblock">
+<div class="content">
+<pre>For example, `?"foo" * bar"` matches both `"foobar"` and `"bar"`.</pre>
+</div>
+</div>
+</li>
+<li>
+<p>Match zero or more times: <code>*P</code></p>
+<div class="literalblock">
+<div class="content">
+<pre>```
+  ╭───»───╮
+o─┴┬─[P]─┬┴─o
+   ╰──«──╯
+```</pre>
+</div>
+</div>
+<div class="literalblock">
+<div class="content">
+<pre>The pattern `*P` tries to match as many occurrences of pattern `P` as
+possible - this operator always behaves *greedily*.</pre>
+</div>
+</div>
+<div class="literalblock">
+<div class="content">
+<pre>For example, `*"foo" * "bar"` matches `"bar"`, `"fooboar"`, `"foofoobar"`,
+etc.</pre>
+</div>
+</div>
+</li>
+<li>
+<p>Match one or more times: <code>+P</code></p>
+<div class="literalblock">
+<div class="content">
+<pre>```
+o─┬─[P]─┬─o
+  ╰──«──╯
+```</pre>
+</div>
+</div>
+<div class="literalblock">
+<div class="content">
+<pre>The pattern `+P` matches `P` at least once, but also more times.
+It is equivalent to the `P * *P` - this operator always behave *greedily*.</pre>
+</div>
+</div>
+</li>
+<li>
+<p>Search: <code>@P</code></p>
+<div class="literalblock">
+<div class="content">
+<pre>This operator searches for pattern `P` using an optimized implementation. It
+is equivalent to `s &lt;- *(1 - P) * P`, which can be read as "try to match as
+many characters as possible not matching `P`, and then match `P`:</pre>
+</div>
+</div>
+<div class="literalblock">
+<div class="content">
+<pre>```
+  ╭─────»─────╮
+  │  ━━━      │
+o─┴┬─[P]─»─1─┬┴»─[P]──o
+   ╰────«────╯
+```</pre>
+</div>
+</div>
+<div class="literalblock">
+<div class="content">
+<pre>Note that this operator does not allow capturing the skipped data up to the
+match; if this is required you can manually construct a grammar to do this.</pre>
+</div>
+</div>
+</li>
+<li>
+<p>Match exactly <code>n</code> times: <code>P[n]</code></p>
+<div class="literalblock">
+<div class="content">
+<pre>The pattern `P[n]` matches `P` exactly `n` times.</pre>
+</div>
+</div>
+<div class="literalblock">
+<div class="content">
+<pre>For example, `"foo"[3]` only matches the string `"foofoofoo"`:</pre>
+</div>
+</div>
+<div class="literalblock">
+<div class="content">
+<pre>```
+o──[P]─»─[P]─»─[P]──o
+```</pre>
+</div>
+</div>
+</li>
+<li>
+<p>Match <code>m</code> to <code>n</code> times: <code>P[m..n]</code></p>
+<div class="literalblock">
+<div class="content">
+<pre>The pattern `P[m..n]` matches `P` at least `m` and at most `n` times.</pre>
+</div>
+</div>
+<div class="literalblock">
+<div class="content">
+<pre>For example, `"foo[1,3]"` matches `"foo"`, `"foofoo"` and `"foofoofo"`:</pre>
+</div>
+</div>
+<div class="literalblock">
+<div class="content">
+<pre>```
+        ╭──»──╮ ╭──»──╮
+o──[P]─»┴─[P]─┴»┴─[P]─┴─o
+```</pre>
+</div>
+</div>
+</li>
+</ul>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_precedence_operators">Precedence operators</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>Note: This is an experimental feature, the implementation or API might change
+in the future.</p>
+</div>
+<div class="paragraph">
+<p>Precedence operators allows for the construction of "precedence climbing" or
+"Pratt parsers" with NPeg. The main use for this feature is building parsers
+for programming languages that follow the usual precedence and associativity
+rules of arithmetic expressions.</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>Left associative precedence of <code>N</code>: <code>P ^ N</code></p>
+</li>
+</ul>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code>   &lt;1&lt;
+o──[P]──o</code></pre>
+</div>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>Right associative precedence of <code>N</code>: <code>P ^^ N</code></p>
+</li>
+</ul>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code>   &gt;1&gt;
+o──[P]──o</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>During parsing NPeg keeps track of the current precedence level of the parsed
+expression - the default is <code>0</code> if no precedence has been assigned yet. When
+the <code>^</code> operator is matched, either one of the next three cases applies:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><code>P ^ N</code> where <code>N &gt; 0</code> and <code>N</code> is lower then the current precedence: in this
+case the current precedence is set to <code>N</code> and parsing of pattern <code>P</code>
+continues.</p>
+</li>
+<li>
+<p><code>P ^ N</code> where <code>N &gt; 0</code> and <code>N</code> is higher or equal then the current precedence:
+parsing will fail and backtrack.</p>
+</li>
+<li>
+<p><code>P ^ 0</code>: resets the current precedence to 0 and continues parsing. This main
+use case for this is parsing sub-expressions in parentheses.</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>The heart of a Prett parser in NPeg would look something like this:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code class="language-nim" data-lang="nim">exp &lt;- prefix * *infix
+
+parenExp &lt;- ( "(" * exp * ")" ) ^ 0
+
+prefix &lt;- number | parenExp
+
+infix &lt;- {'+','-'}    * exp ^  1 |
+         {'*','/'}    * exp ^  2 |
+         {'^'}        * exp ^^ 3:</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>More extensive documentation will be added later, for now take a look at the
+example in <code>tests/precedence.nim</code>.</p>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_captures">Captures</h2>
+<div class="sectionbody">
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code>     ╭╶╶╶╶╶╮
+s o────[P]────o
+     ╰╶╶╶╶╶╯</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>NPeg supports a number of ways to capture data when parsing a string.
+The various capture methods are described here, including a concise example.</p>
+</div>
+<div class="paragraph">
+<p>The capture examples below build on the following small PEG, which parses
+a comma separated list of key-value pairs:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code class="language-nim" data-lang="nim">const data = "one=1,two=2,three=3,four=4"
+
+let parser = peg "pairs":
+  pairs &lt;- pair * *(',' * pair) * !1
+  word &lt;- +Alpha
+  number &lt;- +Digit
+  pair &lt;- word * '=' * number
+
+let r = parser.match(data)</code></pre>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_string_captures">String captures</h3>
+<div class="paragraph">
+<p>The basic method for capturing is marking parts of the peg with the capture
+prefix <code>&gt;</code>. During parsing NPeg keeps track of all matches, properly discarding
+any matches which were invalidated by backtracking. Only when parsing has fully
+succeeded it creates a <code>seq[string]</code> of all matched parts, which is then
+returned in the <code>MatchData.captures</code> field.</p>
+</div>
+<div class="paragraph">
+<p>In the example, the <code>&gt;</code> capture prefix is added to the <code>word</code> and <code>number</code>
+rules, causing the matched words and numbers to be appended to the result
+capture <code>seq[string]</code>:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code class="language-nim" data-lang="nim">let parser = peg "pairs":
+  pairs &lt;- pair * *(',' * pair) * !1
+  word &lt;- +Alpha
+  number &lt;- +Digit
+  pair &lt;- &gt;word * '=' * &gt;number
+
+let r = parser.match(data)</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>The resulting list of captures is now:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code class="language-nim" data-lang="nim">@["one", "1", "two", "2", "three", "3", "four", "4"]</code></pre>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_code_block_captures">Code block captures</h3>
+<div class="paragraph">
+<p>Code block captures offer the most flexibility for accessing matched data in
+NPeg. This allows you to define a grammar with embedded Nim code for handling
+the data during parsing.</p>
+</div>
+<div class="paragraph">
+<p>Note that for code block captures, the Nim code gets executed during parsing,
+<strong>even if the match is part of a pattern that fails and is later backtracked</strong>.</p>
+</div>
+<div class="paragraph">
+<p>When a grammar rule ends with a colon <code>:</code>, the next indented block in the
+grammar is interpreted as Nim code, which gets executed when the rule has been
+matched. Any string captures that were made inside the rule are available to
+the Nim code in the injected variable <code>capture[]</code> of type <code>seq[Capture]</code>:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code>type Capture = object
+  s*: string      # The captured string
+  si*: int        # The index of the captured string in the subject</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>The total subject matched by the code block rule is available in <code>capture[0]</code>
+Any additional explicit <code>&gt;</code> string captures made by the rule or any of its
+child rules will be available as <code>capture[1]</code>, <code>capture[2]</code>, &#8230;&#8203;</p>
+</div>
+<div class="paragraph">
+<p>For convenience there is syntactic sugar available in the code block capture
+blocks:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>The variables <code>$0</code> to <code>$9</code> are rewritten to <code>capture[n].s</code> and can be used to
+access the captured strings. The <code>$</code> operator uses then usual Nim precedence,
+thus these variables might need parentheses or different ordering in some
+cases, for example <code>$1.parseInt</code> should be written as <code>parseInt($1)</code>.</p>
+</li>
+<li>
+<p>The variables <code>@0</code> to <code>@9</code> are rewritten to <code>capture[n].si</code> and can be used
+to access the offset in the subject of the matched captures.</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>Example:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code class="language-nim" data-lang="nim">let p = peg foo:
+  foo &lt;- &gt;(1 * &gt;1) * 1:
+    echo "$0 = ", $0
+    echo "$1 = ", $1
+    echo "$2 = ", $2
+
+echo p.match("abc").ok</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Will output</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code class="language-nim" data-lang="nim">$0 = abc
+$1 = ab
+$2 = b</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Code block captures consume all embedded string captures, so these captures
+will no longer be available after matching.</p>
+</div>
+<div class="paragraph">
+<p>A code block capture can also produce captures by calling the <code>push(s: string)</code>
+function from the code block. Note that this is an experimental feature and
+that the API might change in future versions.</p>
+</div>
+<div class="paragraph">
+<p>The example has been extended to capture each word and number with the <code>&gt;</code>
+string capture prefix. When the <code>pair</code> rule is matched, the attached code block
+is executed, which adds the parsed key and value to the <code>words</code> table.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code class="language-nim" data-lang="nim">from strutils import parseInt
+var words = initTable[string, int]()
+
+let parser = peg "pairs":
+  pairs &lt;- pair * *(',' * pair) * !1
+  word &lt;- +Alpha
+  number &lt;- +Digit
+  pair &lt;- &gt;word * '=' * &gt;number:
+    words[$1] = parseInt($2)
+
+let r = parser.match(data)</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>After the parsing finished, the <code>words</code> table will now contain:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code class="language-nim" data-lang="nim">{"two": 2, "three": 3, "one": 1, "four": 4}</code></pre>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_custom_match_validations">Custom match validations</h4>
+<div class="paragraph">
+<p>Code block captures can be used for additional validation of a captured string:
+the code block can call the functions <code>fail()</code> or <code>validate(bool)</code> to indicate
+if the match should succeed or fail. Failing matches are handled as if the
+capture itself failed and will result in the usual backtracking. When the
+<code>fail()</code> or <code>validate()</code> functions are not called, the match will succeed
+implicitly.</p>
+</div>
+<div class="paragraph">
+<p>For example, the following rule will check if a passed number is a valid
+<code>uint8</code> number:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code class="language-nim" data-lang="nim">uint8 &lt;- &gt;Digit[1..3]:
+  let v = parseInt($a)
+  validate v&gt;=0 and v&lt;=255</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>The following grammar will cause the whole parse to fail when the <code>error</code> rule
+matches:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code class="language-nim" data-lang="nim">error &lt;- 0:
+  fail()</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Note: The Nim code block is running within the NPeg parser context and in
+theory could access to its internal state - this could be used to create custom
+validator/matcher functions that can inspect the subject string, do lookahead
+or lookback, and adjust the subject index to consume input. At the time of
+writing, NPeg lacks a formal API or interface for this though, and I am not
+sure yet what this should look like - If you are interested in doing this,
+contact me so we can discuss the details.</p>
+</div>
+</div>
+<div class="sect3">
+<h4 id="_passing_state">Passing state</h4>
+<div class="paragraph">
+<p>NPeg allows passing of data of a specific type to the <code>match()</code> function, this
+value is then available inside code blocks as a variable. This mitigates the
+need for global variables for storing or retrieving data in access captures.</p>
+</div>
+<div class="paragraph">
+<p>The syntax for passing data in a grammar is:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code>peg(name, identifier: Type)</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>For example, the above parser can be rewritten as such:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code class="language-nim" data-lang="nim">type Dict = Table[string, int]
+
+let parser = peg("pairs", userdata: Dict):
+  pairs &lt;- pair * *(',' * pair) * !1
+  word &lt;- +Alpha
+  number &lt;- +Digit
+  pair &lt;- &gt;word * '=' * &gt;number:
+    userdata[$1] = parseInt($2)
+
+var words: Dict
+let r = parser.match(data, words)</code></pre>
+</div>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_backreferences">Backreferences</h3>
+<div class="paragraph">
+<p>Backreferences allow NPeg to match an exact string that matched earlier in the
+grammar. This can be useful to match repetitions of the same word, or for
+example to match so called here-documents in programming languages.</p>
+</div>
+<div class="paragraph">
+<p>For this, NPeg offers the <code>R</code> operator with the following two uses:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>The <code>R(name, P)</code> pattern creates a named reference for pattern <code>P</code> which can
+be referred to by name in other places in the grammar.</p>
+</li>
+<li>
+<p>The pattern <code>R(name)</code> matches the contents of the named reference that
+earlier been stored with <code>R(name, P)</code> pattern.</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>For example, the following rule will match only a string which will have the
+same character in the first and last position:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code>patt R("c", 1) * *(1 - R("c")) * R("c") * !1</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>The first part of the rule <code>R("c", 1)</code> will match any character, and store this
+in the named reference <code>c</code>. The second part will match a sequence of zero or
+more characters that do not match reference <code>c</code>, followed by reference <code>c</code>.</p>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_more_about_grammars">More about grammars</h2>
+<div class="sectionbody">
+<div class="sect2">
+<h3 id="_ordering_of_rules_in_a_grammar">Ordering of rules in a grammar</h3>
+<div class="paragraph">
+<p>Repetitive inlining of rules might cause a grammar to grow too large, resulting
+in a huge executable size and slow compilation. NPeg tries to mitigate this in
+two ways:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>Patterns that are too large will not be inlined, even if the above ordering
+rules apply.</p>
+</li>
+<li>
+<p>NPeg checks the size of the total grammar, and if it thinks it is too large
+it will fail compilation with the error message <code>NPeg: grammar too complex</code>.</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>Check the section "Compile-time configuration" below for more details about too
+complex grammars.</p>
+</div>
+<div class="paragraph">
+<p>The parser size and performance depends on many factors; when performance
+and/or code size matters, it pays to experiment with different orderings and
+measure the results.</p>
+</div>
+<div class="paragraph">
+<p>When in doubt, check the generated parser instructions by compiling with the
+<code>-d:npegTrace</code> or <code>-d:npegDotDir</code> flags - see the section Tracing and
+Debugging for more information.</p>
+</div>
+<div class="paragraph">
+<p>At this time the upper limit is 4096 rules, this might become a configurable
+number in a future release.</p>
+</div>
+<div class="paragraph">
+<p>For example, the following grammar will not compile because recursive inlining
+will cause it to expand to a parser with more then 4^6 = 4096 rules:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code>let p = peg "z":
+  f &lt;- 1
+  e &lt;- f * f * f * f
+  d &lt;- e * e * e * e
+  c &lt;- d * d * d * d
+  b &lt;- c * c * c * c
+  a &lt;- b * b * b * b
+  z &lt;- a * a * a * a</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>The fix is to change the order of the rules so that instead of inlining NPeg
+will use a calling mechanism:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code>let p = peg "z":
+  z &lt;- a * a * a * a
+  a &lt;- b * b * b * b
+  b &lt;- c * c * c * c
+  c &lt;- d * d * d * d
+  d &lt;- e * e * e * e
+  e &lt;- f * f * f * f
+  f &lt;- 1</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>When in doubt check the generated parser instructions by compiling with the
+<code>-d:npegTrace</code> flag - see the section Tracing and Debugging for more
+information.</p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_templates_or_parameterized_rules">Templates, or parameterized rules</h3>
+<div class="paragraph">
+<p>When building more complex grammars you may find yourself duplicating certain
+constructs in patterns over and over again. To avoid code repetition (DRY),
+NPeg provides a simple mechanism to allow the creation of parameterized rules.
+In good Nim-fashion these rules are called "templates". Templates are defined
+just like normal rules, but have a list of arguments, which are referred to in
+the rule. Technically, templates just perform a basic search-and-replace
+operation: every occurrence of a named argument is replaced by the exact
+pattern passed to the template when called.</p>
+</div>
+<div class="paragraph">
+<p>For example, consider the following grammar:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code class="language-nim" data-lang="nim">numberList &lt;- +Digit * *( ',' * +Digit)
+wordList &lt;- +Alpha * *( ',' * +Alpha)</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>This snippet uses a common pattern twice for matching lists: <code>p * *( ',' * p)</code>.
+This matches pattern <code>p</code>, followed by zero or more occurrences of a comma
+followed by pattern <code>p</code>. For example, <code>numberList</code> will match the string
+<code>1,22,3</code>.</p>
+</div>
+<div class="paragraph">
+<p>The above example can be parameterized with a template like this:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code class="language-nim" data-lang="nim">commaList(item) &lt;- item * *( ',' * item )
+numberList &lt;- commaList(+Digit)
+wordList &lt;- commaList(+Alpha)</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Here the template <code>commaList</code> is defined, and any occurrence of its argument
+'item' will be replaced with the patterns passed when calling the template.
+This template is used to define the more complex patterns <code>numberList</code> and
+<code>wordList</code>.</p>
+</div>
+<div class="paragraph">
+<p>Templates may invoke other templates recursively; for example the above can
+even be further generalized:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code class="language-nim" data-lang="nim">list(item, sep) &lt;- item * *( sep * item )
+commaList(item) &lt;- list(item, ',')
+numberList &lt;- commaList(+Digit)
+wordList &lt;- commaList(+Alpha)</code></pre>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_composing_grammars_with_libraries">Composing grammars with libraries</h3>
+<div class="paragraph">
+<p>For simple grammars it is usually fine to build all patterns from scratch from
+atoms and operators, but for more complex grammars it makes sense to define
+reusable patterns as basic building blocks.</p>
+</div>
+<div class="paragraph">
+<p>For this, NPeg keeps track of a global library of patterns and templates. The
+<code>grammar</code> macro can be used to add rules or templates to this library. All
+patterns in the library will be stored with a <strong>qualified</strong> identifier in the
+form <code>libraryname.patternname</code>, by which they can be referred to at a later
+time.</p>
+</div>
+<div class="paragraph">
+<p>For example, the following fragment defines three rules in the library with the
+name <code>number</code>. The rules will be stored in the global library and are referred
+to in the peg by their qualified names <code>number.dec</code>, <code>number.hex</code> and
+<code>number.oct</code>:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code class="language-nim" data-lang="nim">grammar "number":
+  dec &lt;- {'1'..'9'} * *{'0'..'9'}
+  hex &lt;- i"0x" * +{'0'..'9','a'..'f','A'..'F'}
+  oct &lt;- '0' * *{'0'..'9'}
+
+let p = peg "line":
+  line &lt;- int * *("," * int)
+  int &lt;- number.dec | number.hex | number.oct
+
+let r = p.match("123,0x42,0644")</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>NPeg offers a number of pre-defined libraries for your convenience, these can
+be found in the <code>npeg/lib</code> directory. A library an be imported with the regular
+Nim <code>import</code> statement, all rules defined in the imported file will then be
+added to NPeg&#8217;s global pattern library. For example:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code class="language-nim" data-lang="nim">import npeg/lib/uri</code></pre>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_library_rule_overridingshadowing">Library rule overriding/shadowing</h3>
+<div class="paragraph">
+<p>To allow the user to add custom captures to imported grammars or rules, it is
+possible to <strong>override</strong> or <strong>shadow</strong> an existing rule in a grammar.</p>
+</div>
+<div class="paragraph">
+<p>Overriding will replace the rule from the library with the provided new rule,
+allowing the caller to change parts of an imported grammar. A overridden rule
+is allowed to reference the original rule by name, which will cause the new
+rule to <strong>shadow</strong> the original rule. This will effectively rename the original
+rule and replace it with the newly defined rule which will call the original
+referred rule.</p>
+</div>
+<div class="paragraph">
+<p>For example, the following snippet will reuse the grammar from the <code>uri</code>
+library and capture some parts of the URI in a Nim object:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code class="language-nim" data-lang="nim">import npeg/lib/uri
+
+type Uri = object
+  host: string
+  scheme: string
+  path: string
+  port: int
+
+var myUri: Uri
+
+let parser = peg "line":
+  line &lt;- uri.URI
+  uri.scheme &lt;- &gt;uri.scheme: myUri.scheme = $1
+  uri.host &lt;- &gt;uri.host:     myUri.host = $1
+  uri.port &lt;- &gt;uri.port:     myUri.port = parseInt($1)
+  uri.path &lt;- &gt;uri.path:     myUri.path = $1
+
+echo parser.match("http://nim-lang.org:8080/one/two/three")
+echo myUri  # --&gt; (host: "nim-lang.org", scheme: "http", path: "/one/two/three", port: 8080)</code></pre>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_advanced_topics">Advanced topics</h2>
+<div class="sectionbody">
+<div class="sect2">
+<h3 id="_parsing_other_types_then_strings">Parsing other types then strings</h3>
+<div class="paragraph">
+<p>Note: This is an experimental feature, the implementation or API might change
+in the future.</p>
+</div>
+<div class="paragraph">
+<p>NPeg was originally designed to parse strings like a regular PEG engine, but
+has since evolved into a generic parser that can parse any subject of type
+<code>openArray[T]</code>. This section describes how to use this feature.</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>The <code>peg()</code> macro must be passed an additional argument specifying the base
+type <code>T</code> of the subject; the generated parser will then parse a subject of
+type <code>openArray[T]</code>. When not given, the default type is <code>char</code>, and the parser
+parsers <code>openArray[char]</code>, or more typically, <code>string</code>.</p>
+</li>
+<li>
+<p>When matching non-strings, some of the usual atoms like strings or character
+sets do not make sense in a grammar, instead the grammar uses literal atoms.
+Literals can be specified in square brackets and are interpreted as any Nim
+code: <code>[foo]</code>, <code>[1+1]</code> or <code>["foo"]</code> are all valid literals.</p>
+</li>
+<li>
+<p>When matching non-strings, captures will be limited to only a single element
+of the base type, as this makes more sense when parsing a token stream.</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>For an example of this feature check the example in <code>tests/lexparse.nim</code> - this
+implements a classic parser with separate lexing and parsing stages.</p>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_some_notes_on_using_pegs">Some notes on using PEGs</h2>
+<div class="sectionbody">
+<div class="sect2">
+<h3 id="_anchoring_and_searching">Anchoring and searching</h3>
+<div class="paragraph">
+<p>Unlike regular expressions, PEGs are always matched in <strong>anchored</strong> mode only:
+the defined pattern is matched from the start of the subject string.
+For example, the pattern <code>"bar"</code> does not match the string <code>"foobar"</code>.</p>
+</div>
+<div class="paragraph">
+<p>To search for a pattern in a stream, a construct like this can be used:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code class="language-nim" data-lang="nim">p &lt;- "bar"
+search &lt;- p | 1 * search</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>The above grammar first tries to match pattern <code>p</code>, or if that fails, matches
+any character <code>1</code> and recurs back to itself. Because searching is a common
+operation, NPeg provides the builtin <code>@P</code> operator for this.</p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_end_of_string">End of string</h3>
+<div class="paragraph">
+<p>PEGs do not care what is in the subject string after the matching succeeds. For
+example, the rule <code>"foo"</code> happily matches the string <code>"foobar"</code>. To make sure
+the pattern matches the end of string, this has to be made explicit in the
+pattern.</p>
+</div>
+<div class="paragraph">
+<p>The idiomatic notation for this is <code>!1</code>, meaning "only succeed if there is not
+a single character left to match" - which is only true for the end of the
+string.</p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_non_consuming_atoms_and_captures">Non-consuming atoms and captures</h3>
+<div class="paragraph">
+<p>The lookahead(<code>&amp;</code>) and not(<code>!</code>) operators may not consume any input, and make
+sure that after matching the internal parsing state of the parser is reset to
+as is was before the operator was started, including the state of the captures.
+This means that any captures made inside a <code>&amp;</code> and <code>!</code> block also are
+discarded. It is possible however to capture the contents of a non-consuming
+block with a code block capture, as these are <em>always</em> executed, even when the
+parser state is rolled back afterwards.</p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_parsing_error_handling">Parsing error handling</h3>
+<div class="paragraph">
+<p>NPeg offers a number of ways to handle errors during parsing a subject string:</p>
+</div>
+<div class="paragraph">
+<p>The <code>ok</code> field in the <code>MatchResult</code> indicates if the parser was successful:
+when the complete pattern has been matched this value will be set to <code>true</code>,
+if the complete pattern did not match the subject the value will be <code>false</code>.</p>
+</div>
+<div class="paragraph">
+<p>In addition to the <code>ok</code> field, the <code>matchMax</code> field indicates the maximum
+offset into the subject the parser was able to match the string. If the
+matching succeeded <code>matchMax</code> equals the total length of the subject, if the
+matching failed, the value of <code>matchMax</code> is usually a good indication of where
+in the subject string the error occurred.</p>
+</div>
+<div class="paragraph">
+<p>When, during matching, the parser reaches an <code>E"message"</code> atom in the grammar,
+NPeg will raise an <code>NPegException</code> exception with the given message.
+The typical use case for this atom is to be combine with the ordered choice <code>|</code>
+operator to generate helpful error messages.
+The following example illustrates this:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code class="language-nim" data-lang="nim">let parser = peg "list":
+  list &lt;- word * *(comma * word) * eof
+  eof &lt;- !1
+  comma &lt;- ','
+  word &lt;- +{'a'..'z'} | E"expected word"
+
+echo parser.match("one,two,three,")</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>The rule <code>word</code> looks for a sequence of one or more letters (<code>+{'a'..'z'}</code>). If
+can this not be matched the <code>E"expected word"</code> matches instead, raising an
+exception:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code>Error: unhandled exception: Parsing error at #14: "expected word" [NPegException]</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>The <code>NPegException</code> type contains the same two fields as <code>MatchResult</code> to
+indicate where in the subject string the match failed: <code>matchLen</code> and
+<code>matchMax</code>:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code class="language-nim" data-lang="nim">let a = patt 4 * E"boom"
+try:
+  doAssert a.match("12345").ok
+except NPegException as e:
+  echo "Parsing failed at position ", e.matchMax</code></pre>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_parser_stack_trace">Parser stack trace</h3>
+<div class="paragraph">
+<p>If an exception is raised from within an NPeg parser - either by the <code>E</code> atom
+or by nim code in a code block capture - NPeg will augment the Nim stack trace
+with frames indicating where in the grammar the exception occured.</p>
+</div>
+<div class="paragraph">
+<p>The above example will generate the following stack trace, note the last two
+entries which are added by NPeg and show the rules in which the exception
+occured:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code>/tmp/list.nim(9)         list
+./npeg/src/npeg.nim(142) match
+./npeg/src/npeg.nim(135) match
+/tmp/flop.nim(4)         list &lt;- word * *(comma * word) * eof
+/tmp/flop.nim(7)         word &lt;- +{'a' .. 'z'} | E"expected word"
+Error: unhandled exception: Parsing error at #14: "expected word" [NPegException]</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>Note: this requires Nim 'devel' or version &gt; 1.6.x; on older versions you can
+use <code>-d:npegStackTrace</code> to make NPeg dump the stack to stdout.</p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_left_recursion">Left recursion</h3>
+<div class="paragraph">
+<p>NPeg does not support left recursion (this applies to PEGs in general). For
+example, the rule</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code class="language-nim" data-lang="nim">A &lt;- A | 'a'</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>will cause an infinite loop because it allows for left-recursion of the
+non-terminal <code>A</code>.</p>
+</div>
+<div class="paragraph">
+<p>Similarly, the grammar</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code class="language-nim" data-lang="nim">A &lt;- B | 'a' A
+B &lt;- A</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>is problematic because it is mutually left-recursive through the non-terminal
+<code>B</code>.</p>
+</div>
+<div class="paragraph">
+<p>Note that loops of patterns that can match the empty string will not result in
+the expected behavior. For example, the rule <code>*0</code> will cause the parser to
+stall and go into an infinite loop.</p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_utf_8_unicode">UTF-8 / Unicode</h3>
+<div class="paragraph">
+<p>NPeg has no built-in support for Unicode or UTF-8, instead is simply able to
+parse UTF-8 documents just as like any other string. NPeg comes with a simple
+UTF-8 grammar library which should simplify common operations like matching a
+single code point or character class. The following grammar splits an UTF-8
+document into separate characters/glyphs by using the <code>utf8.any</code> rule:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code class="language-nim" data-lang="nim">import npeg/lib/utf8
+
+let p = peg "line":
+  line &lt;- +char
+  char &lt;- &gt;utf8.any
+
+let r = p.match("γνωρίζω")
+echo r.captures()   # --&gt; @["γ", "ν", "ω", "ρ", "ί", "ζ", "ω"]</code></pre>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_tracing_and_debugging">Tracing and debugging</h2>
+<div class="sectionbody">
+<div class="sect2">
+<h3 id="_syntax_diagrams">Syntax diagrams</h3>
+<div class="paragraph">
+<p>When compiled with <code>-d:npegGraph</code>, NPeg will dump
+[syntax diagrams](<a href="https://en.wikipedia.org/wiki/Syntax_diagram" class="bare">https://en.wikipedia.org/wiki/Syntax_diagram</a>)
+(also known as railroad diagrams) for all parsed rules.</p>
+</div>
+<div class="paragraph">
+<p>Syntax diagrams are sometimes helpful to understand or debug a grammar, or to
+get more insight in a grammars' complexity.</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code>                              ╭─────────»──────────╮
+                              │      ╭─────»──────╮│
+                ╭╶╶╶╶╶╶╶╶╶╶╮  │      │  ━━━━      ││         ╭╶╶╶╶╶╶╶╮
+inf o──"INF:"─»───[number]───»┴─","─»┴┬─[lf]─»─1─┬┴┴»─[lf]─»───[url]────o
+                ╰╶╶╶╶╶╶╶╶╶╶╯          ╰────«─────╯           ╰╶╶╶╶╶╶╶╯</code></pre>
+</div>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>Optionals (<code>?</code>) are indicated by a forward arrow overhead.</p>
+</li>
+<li>
+<p>Repeats ('+') are indicated by a backwards arrow underneath.</p>
+</li>
+<li>
+<p>Literals (strings, chars, sets) are printed in purple.</p>
+</li>
+<li>
+<p>Non-terminals are printed in cyan between square brackets.</p>
+</li>
+<li>
+<p>Not-predicates (<code>!</code>) are overlined in red. Note that the diagram does not
+make it clear that the input for not-predicates is not consumed.</p>
+</li>
+<li>
+<p>Captures are boxed in a gray rectangle, optionally including the capture
+name.</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>[Here](/doc/example-railroad.png) is a a larger example of an URL parser.</p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_grammar_graphs">Grammar graphs</h3>
+<div class="paragraph">
+<p>NPeg can generate a graphical representation of a grammar to show the relations
+between rules. The generated output is a <code>.dot</code> file which can be processed by
+the Graphviz tool to generate an actual image file.</p>
+</div>
+<div class="paragraph">
+<p>When compiled with <code>-d:npegDotDir=&lt;PATH&gt;</code>, NPeg will generate a <code>.dot</code> file for
+each grammar in the code and write it to the given directory.</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>Edge colors represent the rule relation:
+grey=inline, blue=call, green=builtin</p>
+</li>
+<li>
+<p>Rule colors represent the relative size/complexity of a rule:
+black=&lt;10, orange=10..100, red&#8658;100</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>Large rules result in larger generated code and slow compile times. Rule size
+can generally be decreased by changing the rule order in a grammar to allow
+NPeg to call rules instead of inlining them.</p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_tracing">Tracing</h3>
+<div class="paragraph">
+<p>When compiled with <code>-d:npegTrace</code>, NPeg will dump its intermediate
+representation of the compiled PEG, and will dump a trace of the execution
+during matching. These traces can be used for debugging or optimization of a
+grammar.</p>
+</div>
+<div class="paragraph">
+<p>For example, the following program:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code class="language-nim" data-lang="nim">let parser = peg "line":
+  space &lt;- ' '
+  line &lt;- word * *(space * word)
+  word &lt;- +{'a'..'z'}
+
+discard parser.match("one two")</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>will output the following intermediate representation at compile time. From
+the IR it can be seen that the <code>space</code> rule has been inlined in the <code>line</code>
+rule, but that the <code>word</code> rule has been emitted as a subroutine which gets
+called from <code>line</code>:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code>line:
+   0: line           opCall 6 word        word
+   1: line           opChoice 5           *(space * word)
+   2:  space         opStr " "            ' '
+   3: line           opCall 6 word        word
+   4: line           opPartCommit 2       *(space * word)
+   5:                opReturn
+
+word:
+   6: word           opSet '{'a'..'z'}'   {'a' .. 'z'}
+   7: word           opSpan '{'a'..'z'}'  +{'a' .. 'z'}
+   8:                opReturn</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>At runtime, the following trace is generated. The trace consists of a number
+of columns:</p>
+</div>
+<div class="olist arabic">
+<ol class="arabic">
+<li>
+<p>The current instruction pointer, which maps to the compile time dump.</p>
+</li>
+<li>
+<p>The index into the subject.</p>
+</li>
+<li>
+<p>The substring of the subject.</p>
+</li>
+<li>
+<p>The name of the rule from which this instruction originated.</p>
+</li>
+<li>
+<p>The instruction being executed.</p>
+</li>
+<li>
+<p>The backtrace stack depth.</p>
+</li>
+</ol>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code>  0|  0|one two                 |line           |call -&gt; word:6                          |
+  6|  0|one two                 |word           |set {'a'..'z'}                          |
+  7|  1|ne two                  |word           |span {'a'..'z'}                         |
+  8|  3| two                    |               |return                                  |
+  1|  3| two                    |line           |choice -&gt; 5                             |
+  2|  3| two                    | space         |chr " "                                 |*
+  3|  4|two                     |line           |call -&gt; word:6                          |*
+  6|  4|two                     |word           |set {'a'..'z'}                          |*
+  7|  5|wo                      |word           |span {'a'..'z'}                         |*
+  8|  7|                        |               |return                                  |*
+  4|  7|                        |line           |pcommit -&gt; 2                            |*
+  2|  7|                        | space         |chr " "                                 |*
+   |  7|                        |               |fail                                    |*
+  5|  7|                        |               |return (done)                           |</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>The exact meaning of the IR instructions is not discussed here.</p>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_compile_time_configuration">Compile-time configuration</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>NPeg has a number of configurable setting which can be configured at compile
+time by passing flags to the compiler. The default values should be ok in most
+cases, but if you ever run into one of those limits you are free to configure
+those to your liking:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><code>-d:npegPattMaxLen=N</code> This is the maximum allowed length of NPeg&#8217;s internal
+representation of a parser, before it gets translated to Nim code. The reason
+to check for an upper limit is that some grammars can grow exponentially by
+inlining of patterns, resulting in slow compile times and oversized
+executable size. (default: 4096)</p>
+</li>
+<li>
+<p><code>-d:npegInlineMaxLen=N</code> This is the maximum allowed length of a pattern to be
+inlined. Inlining generally results in a faster parser, but also increases
+code size. It is valid to set this value to 0; in that case NPeg will never
+inline patterns and use a calling mechanism instead, this will result in the
+smallest code size. (default: 50)</p>
+</li>
+<li>
+<p><code>-d:npegRetStackSize=N</code> Maximum allowed depth of the return stack for the
+parser. The default value should be high enough for practical purposes, the
+stack depth is only limited to detect invalid grammars. (default: 1024)</p>
+</li>
+<li>
+<p><code>-d:npegBackStackSize=N</code> Maximum allowed depth of the backtrace stack for the
+parser. The default value should be high enough for practical purposes, the
+stack depth is only limited to detect invalid grammars. (default: 1024)</p>
+</li>
+<li>
+<p><code>-d:npegGcsafe</code> This is a workaround for the case where NPeg needs to be used
+from a <code>{.gcsafe.}</code> context when using threads. This will mark the generated
+matching function to be <code>{.gcsafe.}</code>.</p>
+</li>
+</ul>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_tracing_and_debugging_2">Tracing and debugging</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>NPeg has a number of compile time flags to enable tracing and debugging of the
+generated parser:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><code>-d:npegTrace</code>: Enable compile time and run time tracing. Please refer to the
+section 'Tracing' for more details.</p>
+</li>
+<li>
+<p><code>-d:npegGraph</code>: Dump syntax diagrams of all parsed rules at compile time.</p>
+</li>
+</ul>
+</div>
+<div class="paragraph">
+<p>These flags are meant for debugging NPeg itself, and are typically not useful
+to the end user:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p><code>-d:npegDebug</code>: Enable more debug info. Meant for NPeg development debugging
+purposes only.</p>
+</li>
+<li>
+<p><code>-d:npegExpand</code>: Dump the generated Nim code for all parsers defined in the
+program. Meant for NPeg development debugging purposes only.</p>
+</li>
+<li>
+<p><code>-d:npegStacktrace</code>: When enabled, NPeg will dump a stack trace of the
+current position in the parser when an exception is thrown by NPeg itself or
+by Nim code in code block captures.</p>
+</li>
+</ul>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_random_stuff_and_frequently_asked_questions">Random stuff and frequently asked questions</h2>
+<div class="sectionbody">
+<div class="sect2">
+<h3 id="_why_does_npeg_not_support_regular_peg_syntax">Why does NPeg not support regular PEG syntax?</h3>
+<div class="paragraph">
+<p>The NPeg syntax is similar, but not exactly the same as the official PEG
+syntax: it uses some different operators, and prefix instead of postfix
+operators. The reason for this is that the NPeg grammar is parsed by a Nim
+macro in order to allow code block captures to embed Nim code, which puts some
+limitations on the available syntax. Also, NPeg&#8217;s operators are chosen so that
+they have the right precedence for PEGs.</p>
+</div>
+<div class="paragraph">
+<p>The result is that the grammer itself is expressed as valid Nim, which has the
+nice side effect of allowing syntax highlighting and code completion work with
+your favorite editor.</p>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_can_npeg_be_used_to_parse_ebnf_grammars">Can NPeg be used to parse EBNF grammars?</h3>
+<div class="paragraph">
+<p>Almost, but not quite. Although PEGS and EBNF look quite similar, there are
+some subtle but important differences which do not allow a literal translation
+from EBNF to PEG. Notable differences are left recursion and ordered choice.
+Also, see "From EBNF to PEG" from Roman R. Redziejowski.</p>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_examples">Examples</h2>
+<div class="sectionbody">
+<div class="sect2">
+<h3 id="_parsing_arithmetic_expressions">Parsing arithmetic expressions</h3>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code class="language-nim" data-lang="nim">let parser = peg "line":
+  exp      &lt;- term   * *( ('+'|'-') * term)
+  term     &lt;- factor * *( ('*'|'/') * factor)
+  factor   &lt;- +{'0'..'9'} | ('(' * exp * ')')
+  line     &lt;- exp * !1
+
+doAssert parser.match("3*(4+15)+2").ok</code></pre>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_a_complete_json_parser">A complete JSON parser</h3>
+<div class="paragraph">
+<p>The following PEG defines a complete parser for the JSON language - it will not
+produce any captures, but simple traverse and validate the document:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code class="language-nim" data-lang="nim">let s = peg "doc":
+  S              &lt;- *Space
+  jtrue          &lt;- "true"
+  jfalse         &lt;- "false"
+  jnull          &lt;- "null"
+
+  unicodeEscape  &lt;- 'u' * Xdigit[4]
+  escape         &lt;- '\\' * ({ '{', '"', '|', '\\', 'b', 'f', 'n', 'r', 't' } | unicodeEscape)
+  stringBody     &lt;- ?escape * *( +( {'\x20'..'\xff'} - {'"'} - {'\\'}) * *escape)
+  jstring         &lt;- ?S * '"' * stringBody * '"' * ?S
+
+  minus          &lt;- '-'
+  intPart        &lt;- '0' | (Digit-'0') * *Digit
+  fractPart      &lt;- "." * +Digit
+  expPart        &lt;- ( 'e' | 'E' ) * ?( '+' | '-' ) * +Digit
+  jnumber         &lt;- ?minus * intPart * ?fractPart * ?expPart
+
+  doc            &lt;- JSON * !1
+  JSON           &lt;- ?S * ( jnumber | jobject | jarray | jstring | jtrue | jfalse | jnull ) * ?S
+  jobject        &lt;- '{' * ( jstring * ":" * JSON * *( "," * jstring * ":" * JSON ) | ?S ) * "}"
+  jarray         &lt;- "[" * ( JSON * *( "," * JSON ) | ?S ) * "]"
+
+doAssert s.match(json).ok
+
+let doc = """ {"jsonrpc": "2.0", "method": "subtract", "params": [42, 23], "id": 1} """
+doAssert parser.match(doc).ok</code></pre>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_captures_2">Captures</h3>
+<div class="paragraph">
+<p>The following example shows how to use code block captures. The defined
+grammar will parse a HTTP response document and extract structured data from
+the document into a Nim object:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code class="language-nim" data-lang="nim">import npeg, strutils, tables
+
+type
+  Request = object
+    proto: string
+    version: string
+    code: int
+    message: string
+    headers: Table[string, string]
+
+# HTTP grammar (simplified)
+
+let parser = peg("http", userdata: Request):
+  space       &lt;- ' '
+  crlf        &lt;- '\n' * ?'\r'
+  url         &lt;- +(Alpha | Digit | '/' | '_' | '.')
+  eof         &lt;- !1
+  header_name &lt;- +(Alpha | '-')
+  header_val  &lt;- +(1-{'\n'}-{'\r'})
+  proto       &lt;- &gt;+Alpha:
+    userdata.proto = $1
+  version     &lt;- &gt;(+Digit * '.' * +Digit):
+    userdata.version = $1
+  code        &lt;- &gt;+Digit:
+    userdata.code = parseInt($1)
+  msg         &lt;- &gt;(+(1 - '\r' - '\n')):
+    userdata.message = $1
+  header      &lt;- &gt;header_name * ": " * &gt;header_val:
+    userdata.headers[$1] = $2
+  response    &lt;- proto * '/' * version * space * code * space * msg
+  headers     &lt;- *(header * crlf)
+  http        &lt;- response * crlf * headers * eof
+
+
+# Parse the data and print the resulting table
+
+const data = """
+HTTP/1.1 301 Moved Permanently
+Content-Length: 162
+Content-Type: text/html
+Location: https://nim.org/
+"""
+
+var request: Request
+let res = parser.match(data, request)
+echo request</code></pre>
+</div>
+</div>
+<div class="paragraph">
+<p>The resulting data:</p>
+</div>
+<div class="listingblock">
+<div class="content">
+<pre class="highlight"><code class="language-nim" data-lang="nim">(
+  proto: "HTTP",
+  version: "1.1",
+  code: 301,
+  message: "Moved Permanently",
+  headers: {
+    "Content-Length": "162",
+    "Content-Type":
+    "text/html",
+    "Location": "https://nim.org/"
+  }
+)</code></pre>
+</div>
+</div>
+</div>
+<div class="sect2">
+<h3 id="_more_examples">More examples</h3>
+<div class="paragraph">
+<p>More examples can be found in tests/examples.nim.</p>
+</div>
+</div>
+</div>
+</div>
+<div class="sect1">
+<h2 id="_future_directions_todos_roadmap_the_long_run">Future directions / Todos / Roadmap / The long run</h2>
+<div class="sectionbody">
+<div class="paragraph">
+<p>Here are some things I&#8217;d like to have implemented one day. Some are hard and
+require me to better understand what I&#8217;m doing first. In no particular order:</p>
+</div>
+<div class="ulist">
+<ul>
+<li>
+<p>Handling left recursion: PEGs are typically not good at handling grammar
+invoking left recursion, see
+<a href="https://en.wikipedia.org/wiki/Parsing_expression_grammar#Indirect_left_recursion" class="bare">https://en.wikipedia.org/wiki/Parsing_expression_grammar#Indirect_left_recursion</a>
+for an explanation of the problem. However, some smart people have found a way
+to make this work anyway, but I am not yet able to understand this well enough
+to implement this in NPeg.
+<a href="https://github.com/zevv/npeg/blob/master/doc/papers/Left_recursion_in_parsing_expression_grammars.pdf" class="bare">https://github.com/zevv/npeg/blob/master/doc/papers/Left_recursion_in_parsing_expression_grammars.pdf</a></p>
+</li>
+<li>
+<p>Design and implement a proper API for code block captures. The current API
+feels fragile and fragmented (<code>capture[], $1/$2, fail(), validate()</code>), and
+does not offer solid primitives to make custom match functions yet, something
+better should be in place before NPeg goes v1.0.</p>
+</li>
+<li>
+<p>Resuming/streaming: The current parser is almost ready to be invoked multiple
+times, resuming parsing where it left off - this should allow parsing of
+(infinite) streams. The only problem not solved yet is how to handle
+captures: when a block of data is parsed it might contain data which must
+later be available to collect the capture. Not sure how to handle this yet.</p>
+</li>
+<li>
+<p>Memoization: I guess it would be possible to add (limited) memoization to
+improve performance, but no clue where to start yet.</p>
+</li>
+<li>
+<p>Parallelization: I wonder if parsing can parallelized: when reaching an
+ordered choice, multiple threads should be able to try to parse each
+individual choice. I do see problems with captures here, though.</p>
+</li>
+<li>
+<p>I&#8217;m not happy about the <code>{.gcsafe.}</code> workaround. I&#8217;d be happy to hear any
+ideas on how to improve this.</p>
+</li>
+</ul>
+</div>
+</div>
+</div>
+</div>
+</body>
+</html>

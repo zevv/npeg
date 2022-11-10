@@ -1,0 +1,221 @@
+table {
+    border-collapse: separate;
+    border-spacing: 0.2em 0.6em;
+}
+
+*, *:before, *:after {
+    box-sizing: border-box;
+    -moz-box-sizing: border-box;
+    -webkit-box-sizing: border-box;
+}
+
+#header, #content, #footnotes, #footer {
+    width: 100%;
+    margin-left: auto;
+    margin-right: auto;
+    max-width: 45em;
+    position: relative;
+    padding-left: 1em;
+    padding-right: 1em
+}
+
+body {
+    background: #fcfaf7;
+    color: #222727;
+    margin-top: -1.8em;
+    font-family: "Fira Sans", "Open Sans", "Noto Sans", "DejaVu Sans", sans-serif;
+    line-height: 1.6;
+    tab-size: 4;
+    -moz-osx-font-smoothing: grayscale;
+    -webkit-font-smoothing: antialiased;
+}
+
+h1, h2, h3, #toctitle, .sidebarblock>.content>.title, h4, h5, h6 {
+    font-weight: 400;
+    font-style: normal;
+    color: #cb4b16;
+    margin-top: 2.5em;
+}
+
+h1 {
+  margin-top: 4.0em;
+}
+
+h3 {
+    font-style: italic;
+}
+
+code {
+    font-family: "Fira Mono", "Hack", "Noto Sans Mono", "DejaVu Sans Mono", monospace;
+    font-size: 0.9em;
+    font-weight: 400;
+}
+
+a {
+    color: #268bd2;
+    text-decoration-color: #7daed1;
+}
+
+a:hover, a:focus {
+    color: #cb4b16;
+    text-decoration-color: #cb4b16;
+}
+
+p {
+    font-size: 1.125em;
+    text-rendering: optimizeLegibility
+}
+
+
+*:not(pre)>code {
+    padding: 0.0em 0.35ex;
+    background-color: #eeebe2;
+    border-radius: 6px;
+    -webkit-border-radius: 6px;
+    word-wrap: break-word;
+}
+
+pre.rouge {
+  padding: 1.0em;
+}
+
+pre, pre>code {
+    line-height: 1.30;
+    font-family: "Fira Mono", "Hack", "Noto Sans Mono", "DejaVu Sans Mono", monospace;
+    font-size: 0.95em;
+    border-radius: 12px;
+    -webkit-border-radius: 12px;
+}
+
+td {
+    vertical-align: top;
+}
+
+.admonitionblock td.icon [class^="fa icon-"] {
+    font-size: 2.5em;
+    text-shadow: 1px 1px 2px rgba(0, 0, 0, .5);
+}
+
+.admonitionblock>table td.icon {
+    text-align: center;
+    width: 80px;
+}
+
+.admonitionblock td.icon .icon-note:before {
+    content: "\f05a";
+    color: #586e75;
+}
+
+.admonitionblock td.icon .icon-warning:before {
+    content: "\f071";
+    color: #cb4b16;
+}
+
+.literalblock pre, .listingblock pre:not(.highlight), .listingblock pre[class="highlight"], .listingblock pre[class^="highlight "], .listingblock pre.CodeRay, .listingblock pre.prettyprint {
+    background: #eeebe2;
+    padding: 10px;
+}
+
+.listingblock>.title {
+    line-height: 1.0;
+    font-size: 0.95em;
+    color: #cb4b16;
+    font-weight: 400;
+    font-style: italic;
+    margin-bottom: -0.5em;
+}
+
+.conum[data-value] {
+    display: inline-block;
+    color: #fcfaf7;
+    background-color: #586e75;
+    border-radius: 5px;
+    -webkit-border-radius: 5px;
+    text-align: center;
+    font-size: 0.8em;
+    width: 3.0em;
+    line-height: 1.5em;
+    margin-right: 1em;
+    font-style: normal;
+    font-weight: bold;
+}
+
+hr {
+    border: solid #586e75;
+    border-width: 1px 0 0;
+    margin-top: 5em;
+}
+
+em, i {
+    font-style: italic;
+    line-height: inherit;
+}
+
+strong, b {
+    font-weight: bold;
+    line-height: inherit;
+}
+
+.conum[data-value]+b {
+    display: none;
+}
+
+.conum[data-value]:after {
+    content: attr(data-value)
+}
+
+pre .conum[data-value] {
+    position: relative;
+    top: -.125em;
+}
+
+b.conum * {
+    color: inherit!important;
+}
+
+ol li {
+    padding-left: 1em;
+}
+
+@media only screen and (min-width:850px) {
+    body.toc2 {
+        padding-left: 15em;
+        margin-top: -5em;
+    }
+
+    #toc.toc2 {
+        background: #fcfaf7;
+        position: fixed;
+        width: 15em;
+        left: 0;
+        top: 0;
+        border-right: 2px solid #efefed;
+        padding: 0.5em;
+        height: 100%;
+        overflow: auto;
+    }
+}
+
+#toc.toc2 #toctitle {
+    margin-top: 0;
+    margin-bottom: .8rem;
+    font-size: 1.25em;
+}
+#toc.toc2>ul {
+    font-size: 0.875em;
+    padding-left: 0.5em;
+}
+
+#toc.toc2 ul ul {
+    padding-left: 0.5em;
+}
+
+#toc.toc2 a {
+    text-decoration: none;
+}
+
+#toc.toc2 li {
+    margin-left: 0.5em;
+    margin-top: 0em;
+    margin-bottom: 0em;
+}
