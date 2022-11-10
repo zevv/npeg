@@ -34,10 +34,11 @@ type
     precStack*: Stack[PrecFrame]
 
   Parser*[S, T] = object
+    fn_init*: proc(): MatchState[S]
     when npegGcSafe:
-      fn*: proc(ms: var MatchState[S], s: openArray[S], u: var T): MatchResult[S] {.gcsafe.}
+      fn_run*: proc(ms: var MatchState[S], s: openArray[S], u: var T): MatchResult[S] {.gcsafe.}
     else:
-      fn*: proc(ms: var MatchState[S], s: openArray[S], u: var T): MatchResult[S]
+      fn_run*: proc(ms: var MatchState[S], s: openArray[S], u: var T): MatchResult[S]
 
 
 # This macro translates `$1`.. into `capture[1].s`.. and `@1` into `capture[1].si` 
@@ -60,16 +61,6 @@ proc doSugar(n, captureId: NimNode): NimNode =
     result = copyNimNode(n)
     for nc in n:
       result.add doSugar(nc, captureId)
-
-
-proc initMatchState*[S](): MatchState[S] =
-  result = MatchState[S](
-    retStack: initStack[RetFrame]("return", 8, npegRetStackSize),
-    capStack: initStack[CapFrame[S]]("capture", 8),
-    backStack: initStack[BackFrame]("backtrace", 8, npegBackStackSize),
-    precStack: initStack[PrecFrame]("precedence", 8, 16),
-  )
-  push(result.precStack, 0)
 
 
 # Generate the parser main loop. The .computedGoto. pragma will generate code
@@ -366,7 +357,7 @@ proc genExceptionCode(ms, ip, symTab: NimNode): NimNode =
 
 
 # Convert the list of parser instructions into a Nim finite state machine
-# 
+#
 # - sType is the base type of the subject; typically `char` but can be specified
 #   to be another type by the user
 # - uType is the type of the userdata, if not used this defaults to `bool`
@@ -388,15 +379,22 @@ proc genCode*(program: Program, sType, uType, uId: NimNode): NimNode =
     traceCode = genTraceCode(program, sType, uType, uId, ms, s, si, simax, ip)
     exceptionCode = genExceptionCode(ms, ip, newLit(program.symTab))
 
-  # This is the result of genCode: a Parser object with a pointer to the
-  # generated proc below doing the matching.
-
   result = quote:
 
-    proc fn(`ms`: var MatchState, `s`: openArray[`sType`], `uId`: var `uType`): MatchResult {.gensym.} =
+    proc fn_init(): MatchState[`sType`] {.gensym.} =
+      result = MatchState[`sType`](
+        retStack: initStack[RetFrame]("return", 8, npegRetStackSize),
+        capStack: initStack[CapFrame[`sType`]]("capture", 8),
+        backStack: initStack[BackFrame]("backtrace", 8, npegBackStackSize),
+        precStack: initStack[PrecFrame]("precedence", 8, 16),
+      )
+      push(result.precStack, 0)
 
-      # Create local instances of performance-critical MatchState vars, this saves a
-      # dereference on each access
+
+    proc fn_run(`ms`: var MatchState, `s`: openArray[`sType`], `uId`: var `uType`): MatchResult {.gensym.} =
+
+      # Create local instances of performance-critical MatchState vars, this
+      # saves a dereference on each access
 
       var
         `ip`: range[0..`count`] = `ms`.ip
@@ -423,9 +421,9 @@ proc genCode*(program: Program, sType, uType, uId: NimNode): NimNode =
       except:
         `exceptionCode`
 
-      # When the parsing machine is done, copy the local copies of the matchstate
-      # back, close the capture stack and collect all the captures in the match
-      # result
+      # When the parsing machine is done, copy the local copies of the
+      # matchstate back, close the capture stack and collect all the captures
+      # in the match result
 
       `ms`.ip = `ip`
       `ms`.si = `si`
@@ -435,7 +433,11 @@ proc genCode*(program: Program, sType, uType, uId: NimNode): NimNode =
       if result.ok and `ms`.capStack.top > 0:
         result.cs = fixCaptures(`s`, `ms`.capStack, FixAll)
 
-    Parser[`sType`,`uType`](fn: fn)
+    # This is the result of genCode: a Parser object with two function
+    # pointers: fn_init: initializes a MatchState object for this parser
+    # fn_run: performs the parsing of the subject on the given matchstate
+
+    Parser[`sType`,`uType`](fn_init: fn_init, fn_run: fn_run)
 
   when npegGcsafe:
     result[0].addPragma(ident("gcsafe"))

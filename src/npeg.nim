@@ -131,8 +131,8 @@ proc match*[S, T](p: Parser, s: openArray[S], userData: var T): MatchResult[S] =
   ## Match a subject string with the given generic parser. The returned
   ## `MatchResult` contains the result of the match and can be used to query
   ## any captures.
-  var ms = initMatchState[S]()
-  p.fn(ms, s, userData)
+  var ms = p.fn_init()
+  p.fn_run(ms, s, userData)
 
 
 proc match*[S](p: Parser, s: openArray[S]): MatchResult[S] =
@@ -149,10 +149,10 @@ when defined(windows) or defined(posix):
   proc matchFile*[T](p: Parser, fname: string, userData: var T): MatchResult[char] =
     var m = memfiles.open(fname)
     var a: ptr UncheckedArray[char] = cast[ptr UncheckedArray[char]](m.mem)
-    var ms = initMatchState[char]()
-    result = p.fn(ms, toOpenArray(a, 0, m.size-1), userData)
+    var ms = p.fn_init()
+    result = p.fn_run(ms, toOpenArray(a, 0, m.size-1), userData)
     m.close()
-  
+
   proc matchFile*(p: Parser, fname: string): MatchResult[char] =
     var userData: bool # dummy if user does not provide a type
     matchFile(p, fname, userData)

@@ -6,7 +6,7 @@ import strutils
 import tables
 import json
 import times
-import packedjson
+#import packedjson
 import osproc
 
 let js = execProcess("bzip2 -d < tests/json-32M.bzip2").string
