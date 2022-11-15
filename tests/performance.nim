@@ -71,13 +71,15 @@ measureTime "json":
     UnicodeEscape  <- 'u' * Xdigit[4]
     Escape         <- '\\' * ({ '"', '\\', '/', 'b', 'f', 'n', 'r', 't' } | UnicodeEscape)
     StringBody     <- *Escape * *( +( {'\x20'..'\xff'} - {'"'} - {'\\'}) * *Escape) 
-    String         <- '"' * StringBody * '"'
+    String         <- '"' * StringBody * '"':
+      discard
 
     Minus          <- '-'
     IntPart        <- '0' | {'1'..'9'} * *{'0'..'9'}
     FractPart      <- "." * +{'0'..'9'}
     ExpPart        <- ( 'e' | 'E' ) * ?( '+' | '-' ) * +{'0'..'9'}
-    Number         <- ?Minus * IntPart * ?FractPart * ?ExpPart
+    Number         <- ?Minus * IntPart * ?FractPart * ?ExpPart:
+      discard
 
     DOC            <- Value * !1
     ObjPair        <- S * String * S * ":" * Value
