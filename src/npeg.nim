@@ -152,8 +152,8 @@ when defined(windows) or defined(posix):
     if os.getFileSize(fname) > 0:
       var m = memfiles.open(fname)
       var a: ptr UncheckedArray[char] = cast[ptr UncheckedArray[char]](m.mem)
-      var ms = initMatchState[char]()
-      result = p.fn(ms, toOpenArray(a, 0, m.size-1), userData)
+      var ms = p.fn_init()
+      result = p.fn_run(ms, toOpenArray(a, 0, m.size-1), userData)
       m.close()
     else:
       result = match(p, "", userData)
