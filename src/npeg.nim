@@ -61,6 +61,7 @@ import tables
 import macros
 import strutils
 import npeg/[common,codegen,capture,parsepatt,grammar,dot]
+import os
 
 export NPegException, contains, `[]`, len
 
@@ -147,12 +148,16 @@ proc match*[S](p: Parser, s: openArray[S]): MatchResult[S] =
 when defined(windows) or defined(posix):
   import memfiles
   proc matchFile*[T](p: Parser, fname: string, userData: var T): MatchResult[char] =
-    var m = memfiles.open(fname)
-    var a: ptr UncheckedArray[char] = cast[ptr UncheckedArray[char]](m.mem)
-    var ms = p.fn_init()
-    result = p.fn_run(ms, toOpenArray(a, 0, m.size-1), userData)
-    m.close()
-
+    # memfiles.open() throws on empty files, work around that
+    if os.getFileSize(fname) > 0:
+      var m = memfiles.open(fname)
+      var a: ptr UncheckedArray[char] = cast[ptr UncheckedArray[char]](m.mem)
+      var ms = initMatchState[char]()
+      result = p.fn(ms, toOpenArray(a, 0, m.size-1), userData)
+      m.close()
+    else:
+      result = match(p, "", userData)
+  
   proc matchFile*(p: Parser, fname: string): MatchResult[char] =
     var userData: bool # dummy if user does not provide a type
     matchFile(p, fname, userData)
