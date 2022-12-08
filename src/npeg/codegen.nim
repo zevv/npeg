@@ -347,7 +347,7 @@ proc genExceptionCode(ms, ip, symTab: NimNode): NimNode =
       aux(`ms`.retStack.pop())
 
     let e = getCurrentException()
-    when compiles(e.trace):
+    when compiles(e.trace.pop()):
       # drop the generated parser fn() from the trace and replace by the NPeg frames
       discard e.trace.pop()
       e.trace.add trace
