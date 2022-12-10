@@ -1,4 +1,16 @@
 
+1.0.1 - 2022-12-10
+==================
+
+- Bugfix release, fixes "expression 'discard' has no type (or is ambiguous)" in 
+  rare cases
+
+1.0.0 - 2022-11-27
+==================
+
+- Improved stack trace handling
+- Fixed matchFile() for empty files
+
 0.27.0 - 2022-11-06
 ===================
 
