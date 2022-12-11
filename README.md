@@ -991,6 +991,21 @@ any character `1` and recurs back to itself. Because searching is a common
 operation, NPeg provides the builtin `@P` operator for this.
 
 
+### Complexity and performance
+
+Although it is possible to write patterns with exponential time complexity for
+NPeg, they are much less common than in regular expressions, thanks to the
+limited backtracking. In particular, patterns written without grammatical rules
+always have a worst-case time `O(n^k)` (and space `O(k)`, which is constant for
+a given pattern), where `k` is the pattern's star height. Moreover, NPeg has a
+simple and clear performance model that allows programmers to understand and
+predict the time complexity of their patterns. The model also provides a firm
+basis for pattern optimizations.
+
+(Adapted from Ierusalimschy, "A Text Pattern-Matching Tool based on Parsing
+Expression Grammars", 2008)
+
+
 ### End of string
 
 PEGs do not care what is in the subject string after the matching succeeds. For
