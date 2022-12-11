@@ -35,6 +35,7 @@ Some NPeg highlights:
 
 ## Contents
 
+<!-- AutoContentStart -->
 - [Quickstart](#quickstart)
 - [Usage](#usage)
     * [Simple patterns](#simple-patterns)
@@ -80,6 +81,7 @@ Some NPeg highlights:
     * [Captures](#captures)
     * [More examples](#more-examples)
 - [Future directions / Todos / Roadmap / The long run](#future-directions--todos--roadmap--the-long-run)
+<!-- AutoContentEnd -->
 
 ## Quickstart
 
