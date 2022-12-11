@@ -893,6 +893,17 @@ import npeg/lib/uri
 ```
 
 
+Note that templates defined in libraries do not implicitly bind the the rules
+from that grammar; instead, you need to explicitly qualify the rules used in
+the template to refer to the grammar. For example:
+
+```nim
+grammar "foo":
+  open <- "("
+  close <- ")"
+  inBrackets(body): foo.open * body * foo.close
+```
+
 ### Library rule overriding/shadowing
 
 To allow the user to add custom captures to imported grammars or rules, it is
