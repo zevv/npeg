@@ -9,10 +9,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
         - uses: actions/checkout@v3
-        - uses: thatrandomperson5/AutoMarkdownContents@v1.0.0
+        - uses: thatrandomperson5/AutoMarkdownContents@v1.1.1
           with:
             file: README.md
             auto: true
+            skip-first: true
         - name: Pull request
           uses: peter-evans/create-pull-request@v4
           with:
