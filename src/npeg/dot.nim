@@ -35,7 +35,7 @@ proc addPatt*(d: Dot, name: string, len: int) =
 
 proc dump*(d: Dot) =
   const npegDotDir {.strdefine.}: string = ""
-  if npegDotDir != "":
+  when npegDotDir != "":
     let fname = npegDotDir & "/" & d.name & ".dot"
     echo "Dumping dot graph file to " & fname & "..."
 
