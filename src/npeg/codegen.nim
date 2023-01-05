@@ -25,6 +25,7 @@ type
 
   MatchState*[S] = object
     ip*: int
+    result*: MatchResult[S]
     si*: int
     simax*: int
     refs*: Table[string, string]
@@ -76,7 +77,266 @@ proc genLoopCode(program: Program, casesCode: NimNode): NimNode=
   else:
     warning "Grammar too large for computed goto, falling back to normal 'case'"
   result[1].add casesCode
+
+
+template tailCall(ip: int) =
+  {.emit: [
+    "__attribute__ ((musttail)) ",
+    "return foo_", $ip, "(ms_NP, s_NP, s_NPLen_0, si_NP, userdata);"
+  ].}
+
+template tailCall2(ip: int) =
+  {.emit: [
+    "__attribute__ ((musttail)) ",
+    "return fnList[",ip, "](ms_NP, s_NP, s_NPLen_0, si_NP, userdata);"
+  ].}
+
+
+dumpAstGen:
+  {.emit: "hello".}
+
+proc genProcsCode*(program: Program, sType, uType, uId, ms, s, si, simax, ip: NimNode): NimNode =
+
+  result = nnkStmtList.newTree()
+
+  # Forward declarations
+
+  let fns = nnkBracket.newTree()
   
+  for ip, _ in program.patt.pairs:
+    let n = ident("foo_" & $ip)
+    fns.add n
+    result.add quote do:
+      proc `n`(`ms`: var MatchState[`sType`], `s`: openArray[`sType`], `si`: var int, `uid`: var `uType`) {.exportc.}
+
+  # Fn table
+
+  let fnList = ident("fnList")
+
+  result.add quote do:
+    let `fnList` {.exportc.} = `fns`
+
+
+  for ipNow, i in program.patt.pairs:
+
+    let
+      ip = ipNow
+      ipNext = ipNow + 1
+      opName = newLit(repeat(" ", i.indent) & ($i.op).toLowerAscii[2..^1])
+      iname = newLit(i.name)
+      ipFail = if i.failOffset == 0:
+        program.patt.high
+      else:
+        ipNow + i.failOffset
+      procNext = ident("foo_" & $ipNext)
+      procFail = ident("foo_" & $ipFail)
+
+    let body = case i.op:
+
+      of opChr:
+        let ch = newLit(i.ch)
+        quote do:
+          trace `ms`, `iname`, `opName`, `s`, "\"" & escapeChar(`ch`) & "\""
+          if `si` < `s`.len and `s`[`si`] == `ch`.char:
+            inc `si`
+            tailCall(`ipNext`)
+          else:
+            tailCall(`ipFail`)
+      
+      of opLit:
+        let lit = i.lit
+        quote:
+          trace `ms`, `iname`, `opName`, `s`, `lit`.repr
+          if `si` < `s`.len and `s`[`si`] == `lit`:
+            inc `si`
+            tailCall(`ipNext`)
+          else:
+            tailCall(`ipFail`)
+
+      of opSet:
+        let cs = newLit(i.cs)
+        quote:
+          trace `ms`, `iname`, `opName`, `s`, dumpSet(`cs`)
+          if `si` < `s`.len and `s`[`si`] in `cs`:
+            inc `si`
+            tailCall(`ipNext`)
+          else:
+            tailCall(`ipFail`)
+
+      of opSpan:
+        let cs = newLit(i.cs)
+        quote:
+          trace `ms`, `iname`, `opName`, `s`, dumpSet(`cs`)
+          while `si` < `s`.len and `s`[`si`] in `cs`:
+            inc `si`
+          tailCall(`ipNext`)
+
+      of opChoice:
+        let ip2 = newLit(ipNow + i.ipOffset)
+        let siOffset = newLit(i.siOffset)
+        quote:
+          trace `ms`, `iname`, `opName`, `s`, $`ip2`
+          push(`ms`.backStack, BackFrame(ip:`ip2`, si:`si`+`siOffset`, rp:`ms`.retStack.top, cp:`ms`.capStack.top, pp:`ms`.precStack.top))
+          tailCall(`ipNext`)
+
+      of opCommit:
+        let ip2 = newLit(ipNow + i.ipOffset)
+        quote:
+          trace `ms`, `iname`, `opName`, `s`, $`ip2`
+          discard pop(`ms`.backStack)
+          tailCall(`ip2`)
+
+      of opCall:
+        let label = newLit(i.callLabel)
+        let ip2 = newLit(ipNow + i.callOffset)
+        quote:
+          trace `ms`, `iname`, `opName`, `s`, `label` & ":" & $`ip2`
+          push(`ms`.retStack, `ipNext`)
+          tailCall(`ip2`)
+
+      of opJump:
+        let label = newLit(i.callLabel)
+        let ip2 = newLit(ipNow + i.callOffset)
+        quote:
+          trace `ms`, `iname`, `opName`, `s`, `label` & ":" & $`ip2`
+          tailCall(`ip2`)
+
+      of opCapOpen:
+        let capKind = newLit(i.capKind)
+        let capName = newLit(i.capName)
+        let capSiOffset = newLit(i.capSiOffset)
+        quote:
+          trace `ms`, `iname`, `opName`, `s`, $`capKind` & " -> " & $`si`
+          push(`ms`.capStack, CapFrame[`sType`](cft: cftOpen, si: `si`+`capSiOffset`, ck: `capKind`, name: `capName`))
+          tailCall(`ipNext`)
+      
+      of opCapClose:
+        let ck = newLit(i.capKind)
+
+        case i.capKind:
+          of ckAction:
+            let captureId = ident "capture"
+            let code = doSugar(i.capAction, captureId)
+            quote:
+              trace `ms`, `iname`, `opName`, `s`, "ckAction -> " & $`si`
+              push(`ms`.capStack, CapFrame[`sType`](cft: cftClose, si: `si`, ck: `ck`))
+              let capture = collectCaptures(fixCaptures[`sType`](`s`, `ms`.capStack, FixOpen))
+              proc fn(`captureId`: Captures[`sType`], `ms`: var MatchState[`sType`], `uId`: var `uType`): bool =
+                result = true
+                `code`
+              if fn(capture, `ms`, `uId`):
+                tailCall(`ipNext`)
+              else:
+                tailCall(`ipFail`)
+
+          of ckRef:
+            quote:
+              trace `ms`, `iname`, `opName`, `s`, "ckRef -> " & $`si`
+              push(`ms`.capStack, CapFrame[`sType`](cft: cftClose, si: `si`, ck: `ck`))
+              let r = collectCapturesRef(fixCaptures[`sType`](`s`, `ms`.capStack, FixOpen))
+              `ms`.refs[r.key] = r.val
+              tailCall(`ipNext`)
+
+          else:
+            quote:
+              trace `ms`, `iname`, `opName`, `s`, $`ck` & " -> " & $`si`
+              push(`ms`.capStack, CapFrame[`sType`](cft: cftClose, si: `si`, ck: `ck`))
+              tailCall(`ipNext`)
+
+      of opBackref:
+        let refName = newLit(i.refName)
+        quote:
+          if `refName` in `ms`.refs:
+            let s2 = `ms`.refs[`refName`]
+            trace `ms`, `iname`, `opName`, `s`, `refName` & ":\"" & s2 & "\""
+            if subStrCmp(`s`, `s`.len, `si`, s2):
+              inc `si`, s2.len
+              tailCall(`ipNext`)
+            else:
+              tailCall(`ipFail`)
+          else:
+            raise newException(NPegException, "Unknown back reference '" & `refName` & "'")
+
+      of opErr:
+        let msg = newLit(i.msg)
+        quote:
+          trace `ms`, `iname`, `opName`, `s`, `msg`
+          var e = newException(NPegException, "Parsing error at #" & $`si` & ": \"" & `msg` & "\"")
+          `ms`.simax = max(`ms`.simax, `si`)
+          e.matchLen = `si`
+          e.matchMax = `ms`.simax
+          raise e
+      
+      of opReturn:
+        quote:
+          trace `ms`, `iname`, `opName`, `s`
+          if `ms`.retStack.top > 0:
+            let ip = pop(`ms`.retStack)
+            tailCall2(ip)
+          else:
+            `ms`.result.ok = true
+            `ms`.simax = max(`ms`.simax, `si`)
+            echo "break"
+      
+      of opAny:
+        quote:
+          trace `ms`, `iname`, `opName`, `s`
+          if `si` < `s`.len:
+            inc `si`
+            tailCall(`ipNext`)
+          else:
+            tailCall(`ipFail`)
+
+      of opNop:
+        quote:
+          trace `ms`, `iname`, `opName`, `s`
+          tailCall(`ipNext`)
+
+      of opPrecPush:
+        if i.prec == 0:
+          quote:
+            push(`ms`.precStack, 0)
+            tailCall(`ipNext`)
+        else:
+          let (iPrec, iAssoc) = (i.prec.newLit, i.assoc.newLit)
+          let exp = if i.assoc == assocLeft:
+            quote: peek(`ms`.precStack) < `iPrec`
+          else:
+            quote: peek(`ms`.precStack) <= `iPrec`
+          quote:
+            if `exp`:
+              push(`ms`.precStack, `iPrec`)
+              tailCall(`ipNext`)
+            else:
+              tailCall(`ipFail`)
+
+      of opPrecPop:
+        quote:
+            discard `ms`.precStack.pop()
+            tailCall(`ipNext`)
+
+      of opFail:
+        quote:
+          `ms`.simax = max(`ms`.simax, `si`)
+          if `ms`.backStack.top > 0:
+            trace `ms`, "", "opFail", `s`, "(backtrack)"
+            let t = pop(`ms`.backStack)
+            var ip: int
+            (ip, `si`, `ms`.retStack.top, `ms`.capStack.top, `ms`.precStack.top) = (t.ip, t.si, t.rp, t.cp, t.pp)
+            tailCall2(ip)
+          else:
+            trace `ms`, "", "opFail", `s`, "(error)"
+            echo "break"
+
+      else:
+        quote do:
+          discard
+
+    let procName = ident("foo_" & $ipNow)
+    result.add quote do:
+      proc `procName`(`ms`: var MatchState[`sType`], `s`: openArray[`sType`], `si`: var int, `uId`: var `uType`) =
+        `body`
+
 
 # Generate out all the case handlers for the parser program
 
@@ -317,7 +577,8 @@ proc genTraceCode*(program: Program, sType, uType, uId, ms, s, si, simax, ip: Ni
             "|" & repeat("*", ms.backStack.top)
 
       template trace(`ms`: var MatchState, iname, opname: string, `s`: openArray[`sType`], msg = "") =
-        doTrace(`ms`, iname, opname, `ip`, `s`, `si`, `ms`, msg)
+        doTrace(`ms`, iname, opname, 0, `s`, `si`, `ms`, msg)
+        #doTrace(`ms`, iname, opname, `ip`, `s`, `si`, `ms`, msg)
 
   else:
     result = quote:
@@ -374,12 +635,17 @@ proc genCode*(program: Program, sType, uType, uId: NimNode): NimNode =
     ip = ident "ip" & suffix
     simax = ident "simax" & suffix
 
+    procsCode = genProcsCode(program, sType, uType, uId, ms, s, si, simax, ip)
     casesCode = genCasesCode(program, sType, uType, uId, ms, s, si, simax, ip)
     loopCode = genLoopCode(program, casesCode)
     traceCode = genTraceCode(program, sType, uType, uId, ms, s, si, simax, ip)
     exceptionCode = genExceptionCode(ms, ip, newLit(program.symTab))
 
   result = quote:
+
+    `traceCode`
+    `procsCode`
+
 
     proc fn_init(): MatchState[`sType`] {.gensym.} =
       result = MatchState[`sType`](
@@ -416,8 +682,11 @@ proc genCode*(program: Program, sType, uType, uId: NimNode): NimNode =
       # Emit trace and loop code
 
       try:
-        `traceCode`
-        `loopCode`
+        when true:
+          foo_0(`ms`, `s`, `si`, `uId`)
+        else:
+          `traceCode`
+          `loopCode`
       except:
         `exceptionCode`
 
