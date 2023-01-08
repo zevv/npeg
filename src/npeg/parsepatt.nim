@@ -115,7 +115,7 @@ proc parsePatt*(pattName: string, nn: NimNode, grammar: Grammar, dot: Dot = nil)
 
       of nnkInfix:
         case n[0].strVal:
-          of "*": result = aux(n[1]) * aux(n[2])
+          of "*", "∙": result = aux(n[1]) * aux(n[2])
           of "-": result = aux(n[1]) - aux(n[2])
           of "^": result = newPattAssoc(aux(n[1]), intVal(n[2]), assocLeft)
           of "^^": result = newPattAssoc(aux(n[1]), intVal(n[2]), assocRight)
