@@ -3,7 +3,8 @@ on:
   push:
     paths:
       - README.md
-
+    branches:
+      - '**' 
 jobs:
   make:
     runs-on: ubuntu-latest
