@@ -33,6 +33,11 @@ Some NPeg highlights:
 
 - NPeg can draw [cool diagrams](/doc/example-railroad.png)
 
+## Contents
+
+<!-- AutoContentStart -->
+<!-- AutoContentEnd -->
+
 ## Quickstart
 
 Here is a simple example showing the power of NPeg: The macro `peg` compiles a
@@ -310,7 +315,7 @@ transform one or more patterns into expressions, building larger patterns.
   For example, `"foo" * "bar"` would only match the string `"foobar"`.
 
   Note: As an alternative for the `*` asterisk, the unicode glyph `∙` ("bullet
-  operator" ,0x2219) can also be used for concatenation.
+  operator", 0x2219) can also be used for concatenation.
 
 
 - Ordered choice: `P1 | P2`
