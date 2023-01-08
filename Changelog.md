@@ -1,6 +1,9 @@
+1.1.0 - 2023-01-08
+==================
 
 - Added alternate `∙` concatenation operator
 - Fixed fixBareExceptionWarning in Nim devel
+- Added table of contents to README.md
 
 1.0.1 - 2022-12-10
 ==================
