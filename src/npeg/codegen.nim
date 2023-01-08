@@ -418,7 +418,7 @@ proc genCode*(program: Program, sType, uType, uId: NimNode): NimNode =
       try:
         `traceCode`
         `loopCode`
-      except:
+      except CatchableError:
         `exceptionCode`
 
       # When the parsing machine is done, copy the local copies of the
