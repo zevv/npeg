@@ -1,4 +1,7 @@
 
+- Added alternate `∙` concatenation operator
+- Fixed fixBareExceptionWarning in Nim devel
+
 1.0.1 - 2022-12-10
 ==================
 

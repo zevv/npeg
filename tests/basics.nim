@@ -30,6 +30,10 @@ suite "unit tests":
     doAssert     patt("ab").match("abcde").matchLen == 2
     doassert     patt(i"ab").match("AB").ok
 
+  test "*: concatenation":
+    doAssert     patt("a" * "b").match("ab").ok
+    doAssert     patt("a" ∙ "b").match("ab").ok
+
   test "?: zero or one":
     doAssert     patt("a" * ?"b" * "c").match("abc").ok
     doAssert     patt("a" * ?"b" * "c").match("ac").ok
