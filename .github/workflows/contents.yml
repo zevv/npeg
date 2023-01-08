@@ -1,0 +1,27 @@
+name: Make table of contents
+on: 
+  push:
+    paths:
+      - README.md
+
+jobs:
+  make:
+    runs-on: ubuntu-latest
+    steps:
+        - uses: actions/checkout@v3
+        - uses: thatrandomperson5/AutoMarkdownContents@v1.1.1
+          with:
+            file: README.md
+            auto: true
+            skip-first: true
+        - name: Pull request
+          uses: peter-evans/create-pull-request@v4
+          with:
+            token: ${{ secrets.GITHUB_TOKEN }}
+            title: "Add md table of contents"
+            commit-message: ":clipboard: Added markdown table of contents"
+            body: |
+              :clipboard: Added markdown table of contents
+            base: ${{ github.head_ref }} # Creates pull request onto pull request or commit branch
+            branch: actions/automd  
+
