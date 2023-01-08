@@ -61,7 +61,6 @@ import tables
 import macros
 import strutils
 import npeg/[common,codegen,capture,parsepatt,grammar,dot]
-import os
 
 export NPegException, contains, `[]`, len
 
@@ -146,7 +145,7 @@ proc match*[S](p: Parser, s: openArray[S]): MatchResult[S] =
 # Match a file
 
 when defined(windows) or defined(posix):
-  import memfiles
+  import memfiles, os
   proc matchFile*[T](p: Parser, fname: string, userData: var T): MatchResult[char] =
     # memfiles.open() throws on empty files, work around that
     if os.getFileSize(fname) > 0:
