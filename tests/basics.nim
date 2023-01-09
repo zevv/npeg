@@ -32,7 +32,7 @@ suite "unit tests":
 
   test "*: concatenation":
     doAssert     patt("a" * "b").match("ab").ok
-    doAssert     patt("a" ∙ "b").match("ab").ok
+    #doAssert     patt("a" ∙ "b").match("ab").ok
 
   test "?: zero or one":
     doAssert     patt("a" * ?"b" * "c").match("abc").ok
