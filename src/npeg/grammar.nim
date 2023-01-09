@@ -90,7 +90,7 @@ proc link*(grammar: Grammar, initial_name: string, dot: Dot = nil): Program =
     error "inital rule '" & initial_name & "' not found"
 
   var retPatt: Patt
-  var symTab = new Symtab
+  var symTab: SymTab
   var ruleRepr: Table[int, string]
 
   # Recursively emit a pattern and all patterns it calls which are

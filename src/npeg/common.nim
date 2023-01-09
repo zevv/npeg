@@ -123,7 +123,7 @@ type
     repr*: string
     lineInfo*: LineInfo
 
-  SymTab* = ref object
+  SymTab* = object
     syms*: seq[Symbol]
 
   Rule* = object
@@ -149,7 +149,7 @@ type
 # SymTab implementation
 #
 
-proc add*(s: SymTab, ip: int, name: string, repr: string = "", lineInfo: LineInfo = LineInfo()) =
+proc add*(s: var SymTab, ip: int, name: string, repr: string = "", lineInfo: LineInfo = LineInfo()) =
   let symbol = Symbol(ip: ip, name: name, repr: repr, lineInfo: lineInfo)
   s.syms.add(symbol)
 
