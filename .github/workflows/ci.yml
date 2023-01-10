@@ -1,0 +1,77 @@
+name: CI
+on:
+  schedule:
+    - cron: '30 5 * * *'
+
+  push:
+    branches:
+      - master
+  pull_request:
+    branches:
+      - '*'
+
+
+jobs:
+  changes:
+    # Disable the filter on scheduled runs because we don't want to skip those
+    if: github.event_name != 'schedule'
+    continue-on-error: true # Makes sure errors won't stop us
+    runs-on: ubuntu-latest
+    outputs:
+      src: ${{ steps.filter.outputs.src }}
+    steps:
+      # For PRs the path filter check with Github API, so no need to checkout
+      # for them.
+      - if: github.event_name != 'pull_request'
+        name: Checkout (if not PR)
+        uses: actions/checkout@v3
+
+      - uses: dorny/paths-filter@v2
+        id: filter
+        with:
+          filters: |
+            src:
+              - '**.cfg'
+              - '**.nims'
+              - '**.nim'
+              - '**.nimble'
+              - 'tests/**'
+              - '.github/workflows/ci.yml'
+
+  build:
+    # Build if the files we care about are changed.
+    needs: changes
+    # Make sure to always run regardless of whether the filter success or not.
+    # When the filter fails there won't be an output, so checking for `false`
+    # state is better than checking for `true`.
+    #
+    # The always() function here is required for the job to always run despite
+    # what Github docs said, see: https://github.com/actions/runner/issues/491
+    if: always() && !cancelled() && needs.changes.outputs.src != 'false'
+
+    strategy:
+      fail-fast: false
+      matrix:
+        os: ['ubuntu-latest']
+        nim: ['devel']
+    name: '${{ matrix.os }} (${{ matrix.nim }})'
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v3
+        with:
+          path: project
+
+      - name: Setup Nim
+        uses: alaviss/setup-nim@0.1.1
+        with:
+          path: nim
+          version: ${{ matrix.nim }}
+
+      - name: Run tests
+        shell: bash
+        run: |
+          cd project
+          nimble --accept develop
+          nimble test
+
