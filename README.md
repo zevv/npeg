@@ -1111,8 +1111,8 @@ matching failed, the value of `matchMax` is usually a good indication of where
 in the subject string the error occurred:
 
 ```
-let a = patt 4 * E"boom"
-let r = a.match("12345")
+let a = patt 4
+let r = a.match("123")
 if not r.ok:
   echo "Parsing failed at position ", r.matchMax
 ```
@@ -1127,32 +1127,27 @@ The following example illustrates this:
 
 ```nim
 let parser = peg "list":
-  list <- word * *(comma * word) * eof
-  eof <- !1
-  comma <- ','
-  word <- +{'a'..'z'} | E"expected word"
+  list <- word * *(comma * word) * !1
+  word <- +Alpha | E"expected word"
+  comma <- ',' | E"expected comma"
 
-echo parser.match("one,two,three,")
+try:
+  echo parser.match("one,two;three")
+except NPegParseError as e:
+  echo "Parsing failed at position ", e.matchMax, ": ", e.msg
 ```
 
-The rule `word` looks for a sequence of one or more letters (`+{'a'..'z'}`). If
-can this not be matched the `E"expected word"` matches instead, raising an
-exception:
-
-```
-Error: unhandled exception: "expected word" [NPegParseError]
-```
+The rule `comma` tries to match the literal `','`. If this can not be matched,
+the rule `E"expected comma"` will match instead, where `E` will raise an
+`NPegParseError` exception.
 
 The `NPegParseError` type contains the same two fields as `MatchResult` to
 indicate where in the subject string the match failed: `matchLen` and
-`matchMax`:
+`matchMax`, which can be used as an indication of the location of the parse
+error:
 
-```nim
-let a = patt 4 * E"boom"
-try:
-  doAssert a.match("12345").ok
-except NPegParseError as e:
-  echo "Parsing failed at position ", e.matchMax
+```
+Parsing failed at position 7: expected comma
 ```
 
 
