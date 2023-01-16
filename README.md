@@ -1153,18 +1153,18 @@ Parsing failed at position 7: expected comma
 
 #### Other exceptions
 
-NPeg can raise a number of other errors during parsing:
+NPeg can raise a number of other exception types during parsing:
 
-- NPegParseError: described in the previous section
+- `NPegParseError`: described in the previous section
 
-- NPegStackOverflowError: a stack overflow occured in the backtrace
+- `NPegStackOverflowError`: a stack overflow occured in the backtrace
   or call stack; this is usually an indication of a faulty or too complex
   grammar.
 
-- NPegUnknownBackrefError: An unknown back reference identifier is used in an 
+- `NPegUnknownBackrefError`: An unknown back reference identifier is used in an 
   `R()` rule.
 
-- NPegCaptureOutOfRangeError: A code block capture tries to access a capture
+- `NPegCaptureOutOfRangeError`: A code block capture tries to access a capture
   that is not available using the `$` notation or by accessing the `capture[]`
   seq.
 
