@@ -1,3 +1,6 @@
+
+- Split NPegException into multiple exception types, updated README
+
 1.1.1 - 2023-01-08
 ==================
 
