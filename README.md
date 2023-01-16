@@ -292,7 +292,7 @@ Back references:
 
 Error handling:
 
-  E"msg"          # Raise an execption with the given message
+  E"msg"          # Raise an `NPegParseError` exception
 ```
 
 In addition to the above, NPeg provides the following built-in shortcuts for
@@ -1085,7 +1085,20 @@ parser state is rolled back afterwards.
 
 ### Parsing error handling
 
-NPeg offers a number of ways to handle errors during parsing a subject string:
+NPeg offers a number of ways to handle errors during parsing a subject string;
+what method best suits your parser depends on your requirements. 
+
+
+#### MatchResult
+
+NPeg `match()` returns a `MatchResult` object with the following fields:
+
+```nim
+MatchResult = object
+  ok: bool
+  matchLen: int
+  matchMax: int
+```
 
 The `ok` field in the `MatchResult` indicates if the parser was successful:
 when the complete pattern has been matched this value will be set to `true`,
@@ -1095,10 +1108,19 @@ In addition to the `ok` field, the `matchMax` field indicates the maximum
 offset into the subject the parser was able to match the string. If the
 matching succeeded `matchMax` equals the total length of the subject, if the
 matching failed, the value of `matchMax` is usually a good indication of where
-in the subject string the error occurred.
+in the subject string the error occurred:
+
+```
+let a = patt 4 * E"boom"
+let r = a.match("12345")
+if not r.ok:
+  echo "Parsing failed at position ", r.matchMax
+```
+
+#### NpegParseError exceptions
 
 When, during matching, the parser reaches an `E"message"` atom in the grammar,
-NPeg will raise an `NPegException` exception with the given message.
+NPeg will raise an `NPegParseError` exception with the given message.
 The typical use case for this atom is to be combine with the ordered choice `|`
 operator to generate helpful error messages.
 The following example illustrates this:
@@ -1118,10 +1140,10 @@ can this not be matched the `E"expected word"` matches instead, raising an
 exception:
 
 ```
-Error: unhandled exception: Parsing error at #14: "expected word" [NPegException]
+Error: unhandled exception: "expected word" [NPegParseError]
 ```
 
-The `NPegException` type contains the same two fields as `MatchResult` to
+The `NPegParseError` type contains the same two fields as `MatchResult` to
 indicate where in the subject string the match failed: `matchLen` and
 `matchMax`:
 
@@ -1129,7 +1151,7 @@ indicate where in the subject string the match failed: `matchLen` and
 let a = patt 4 * E"boom"
 try:
   doAssert a.match("12345").ok
-except NPegException as e:
+except NPegParseError as e:
   echo "Parsing failed at position ", e.matchMax
 ```
 
@@ -1150,7 +1172,7 @@ occured:
 ./npeg/src/npeg.nim(135) match
 /tmp/flop.nim(4)         list <- word * *(comma * word) * eof
 /tmp/flop.nim(7)         word <- +{'a' .. 'z'} | E"expected word"
-Error: unhandled exception: Parsing error at #14: "expected word" [NPegException]
+Error: unhandled exception: Parsing error at #14: "expected word" [NPegParseError]
 ```
 
 Note: this requires Nim 'devel' or version > 1.6.x; on older versions you can

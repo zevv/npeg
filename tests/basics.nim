@@ -161,28 +161,32 @@ suite "unit tests":
 
   test "raise exception 1":
     let a = patt E"boom"
-    expect NPegException:
+    expect NPegParseError:
       doAssert a.match("abcabc").ok
 
   test "raise exception 2":
     let a = patt 4 * E"boom"
     try:
       doAssert a.match("abcabc").ok
-    except NPegException as e:
+    except NPegParseError as e:
       doAssert e.matchLen == 4
       doAssert e.matchMax == 4
 
   test "out of range capture exception 1":
-    expect NPegException:
+    expect NPegCaptureOutOfRangeError:
       let a = patt 1:
         echo capture[10].s
       doAssert a.match("c").ok
 
   test "out of range capture exception 2":
-    expect NPegException:
+    expect NPegCaptureOutOfRangeError:
       let a = patt 1:
         echo $9
       doAssert a.match("c").ok
+
+  test "unknown backref error":
+    expect NPegUnknownBackrefError:
+      discard patt(R("sep", Alpha) * *(1 - R("sep")) * R("sap") * !1).match("abbbba")
 
   test "user validation":
     let p = peg "line":

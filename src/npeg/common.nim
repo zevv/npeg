@@ -34,9 +34,14 @@ type
   NPegException* = object of CatchableError
     matchLen*: int
     matchMax*: int
-  
+
+  NPegParseError* = object of NPegException
+  NPegStackOverflowError* = object of NPegException
+  NPegUnknownBackrefError* = object of NPegException
+  NPegCaptureOutOfRangeError* = object of NPegException
+
   CapFrameType* = enum cftOpen, cftClose
-  
+
   CapKind* = enum
     ckVal,          # Value capture
     ckPushed,       # Pushed capture

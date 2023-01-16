@@ -220,16 +220,14 @@ proc genCasesCode*(program: Program, sType, uType, uId: NimNode, ms, s, si, sima
             else:
               `ip` = `ipFail`
           else:
-            raise newException(NPegException, "Unknown back reference '" & `refName` & "'")
+            raise newException(NPegUnknownBackrefError, "Unknown back reference '" & `refName` & "'")
 
       of opErr:
         let msg = newLit(i.msg)
         quote:
           trace `ms`, `iname`, `opName`, `s`, `msg`
-          var e = newException(NPegException, "Parsing error at #" & $`si` & ": \"" & `msg` & "\"")
+          var e = newException(NPegParseError, `msg`)
           `simax` = max(`simax`, `si`)
-          e.matchLen = `si`
-          e.matchMax = `simax`
           raise e
 
       of opReturn:
@@ -327,7 +325,7 @@ proc genTraceCode*(program: Program, sType, uType, uId, ms, s, si, simax, ip: Ni
 
 # Augment exception stack traces with the NPeg return stack and re-raise
 
-proc genExceptionCode(ms, ip, symTab: NimNode): NimNode =
+proc genExceptionCode(ms, ip, si, simax, symTab: NimNode): NimNode =
   quote:
 
     # Helper proc to add a stack frame for the given ip
@@ -347,12 +345,17 @@ proc genExceptionCode(ms, ip, symTab: NimNode): NimNode =
       aux(`ms`.retStack.pop())
 
     let e = getCurrentException()
+
     when compiles(e.trace.pop()):
       # drop the generated parser fn() from the trace and replace by the NPeg frames
       discard e.trace.pop()
       e.trace.add trace
 
-    # Re-reaise the exception with the augmented stack trace
+    # Re-reaise the exception with the augmented stack trace and match index filled in
+    if e of NpegException:
+      let eref = (ref NPegException)(e)
+      eref.matchLen = `si`
+      eref.matchMax = `simax`
     raise
 
 
@@ -377,7 +380,7 @@ proc genCode*(program: Program, sType, uType, uId: NimNode): NimNode =
     casesCode = genCasesCode(program, sType, uType, uId, ms, s, si, simax, ip)
     loopCode = genLoopCode(program, casesCode)
     traceCode = genTraceCode(program, sType, uType, uId, ms, s, si, simax, ip)
-    exceptionCode = genExceptionCode(ms, ip, newLit(program.symTab))
+    exceptionCode = genExceptionCode(ms, ip, si, simax, newLit(program.symTab))
 
   result = quote:
 
