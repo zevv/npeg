@@ -998,6 +998,95 @@ echo parser.match("http://nim-lang.org:8080/one/two/three")
 echo myUri  # --> (host: "nim-lang.org", scheme: "http", path: "/one/two/three", port: 8080)
 ```
 
+## Error handling
+
+NPeg offers a number of ways to handle errors during parsing a subject string;
+what method best suits your parser depends on your requirements. 
+
+
+### MatchResult
+
+The most simple way to handle errors is to inspect the `MatchResult` object
+that is returned by the `match()` proc:
+
+```nim
+MatchResult = object
+  ok: bool
+  matchLen: int
+  matchMax: int
+```
+
+The `ok` field in the `MatchResult` indicates if the parser was successful:
+when the complete pattern has been matched this value will be set to `true`,
+if the complete pattern did not match the subject the value will be `false`.
+
+In addition to the `ok` field, the `matchMax` field indicates the maximum
+offset into the subject the parser was able to match the string. If the
+matching succeeded `matchMax` equals the total length of the subject, if the
+matching failed, the value of `matchMax` is usually a good indication of where
+in the subject string the error occurred:
+
+```
+let a = patt 4
+let r = a.match("123")
+if not r.ok:
+  echo "Parsing failed at position ", r.matchMax
+```
+
+### NpegParseError exceptions
+
+When, during matching, the parser reaches an `E"message"` atom in the grammar,
+NPeg will raise an `NPegParseError` exception with the given message.
+The typical use case for this atom is to be combine with the ordered choice `|`
+operator to generate helpful error messages.
+The following example illustrates this:
+
+```nim
+let parser = peg "list":
+  list <- word * *(comma * word) * !1
+  word <- +Alpha | E"expected word"
+  comma <- ',' | E"expected comma"
+
+try:
+  echo parser.match("one,two;three")
+except NPegParseError as e:
+  echo "Parsing failed at position ", e.matchMax, ": ", e.msg
+```
+
+The rule `comma` tries to match the literal `','`. If this can not be matched,
+the rule `E"expected comma"` will match instead, where `E` will raise an
+`NPegParseError` exception.
+
+The `NPegParseError` type contains the same two fields as `MatchResult` to
+indicate where in the subject string the match failed: `matchLen` and
+`matchMax`, which can be used as an indication of the location of the parse
+error:
+
+```
+Parsing failed at position 7: expected comma
+```
+
+
+### Other exceptions
+
+NPeg can raise a number of other exception types during parsing:
+
+- `NPegParseError`: described in the previous section
+
+- `NPegStackOverflowError`: a stack overflow occured in the backtrace
+  or call stack; this is usually an indication of a faulty or too complex
+  grammar.
+
+- `NPegUnknownBackrefError`: An unknown back reference identifier is used in an 
+  `R()` rule.
+
+- `NPegCaptureOutOfRangeError`: A code block capture tries to access a capture
+  that is not available using the `$` notation or by accessing the `capture[]`
+  seq.
+
+
+All the above errors are inherited from the generic `NPegException` object.
+
 
 ## Advanced topics
 
@@ -1084,96 +1173,6 @@ This means that any captures made inside a `&` and `!` block also are
 discarded. It is possible however to capture the contents of a non-consuming
 block with a code block capture, as these are _always_ executed, even when the
 parser state is rolled back afterwards.
-
-
-### Parsing error handling
-
-NPeg offers a number of ways to handle errors during parsing a subject string;
-what method best suits your parser depends on your requirements. 
-
-
-#### MatchResult
-
-The most simple way to handle errors is to inspect the `MatchResult` object
-that is returned by the `match()` proc:
-
-```nim
-MatchResult = object
-  ok: bool
-  matchLen: int
-  matchMax: int
-```
-
-The `ok` field in the `MatchResult` indicates if the parser was successful:
-when the complete pattern has been matched this value will be set to `true`,
-if the complete pattern did not match the subject the value will be `false`.
-
-In addition to the `ok` field, the `matchMax` field indicates the maximum
-offset into the subject the parser was able to match the string. If the
-matching succeeded `matchMax` equals the total length of the subject, if the
-matching failed, the value of `matchMax` is usually a good indication of where
-in the subject string the error occurred:
-
-```
-let a = patt 4
-let r = a.match("123")
-if not r.ok:
-  echo "Parsing failed at position ", r.matchMax
-```
-
-#### NpegParseError exceptions
-
-When, during matching, the parser reaches an `E"message"` atom in the grammar,
-NPeg will raise an `NPegParseError` exception with the given message.
-The typical use case for this atom is to be combine with the ordered choice `|`
-operator to generate helpful error messages.
-The following example illustrates this:
-
-```nim
-let parser = peg "list":
-  list <- word * *(comma * word) * !1
-  word <- +Alpha | E"expected word"
-  comma <- ',' | E"expected comma"
-
-try:
-  echo parser.match("one,two;three")
-except NPegParseError as e:
-  echo "Parsing failed at position ", e.matchMax, ": ", e.msg
-```
-
-The rule `comma` tries to match the literal `','`. If this can not be matched,
-the rule `E"expected comma"` will match instead, where `E` will raise an
-`NPegParseError` exception.
-
-The `NPegParseError` type contains the same two fields as `MatchResult` to
-indicate where in the subject string the match failed: `matchLen` and
-`matchMax`, which can be used as an indication of the location of the parse
-error:
-
-```
-Parsing failed at position 7: expected comma
-```
-
-
-#### Other exceptions
-
-NPeg can raise a number of other exception types during parsing:
-
-- `NPegParseError`: described in the previous section
-
-- `NPegStackOverflowError`: a stack overflow occured in the backtrace
-  or call stack; this is usually an indication of a faulty or too complex
-  grammar.
-
-- `NPegUnknownBackrefError`: An unknown back reference identifier is used in an 
-  `R()` rule.
-
-- `NPegCaptureOutOfRangeError`: A code block capture tries to access a capture
-  that is not available using the `$` notation or by accessing the `capture[]`
-  seq.
-
-
-All the above errors are inherited from the generic `NPegException` object.
 
 
 ### Parser stack trace
