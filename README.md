@@ -1088,6 +1088,29 @@ NPeg can raise a number of other exception types during parsing:
 All the above errors are inherited from the generic `NPegException` object.
 
 
+### Parser stack trace
+
+If an exception is raised from within an NPeg parser - either by the `E` atom
+or by nim code in a code block capture - NPeg will augment the Nim stack trace
+with frames indicating where in the grammar the exception occured.
+
+The above example will generate the following stack trace, note the last two
+entries which are added by NPeg and show the rules in which the exception
+occured:
+
+```
+/tmp/list.nim(9)         list
+./npeg/src/npeg.nim(142) match
+./npeg/src/npeg.nim(135) match
+/tmp/flop.nim(4)         list <- word * *(comma * word) * eof
+/tmp/flop.nim(7)         word <- +{'a' .. 'z'} | E"expected word"
+Error: unhandled exception: Parsing error at #14: "expected word" [NPegParseError]
+```
+
+Note: this requires Nim 'devel' or version > 1.6.x; on older versions you can
+use `-d:npegStackTrace` to make NPeg dump the stack to stdout.
+
+
 ## Advanced topics
 
 ### Parsing other types then strings
@@ -1173,29 +1196,6 @@ This means that any captures made inside a `&` and `!` block also are
 discarded. It is possible however to capture the contents of a non-consuming
 block with a code block capture, as these are _always_ executed, even when the
 parser state is rolled back afterwards.
-
-
-### Parser stack trace
-
-If an exception is raised from within an NPeg parser - either by the `E` atom
-or by nim code in a code block capture - NPeg will augment the Nim stack trace
-with frames indicating where in the grammar the exception occured.
-
-The above example will generate the following stack trace, note the last two
-entries which are added by NPeg and show the rules in which the exception
-occured:
-
-```
-/tmp/list.nim(9)         list
-./npeg/src/npeg.nim(142) match
-./npeg/src/npeg.nim(135) match
-/tmp/flop.nim(4)         list <- word * *(comma * word) * eof
-/tmp/flop.nim(7)         word <- +{'a' .. 'z'} | E"expected word"
-Error: unhandled exception: Parsing error at #14: "expected word" [NPegParseError]
-```
-
-Note: this requires Nim 'devel' or version > 1.6.x; on older versions you can
-use `-d:npegStackTrace` to make NPeg dump the stack to stdout.
 
 
 ### Left recursion
