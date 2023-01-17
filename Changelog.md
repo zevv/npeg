@@ -1,3 +1,8 @@
+1.2.0 - 2023-01-17
+==================
+
+- Split NPegException into more specific errors, updated documentation
+
 1.1.2 - 2023-01-08
 ==================
 
