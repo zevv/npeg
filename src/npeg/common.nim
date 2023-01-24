@@ -313,7 +313,7 @@ proc `$`*(i: Inst, ip=0): string =
 
 proc `$`*(program: Program): string =
   for ip, i in program.patt.pairs:
-    if ip in program.symtab:
+    if ip in program.symTab:
       result.add "\n" & program.symTab[ip].repr & "\n"
     result.add align($ip, 4) & ": " & `$`(i, ip) & "\n"
 

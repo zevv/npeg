@@ -39,7 +39,7 @@ proc findTop[S](capStack: var Stack[CapFrame[S]], fm: FixMethod): int =
 proc fixCaptures*[S](s: openArray[S], capStack: var Stack[CapFrame[S]], fm: FixMethod): Captures[S] =
 
   assert capStack.top > 0
-  assert capStack.peek.cft == cftCLose
+  assert capStack.peek.cft == cftClose
   when npegDebug: echo $capStack
 
   # Convert the closed frames to a seq[Capture]
@@ -84,7 +84,7 @@ proc collectCapturesRef*(caps: Captures): Ref =
 proc getCapture[S](cs: Captures[S], i: int): Capture[S] =
   if i >= cs.capList.len:
     let msg = "Capture out of range, " & $i & " is not in [0.." & $cs.capList.high & "]"
-    raise newException(NpegCaptureOutOfRangeError, msg)
+    raise newException(NPegCaptureOutOfRangeError, msg)
   cs.capList[i]
 
 proc `[]`*[S](cs: Captures[S], i: int): Capture[S] =

@@ -30,14 +30,14 @@ suite "captures":
       foo <- >1: v = $1
     var a: string
     doAssert p.match("a", a).ok
-    doassert a == "a"
+    doAssert a == "a"
   
   test "code block captures 3":
     var a: string
     let p = patt >1:
         a = $1
     doAssert p.match("a").ok
-    doassert a == "a"
+    doAssert a == "a"
   
   test "code block captures 4":
     let p = peg "foo":

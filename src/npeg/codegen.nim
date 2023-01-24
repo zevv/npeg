@@ -35,7 +35,7 @@ type
 
   Parser*[S, T] = object
     fn_init*: proc(): MatchState[S]
-    when npegGcSafe:
+    when npegGcsafe:
       fn_run*: proc(ms: var MatchState[S], s: openArray[S], u: var T): MatchResult[S] {.gcsafe.}
     else:
       fn_run*: proc(ms: var MatchState[S], s: openArray[S], u: var T): MatchResult[S]
@@ -352,7 +352,7 @@ proc genExceptionCode(ms, ip, si, simax, symTab: NimNode): NimNode =
       e.trace.add trace
 
     # Re-reaise the exception with the augmented stack trace and match index filled in
-    if e of NpegException:
+    if e of NPegException:
       let eref = (ref NPegException)(e)
       eref.matchLen = `si`
       eref.matchMax = `simax`
