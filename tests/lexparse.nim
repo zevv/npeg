@@ -10,7 +10,7 @@ type
   Node = ref object
     case kind: Token
     of tInt:
-      intval: int
+      intVal: int
     of tAdd:
       discard
     of cAddExpr:
@@ -35,7 +35,7 @@ let lexer = peg(tokens, st: State):
   tokens <- s * *(token * s)
   token  <- int | add
   int    <- +Digit:
-    st.tokens.add Node(kind: tInt, intval: parseInt($0))
+    st.tokens.add Node(kind: tInt, intVal: parseInt($0))
   add    <- '+':
     st.tokens.add Node(kind: tAdd)
 

@@ -28,7 +28,7 @@ suite "unit tests":
     doAssert     patt("").match("abcde").matchLen == 0
     doAssert     patt("a").match("abcde").matchLen == 1
     doAssert     patt("ab").match("abcde").matchLen == 2
-    doassert     patt(i"ab").match("AB").ok
+    doAssert     patt(i"ab").match("AB").ok
 
   test "*: concatenation":
     doAssert     patt("a" * "b").match("ab").ok
@@ -114,7 +114,7 @@ suite "unit tests":
     doAssert     patt('a' | ('b' * 'c') | ('d' * 'e' * 'f')).match("def").ok
 
   test "Compile time 1":
-    proc dotest(): string {.compileTime.} =
+    proc doTest(): string {.compileTime.} =
       var n: string
       let p = peg "number":
         number <- >+Digit:
