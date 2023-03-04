@@ -305,7 +305,7 @@ proc genTraceCode*(program: Program, sType, uType, uId, ms, s, si, simax, ip: Ni
   
   when npegTrace:
     result = quote:
-      proc doTrace[sType](`ms`: var MatchState, iname, opname: string, ip: int, s: openArray[sType], si: int, ms: var MatchState, msg: string) {.nimCall.} =
+      proc doTrace[sType](`ms`: var MatchState, iname, opname: string, ip: int, s: openArray[sType], si: int, ms: var MatchState, msg: string) {.nimcall.} =
           echo align(if ip >= 0: $ip else: "", 3) &
             "|" & align($(peek(ms.precStack)), 3) &
             "|" & align($si, 3) &
