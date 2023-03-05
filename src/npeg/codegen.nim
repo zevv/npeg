@@ -179,11 +179,11 @@ proc genCasesCode*(program: Program, sType, uType, uId: NimNode, ms, s, si, sima
         let ck = newLit(i.capKind)
 
         case i.capKind:
-          of ckAction:
+          of ckCodeBlock:
             let captureId = ident "capture"
             let code = doSugar(i.capAction, captureId)
             quote:
-              trace `ms`, `iname`, `opName`, `s`, "ckAction -> " & $`si`
+              trace `ms`, `iname`, `opName`, `s`, "ckCodeBlock -> " & $`si`
               push(`ms`.capStack, CapFrame[`sType`](cft: cftClose, si: `si`, ck: `ck`))
               let capture = collectCaptures(fixCaptures[`sType`](`s`, `ms`.capStack, FixOpen))
               proc fn(`captureId`: Captures[`sType`], `ms`: var MatchState[`sType`], `uId`: var `uType`): bool =

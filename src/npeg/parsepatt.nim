@@ -197,7 +197,7 @@ proc parseGrammar*(ns: NimNode, dot: Dot=nil, dumpRailroad = true): Grammar =
                    else: n[1].repr
         var patt = parsePatt(name, n[2], result, dot)
         if n.len == 4:
-          patt = newPatt(patt, ckAction)
+          patt = newPatt(patt, ckCodeBlock)
           patt[patt.high].capAction = n[3]
         result.addRule(name, if n[1].kind == nnkPrefix: >patt else: patt, n.repr, n.lineInfoObj)
 

@@ -45,7 +45,7 @@ type
   CapKind* = enum
     ckVal,          # Value capture
     ckPushed,       # Pushed capture
-    ckAction,       # Action capture, executes Nim code at match time
+    ckCodeBlock,    # Code block capture
     ckRef           # Reference
 
   CapFrame*[S] = object
