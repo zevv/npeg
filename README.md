@@ -105,7 +105,7 @@ let parser = peg("pairs", d: Dict):
   pair <- >word * '=' * >number:
     d[$1] = parseInt($2)
 
-var words: Table[string, int]
+var words: Dict
 doAssert parser.match("one=1,two=2,three=3,four=4", words).ok
 echo words
 ```
