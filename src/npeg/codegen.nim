@@ -412,7 +412,7 @@ proc genCode*(program: Program, sType, uType, uId: NimNode): NimNode =
       template fail() {.used.} =
         return false
 
-      template push(`s`: string) {.used.} =
+      template push(`s`: string|`sType`) {.used.} =
         push(`ms`.capStack, CapFrame[`sType`](cft: cftOpen, ck: ckPushed))
         push(`ms`.capStack, CapFrame[`sType`](cft: cftClose, ck: ckPushed, sPushed: `s`))
 
