@@ -177,5 +177,17 @@ proc captures*[S](mr: MatchResult[S]): seq[S] =
   for cap in collectCaptures(mr.cs):
     result.add cap.s
 
+template nimBug22740*() =
+  ## Provide stub templates as a workaround for https://github.com/nim-lang/Nim/issues/22740.
+  ## Invoke this template in your code if you want to define a parser in a generic proc.
+  template `>`(a: untyped): untyped = discard
+  template `*`(a: untyped): untyped = discard
+  template `-`(a: untyped): untyped = discard
+  template `+`(a: untyped): untyped = discard
+  template `?`(a: untyped): untyped = discard
+  template `!`(a: untyped): untyped = discard
+  template `$`(a: untyped): untyped = discard
+
+
 import npeg/lib/core
 
