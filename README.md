@@ -1446,6 +1446,19 @@ from EBNF to PEG. Notable differences are left recursion and ordered choice.
 Also, see "From EBNF to PEG" from Roman R. Redziejowski.
 
 
+### NPeg and generic functions
+
+Nim's macro system is sometimes finicky and not well defined, and NPeg seems to
+push it to the limit. This means that you might run into strange and
+unexpected issues, especially when mixing NPeg with generic code.
+
+If you run into weird error messages that do not seem to make sense when using
+NPeg from generic procs, check the links below for more information and
+possible workarounds:
+
+- https://github.com/nim-lang/Nim/issues/22740
+- https://github.com/zevv/npeg/issues/68
+
 
 ## Examples
 
