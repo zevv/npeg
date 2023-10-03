@@ -78,6 +78,7 @@ Some NPeg highlights:
 - [Random stuff and frequently asked questions](#random-stuff-and-frequently-asked-questions)
     * [Why does NPeg not support regular PEG syntax?](#why-does-npeg-not-support-regular-peg-syntax)
     * [Can NPeg be used to parse EBNF grammars?](#can-npeg-be-used-to-parse-ebnf-grammars)
+    * [NPeg and generic functions](#npeg-and-generic-functions)
 - [Examples](#examples)
     * [Parsing arithmetic expressions](#parsing-arithmetic-expressions)
     * [A complete JSON parser](#a-complete-json-parser)
