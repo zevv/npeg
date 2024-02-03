@@ -554,7 +554,7 @@ the `^` operator is matched, either one of the next three cases applies:
 - `P ^ 0`: resets the current precedence to 0 and continues parsing. This main
   use case for this is parsing sub-expressions in parentheses.
 
-The heart of a Prett parser in NPeg would look something like this:
+The heart of a Pratt parser in NPeg would look something like this:
 
 ```nim
 exp <- prefix * *infix
