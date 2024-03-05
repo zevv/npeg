@@ -26,7 +26,7 @@ let p = peg("nimversion", nv: NimVersion):
 
   oldnim_version <- header * S *
                     "Compiled at " * date * S *
-                    "Copyright (c) 2006-2024 by Andreas Rumpf" * S *
+                    "Copyright (c) " * +Graph * " by Andreas Rumpf" * S *
                     "git hash:" * S * git * S * 
                     "active boot switches:" * S * boot_switches
 
