@@ -1,3 +1,12 @@
+
+1.2.2 - 2024-03-23
+==================
+
+- Performance optimization; Capture[S] is now a object instead of a ref, less allocs
+- Added 'NPeg and generic functions' section to readme
+- Enhancing parser flexibility: improving type parsing with the push template
+- documentation updates
+
 1.2.1 - 2023-03-04
 ==================
 
