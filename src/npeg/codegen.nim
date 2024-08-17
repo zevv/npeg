@@ -1,5 +1,5 @@
 
-import macros
+import macros except quote, stamp
 import strutils
 import tables
 import npeg/[common,patt,stack,capture]
@@ -40,6 +40,12 @@ type
     else:
       fn_run*: proc(ms: var MatchState[S], s: openArray[S], u: var T): MatchResult[S]
 
+when declared(macros.stamp): # nimskull
+  template quote(body: untyped): NimNode =
+    macros.stamp(body)
+else:
+  template quote(body: untyped): NimNode =
+    macros.quote(body)
 
 # This macro translates `$1`.. into `capture[1].s`.. and `@1` into `capture[1].si` 
 # for use in code block captures. The source nimnode lineinfo is recursively
@@ -394,7 +400,7 @@ proc genCode*(program: Program, sType, uType, uId: NimNode): NimNode =
       push(result.precStack, 0)
 
 
-    proc fn_run(`ms`: var MatchState, `s`: openArray[`sType`], `uId`: var `uType`): MatchResult {.gensym.} =
+    proc fn_run(`ms`: var MatchState[`sType`], `s`: openArray[`sType`], `uId`: var `uType`): MatchResult[`sType`] {.gensym.} =
 
       # Create local instances of performance-critical MatchState vars, this
       # saves a dereference on each access
@@ -446,5 +452,5 @@ proc genCode*(program: Program, sType, uType, uId: NimNode): NimNode =
     result[0].addPragma(ident("gcsafe"))
 
   when npegExpand:
-    echo result.repr
+    echo repr result
 
