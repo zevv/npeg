@@ -1,3 +1,11 @@
+
+1.3.0 - 2024-08-22
+==================
+
+- Added CI (thanks Leorize)
+- Performance optimization
+- Some small rafactorings
+
 1.2.1 - 2023-03-04
 ==================
 
