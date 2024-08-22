@@ -1,0 +1,113 @@
+name: CI
+on:
+  push:
+  pull_request:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        compiler:
+          - name: nim
+            version: devel
+          - name: nim
+            version: version-2-0
+          - name: nimskull
+            version: "0.1.0-dev.21405"
+          - name: nimskull
+            version: "*"
+
+        include:
+          - compiler:
+              name: nim
+              version: devel
+            build_doc: true
+
+    name: ${{ matrix.compiler.name }} ${{ matrix.compiler.version }}
+    runs-on: ubuntu-latest
+
+    defaults:
+      run:
+        shell: bash
+        working-directory: npeg
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4.1.1
+        with:
+          path: npeg
+
+      - name: Setup Nim
+        if: matrix.compiler.name == 'nim'
+        uses: alaviss/setup-nim@0.1.1
+        with:
+          path: nim
+          version: ${{ matrix.compiler.version }}
+
+      - name: Setup nimskull
+        id: nimskull
+        if: matrix.compiler.name == 'nimskull'
+        uses: nim-works/setup-nimskull@0.1.1
+        with:
+          nimskull-version: ${{ matrix.compiler.version }}
+
+      - name: Run tests
+        run: nim r --path:src tests/tests.nim
+
+      - name: Build docs
+        if: matrix.build_doc
+        shell: bash
+        run: |
+          branch=$GITHUB_REF
+          branch=${branch##*/}
+          for i in src/npeg.nim src/npeg/*.nim; do
+            nim doc --project --outdir:htmldocs \
+              --path:src \
+              "--git.url:https://github.com/$GITHUB_REPOSITORY" \
+              "--git.commit:$GITHUB_SHA" \
+              "--git.devel:$branch" \
+              "$i"
+          done
+          # Make npeg module the default page
+          cp htmldocs/{npeg,index}.html
+
+      - name: Upload GitHub Pages artifact
+        if: matrix.build_doc
+        uses: actions/upload-pages-artifact@v3.0.1
+        with:
+          path: npeg/htmldocs
+
+  deploy:
+    needs:
+      - build
+    if: github.ref == 'refs/heads/master'
+
+    permissions:
+      actions: read
+      pages: write
+      id-token: write
+
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    name: Deploy docs to GitHub Pages
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy page
+        id: deployment
+        uses: actions/deploy-pages@v4.0.4
+
+  passed:
+    needs: build
+    if: failure() || cancelled()
+    name: All tests passed
+
+    runs-on: ubuntu-latest
+    steps:
+      - run: exit 1
